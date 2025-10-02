@@ -397,11 +397,11 @@ export default function PlansPage() {
                                       id={`feature-${key}`}
                                       checked={formData.allowedFeatures.includes(key)}
                                       onCheckedChange={(checked) => handleFeatureToggle(key, checked as boolean)}
-                                      disabled={feature.required}
+                                      disabled={(feature as any).required || false}
                                     />
                                     <Label htmlFor={`feature-${key}`} className="text-sm">
                                       {feature.name}
-                                      {feature.required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
+                                      {(feature as any).required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
                                     </Label>
                                   </div>
                                 ))}
@@ -524,11 +524,11 @@ export default function PlansPage() {
                                       id={`edit-feature-${key}`}
                                       checked={formData.allowedFeatures.includes(key)}
                                       onCheckedChange={(checked) => handleFeatureToggle(key, checked as boolean)}
-                                      disabled={feature.required}
+                                      disabled={(feature as any).required || false}
                                     />
                                     <Label htmlFor={`edit-feature-${key}`} className="text-sm">
                                       {feature.name}
-                                      {feature.required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
+                                      {(feature as any).required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
                                     </Label>
                                   </div>
                                 ))}

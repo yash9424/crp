@@ -33,9 +33,9 @@ export async function GET(
     const settings = await settingsCollection.findOne({ type: 'store-settings' }) || {}
 
     // Generate HTML content for PDF
-    const storeName = settings.storeName || bill.storeName || 'Store'
-    const storeAddress = settings.address || bill.address || 'Store Address'
-    const storePhone = settings.phone || bill.phone || '9427300816'
+    const storeName = (settings as any).storeName || bill.storeName || 'Store'
+    const storeAddress = (settings as any).address || bill.address || 'Store Address'
+    const storePhone = (settings as any).phone || bill.phone || '9427300816'
     
     const htmlContent = `
 <!DOCTYPE html>
@@ -61,8 +61,8 @@ export async function GET(
   <div class="center bold">${storeName}</div>
   <div class="center">${storeAddress}</div>
   <div class="center">Phone: ${storePhone}</div>
-  <div class="center">GST: ${settings.gst || bill.gst || 'GST1234456'}</div>
-  <div class="center">Email: ${settings.email || bill.email || 'store@gmail.com'}</div>
+  <div class="center">GST: ${(settings as any).gst || bill.gst || 'GST1234456'}</div>
+  <div class="center">Email: ${(settings as any).email || bill.email || 'store@gmail.com'}</div>
   
   <div class="separator"></div>
   
@@ -99,7 +99,7 @@ export async function GET(
       <span>&#8377;${(bill.subtotal || 0).toFixed(2)}</span>
     </div>
     <div class="total-row">
-      <span>Tax (GST ${bill.taxRate || settings.taxRate || 12}%):</span>
+      <span>Tax (GST ${bill.taxRate || (settings as any).taxRate || 12}%):</span>
       <span>&#8377;${(bill.tax || 0).toFixed(2)}</span>
     </div>
     <div class="total-row final-total">
@@ -112,10 +112,10 @@ export async function GET(
     </div>
   </div>
   
-  ${(settings.terms || bill.terms) ? `
+  ${((settings as any).terms || bill.terms) ? `
     <div class="separator"></div>
     <div class="bold" style="font-size: 10px;">Terms & Conditions:</div>
-    <div class="terms">${settings.terms || bill.terms}</div>
+    <div class="terms">${(settings as any).terms || bill.terms}</div>
   ` : ''}
   
   <div class="separator"></div>
