@@ -24,7 +24,7 @@ export const GET = withFeatureAccess('purchases')(async function() {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 })
   }
-}
+})
 
 export const POST = withFeatureAccess('purchases')(async function(request: NextRequest) {
   try {
