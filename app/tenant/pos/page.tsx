@@ -33,6 +33,7 @@ import {
   Pause,
   X,
 } from "lucide-react"
+import { showToast } from "@/lib/toast"
 
 interface Product {
   id: string
@@ -588,14 +589,15 @@ export default function POSPage() {
                               setIsPaymentDialogOpen(false)
                               setIsBillModalOpen(true)
                               fetchProducts()
+                              showToast.success('Sale completed successfully!')
                             } else {
                               const errorData = await response.json()
-                              alert(`Failed to process sale: ${errorData.error || 'Unknown error'}`)
+                              showToast.error(`Failed to process sale: ${errorData.error || 'Unknown error'}`)
                               console.error('Sale error:', errorData)
                             }
                           } catch (error) {
                             console.error('Failed to process sale:', error)
-                            alert('Network error: Failed to process sale')
+                            showToast.error('Network error: Failed to process sale')
                           }
                         }}
                       >

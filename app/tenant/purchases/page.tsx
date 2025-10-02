@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Edit, Trash2, Package, Truck, DollarSign, Clock, Check } from "lucide-react"
+import { showToast, confirmDelete } from "@/lib/toast"
 
 interface Purchase {
   id: string
@@ -33,6 +34,8 @@ export default function PurchasesPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null)
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -41,24 +44,13 @@ export default function PurchasesPage() {
     brands: [],
     suppliers: []
   })
-  const [inventoryData, setInventoryData] = useState([])
-  const [filteredDropdownData, setFilteredDropdownData] = useState<{
-    sizes: string[]
-    colors: string[]
-    materials: string[]
-    brands: string[]
-  }>({
-    sizes: [],
-    colors: [],
-    materials: [],
-    brands: []
-  })
+
   const [formData, setFormData] = useState({
     supplierName: '',
     supplierContact: '',
     supplierContactNo: '',
     orderDate: new Date().toISOString().split('T')[0],
-    items: [{ name: '', category: '', quantity: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }],
+    items: [{ name: '', category: '', quantity: 0, unitPrice: 0, total: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }],
     notes: ''
   })
 
@@ -95,48 +87,9 @@ export default function PurchasesPage() {
     }
   }
 
-  const fetchInventoryData = async () => {
-    try {
-      const response = await fetch('/api/inventory')
-      if (response.ok) {
-        const data = await response.json()
-        setInventoryData(data)
-      }
-    } catch (error) {
-      console.error('Failed to fetch inventory data:', error)
-    }
-  }
 
-  const filterDropdownsByCategory = (category: string, itemIndex: number) => {
-    if (!category || !inventoryData.length) {
-      setFilteredDropdownData({
-        sizes: dropdownData.sizes || [],
-        colors: dropdownData.colors || [],
-        materials: dropdownData.materials || [],
-        brands: dropdownData.brands || []
-      })
-      return
-    }
 
-    const categoryItems = inventoryData.filter((item: any) => item.category === category)
-    
-    const availableSizes = [...new Set(categoryItems.flatMap((item: any) => item.sizes || []))].filter(Boolean)
-    const availableColors = [...new Set(categoryItems.flatMap((item: any) => item.colors || []))].filter(Boolean)
-    const availableMaterials = [...new Set(categoryItems.map((item: any) => item.material).filter(Boolean))]
-    const availableBrands = [...new Set(categoryItems.map((item: any) => item.brand).filter(Boolean))]
 
-    setFilteredDropdownData({
-      sizes: availableSizes,
-      colors: availableColors,
-      materials: availableMaterials,
-      brands: availableBrands
-    })
-
-    updateItem(itemIndex, 'sizes', '')
-    updateItem(itemIndex, 'colors', '')
-    updateItem(itemIndex, 'material', '')
-    updateItem(itemIndex, 'brand', '')
-  }
 
   const createPurchase = async () => {
     try {
@@ -156,6 +109,9 @@ export default function PurchasesPage() {
         fetchPurchases()
         setIsCreateDialogOpen(false)
         resetForm()
+        showToast.success('Purchase order created successfully!')
+      } else {
+        showToast.error('Failed to create purchase order')
       }
     } catch (error) {
       console.error('Failed to create purchase:', error)
@@ -163,7 +119,7 @@ export default function PurchasesPage() {
   }
 
   const completePurchaseOrder = async (purchaseId: string) => {
-    if (!confirm('Complete this purchase order? Items will be added to inventory.')) return
+    if (!confirmDelete('Complete this purchase order? Items will be added to inventory.')) return
     
     try {
       const response = await fetch(`/api/purchases/${purchaseId}`, {
@@ -174,13 +130,71 @@ export default function PurchasesPage() {
       
       if (response.ok) {
         fetchPurchases()
-        alert('Purchase order completed! Items have been added to inventory.')
+        showToast.success('Purchase order completed! Stock has been refilled for existing products.')
       } else {
-        alert('Failed to complete purchase order')
+        showToast.error('Failed to complete purchase order')
       }
     } catch (error) {
       console.error('Failed to complete purchase order:', error)
-      alert('Error completing purchase order')
+      showToast.error('Error completing purchase order')
+    }
+  }
+
+  const editPurchase = (purchase: Purchase) => {
+    console.log('Edit button clicked for purchase:', purchase.id)
+    setSelectedPurchase(purchase)
+    setFormData({
+      supplierName: purchase.supplierName || '',
+      supplierContact: purchase.supplierContact || '',
+      supplierContactNo: (purchase as any).supplierContactNo || '',
+      orderDate: purchase.orderDate || new Date().toISOString().split('T')[0],
+      items: purchase.items || [],
+      notes: (purchase as any).notes || ''
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const updatePurchase = async () => {
+    if (!selectedPurchase) return
+    try {
+      const response = await fetch(`/api/purchases/${selectedPurchase.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
+      
+      if (response.ok) {
+        fetchPurchases()
+        setIsEditDialogOpen(false)
+        resetForm()
+        showToast.success('Purchase order updated successfully!')
+      } else {
+        showToast.error('Failed to update purchase order')
+      }
+    } catch (error) {
+      console.error('Failed to update purchase:', error)
+      showToast.error('Error updating purchase order')
+    }
+  }
+
+  const deletePurchase = async (purchaseId: string) => {
+    console.log('Delete button clicked for purchase:', purchaseId)
+    if (!confirmDelete('Are you sure you want to delete this purchase order?')) return
+    
+    try {
+      const response = await fetch(`/api/purchases/${purchaseId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        fetchPurchases()
+        showToast.success('Purchase order deleted successfully!')
+      } else {
+        showToast.error('Failed to delete purchase order')
+      }
+    } catch (error) {
+      console.error('Failed to delete purchase:', error)
+      showToast.error('Error deleting purchase order')
     }
   }
 
@@ -190,29 +204,38 @@ export default function PurchasesPage() {
       supplierContact: '',
       supplierContactNo: '',
       orderDate: new Date().toISOString().split('T')[0],
-      items: [{ name: '', category: '', quantity: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }],
+      items: [{ name: '', category: '', quantity: 0, unitPrice: 0, total: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }],
       notes: ''
     })
+    setSelectedPurchase(null)
   }
 
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { name: '', category: '', quantity: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }]
+      items: [...prev.items, { name: '', category: '', quantity: 0, unitPrice: 0, total: 0, updateInventory: true, sku: '', sizes: '', colors: '', brand: '', material: '' }]
     }))
   }
 
   const updateItem = (index: number, field: string, value: any) => {
-    setFormData(prev => ({
+    setFormData(prev => ({           
       ...prev,
-      items: prev.items.map((item, i) => i === index ? { ...item, [field]: value } : item)
+      items: prev.items.map((item, i) => {
+        if (i === index) {
+          const updatedItem = { ...item, [field]: value }
+          if (field === 'quantity' || field === 'unitPrice') {
+            updatedItem.total = (updatedItem.quantity || 0) * (updatedItem.unitPrice || 0)
+          }
+          return updatedItem
+        }
+        return item
+      })
     }))
   }
 
   useEffect(() => {
     fetchPurchases()
     fetchDropdownData()
-    fetchInventoryData()
   }, [])
 
   const filteredPurchases = purchases.filter(purchase =>
@@ -358,7 +381,7 @@ export default function PurchasesPage() {
                       
                       {formData.items.map((item, index) => (
                         <div key={index} className="border rounded-lg p-4 space-y-4">
-                          <div className="grid grid-cols-3 gap-4 mb-4">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="space-y-2">
                               <Label>Item Name</Label>
                               <Input 
@@ -375,12 +398,12 @@ export default function PurchasesPage() {
                                 placeholder="SKU code" 
                               />
                             </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="space-y-2">
                               <Label>Category</Label>
-                              <Select value={item.category} onValueChange={(value) => {
-                                updateItem(index, 'category', value)
-                                filterDropdownsByCategory(value, index)
-                              }}>
+                              <Select value={item.category} onValueChange={(value) => updateItem(index, 'category', value)}>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
@@ -391,9 +414,41 @@ export default function PurchasesPage() {
                                 </SelectContent>
                               </Select>
                             </div>
+                            <div className="space-y-2">
+                              <Label>Quantity</Label>
+                              <Input 
+                                type="number" 
+                                value={item.quantity}
+                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                                placeholder="0" 
+                              />
+                            </div>
                           </div>
                           
-                          <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="space-y-2">
+                              <Label>Unit Price (₹)</Label>
+                              <Input 
+                                type="number" 
+                                step="0.01"
+                                value={item.unitPrice}
+                                onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                placeholder="0.00" 
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Total (₹)</Label>
+                              <Input 
+                                type="number" 
+                                value={item.total.toFixed(2)}
+                                readOnly
+                                className="bg-gray-50"
+                              />
+                            </div>
+                            <div></div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="space-y-2">
                               <Label>Sizes</Label>
                               <Select value={item.sizes} onValueChange={(value) => updateItem(index, 'sizes', value)}>
@@ -401,7 +456,7 @@ export default function PurchasesPage() {
                                   <SelectValue placeholder="Select sizes" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {(item.category ? filteredDropdownData.sizes : dropdownData.sizes).map((size) => (
+                                  {dropdownData.sizes.map((size) => (
                                     <SelectItem key={size} value={size}>{size}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -414,12 +469,15 @@ export default function PurchasesPage() {
                                   <SelectValue placeholder="Select colors" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {(item.category ? filteredDropdownData.colors : dropdownData.colors).map((color) => (
+                                  {dropdownData.colors.map((color) => (
                                     <SelectItem key={color} value={color}>{color}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="space-y-2">
                               <Label>Brand</Label>
                               <Select value={item.brand} onValueChange={(value) => updateItem(index, 'brand', value)}>
@@ -427,7 +485,7 @@ export default function PurchasesPage() {
                                   <SelectValue placeholder="Select brand" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {(item.category ? filteredDropdownData.brands : dropdownData.brands).map((brand) => (
+                                  {dropdownData.brands.map((brand) => (
                                     <SelectItem key={brand} value={brand}>{brand}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -440,23 +498,11 @@ export default function PurchasesPage() {
                                   <SelectValue placeholder="Select material" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {(item.category ? filteredDropdownData.materials : dropdownData.materials).map((material) => (
+                                  {dropdownData.materials.map((material) => (
                                     <SelectItem key={material} value={material}>{material}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 gap-4 mb-4">
-                            <div className="space-y-2">
-                              <Label>Quantity</Label>
-                              <Input 
-                                type="number" 
-                                value={item.quantity}
-                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                                placeholder="0" 
-                              />
                             </div>
                           </div>
                         </div>
@@ -471,10 +517,89 @@ export default function PurchasesPage() {
                         placeholder="Additional notes" 
                       />
                     </div>
+                    
+                    <div className="border-t pt-4">
+                      <div className="flex justify-end">
+                        <div className="w-64 space-y-2">
+                          <div className="flex justify-between text-lg font-bold">
+                            <span>Total Amount:</span>
+                            <span>₹{formData.items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
                     <Button onClick={createPurchase}>Create Purchase Order</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Edit Purchase Dialog */}
+              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Edit Purchase Order</DialogTitle>
+                    <DialogDescription>Update purchase order details</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-6 py-4">
+                    {/* Same form fields as create dialog */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Supplier Name</Label>
+                        <Select value={formData.supplierName} onValueChange={(value) => setFormData(prev => ({...prev, supplierName: value}))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dropdownData.suppliers.map((supplier) => (
+                              <SelectItem key={supplier} value={supplier}>{supplier}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Contact Person</Label>
+                        <Input 
+                          value={formData.supplierContact}
+                          onChange={(e) => setFormData(prev => ({...prev, supplierContact: e.target.value}))}
+                          placeholder="Contact person name" 
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Contact Number</Label>
+                        <Input 
+                          value={formData.supplierContactNo}
+                          onChange={(e) => setFormData(prev => ({...prev, supplierContactNo: e.target.value}))}
+                          placeholder="Supplier contact number" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Order Date</Label>
+                        <Input 
+                          type="date" 
+                          value={formData.orderDate}
+                          onChange={(e) => setFormData(prev => ({...prev, orderDate: e.target.value}))}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Notes</Label>
+                      <Textarea 
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
+                        placeholder="Additional notes" 
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={updatePurchase}>Update Purchase Order</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -540,10 +665,21 @@ export default function PurchasesPage() {
                               <Check className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => editPurchase(purchase)}
+                            disabled={purchase.status === 'completed'}
+                          >
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => deletePurchase(purchase.id)}
+                            disabled={purchase.status === 'completed'}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>

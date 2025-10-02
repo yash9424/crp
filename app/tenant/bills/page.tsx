@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Receipt, Search, Eye, Printer, MessageCircle } from "lucide-react"
+import { Receipt, Search, Eye, Printer, MessageCircle, Download } from "lucide-react"
 
 interface Bill {
   id: string
@@ -91,27 +91,27 @@ export default function BillsPage() {
     const storePhone = settings.phone || bill.phone || '9427300816'
 
     // Create PDF download link
-    const pdfLink = `${window.location.origin}/api/bill-pdf?id=${(bill as any)._id || bill.id}`
+    const pdfLink = `${window.location.origin}/api/bill-pdf/${(bill as any)._id || bill.id}`
 
-    const billMessage = `🧾 *${storeName.toUpperCase()}*
+    const billMessage = `*${storeName.toUpperCase()}*
 
-📋 Bill No: ${bill.billNo}
-👤 Customer: ${bill.customerName}
-📅 Date: ${new Date(bill.createdAt).toLocaleDateString('en-IN')}
+Bill No: ${bill.billNo}
+Customer: ${bill.customerName}
+Date: ${new Date(bill.createdAt).toLocaleDateString('en-IN')}
 
 *ITEMS:*
 ${bill.items.map(item => `• ${item.name} x${item.quantity} = ₹${(item.total || 0).toFixed(2)}`).join('\n')}
 
-💰 *TOTAL AMOUNT: ₹${(bill.total || 0).toFixed(2)}*
-💳 Payment: ${bill.paymentMethod}
+*TOTAL AMOUNT: ₹${(bill.total || 0).toFixed(2)}*
+Payment: ${bill.paymentMethod}
 
-📎 *Download Bill PDF:*
+*Download Bill PDF:*
 ${pdfLink}
 
-Thank you for your business! 🙏
+Thank you for your business! 
 
-📍 ${storeAddress}
-📞 Contact: ${storePhone}`
+${storeAddress}
+Contact: ${storePhone}`
     
     // Open WhatsApp
     const whatsappUrl = `https://wa.me/${bill.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
@@ -260,6 +260,143 @@ Thank you for your business! 🙏
                         <Button variant="ghost" size="sm" onClick={() => viewBill(bill)}>
                           <Eye className="w-4 h-4" />
                         </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            // Generate PDF directly in browser
+                            const itemsText = bill.items.map((item: any) => 
+                              `${item.name} x${item.quantity} @ Rs${(item.price || 0).toFixed(2)} = Rs${(item.total || 0).toFixed(2)}`
+                            ).join('\n')
+                            
+                            const doc = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 800
+>>
+stream
+BT
+/F1 18 Tf
+200 750 Td
+(${(bill.storeName || 'STORE').toUpperCase()}) Tj
+/F1 10 Tf
+-150 -25 Td
+(${bill.address || 'Store Address'}) Tj
+50 -15 Td
+(Phone: ${bill.phone || '9427300816'}) Tj
+-50 -35 Td
+(================================================) Tj
+/F1 12 Tf
+0 -25 Td
+(Bill No: ${bill.billNo}) Tj
+250 0 Td
+(Date: ${new Date(bill.createdAt).toLocaleDateString()}) Tj
+-250 -25 Td
+(Customer: ${bill.customerName}) Tj
+${bill.customerPhone ? `0 -20 Td\n(Phone: ${bill.customerPhone}) Tj` : ''}
+0 -35 Td
+(================================================) Tj
+/F1 14 Tf
+0 -30 Td
+(ITEMS) Tj
+/F1 10 Tf
+0 -25 Td
+(Item Name                    Qty    Rate    Amount) Tj
+0 -15 Td
+(------------------------------------------------) Tj
+${bill.items.map((item: any) => `0 -20 Td\n(${item.name.padEnd(25)} ${String(item.quantity).padStart(3)}  ${('Rs' + ' ' + (item.price || 0).toFixed(2)).padStart(8)}  ${('Rs' + ' ' + (item.total || 0).toFixed(2)).padStart(8)}) Tj`).join('\n')}
+0 -25 Td
+(------------------------------------------------) Tj
+/F1 12 Tf
+300 -25 Td
+(Subtotal: Rs  ${(bill.subtotal || 0).toFixed(2)}) Tj
+0 -20 Td
+(Tax: Rs ${(bill.tax || 0).toFixed(2)}) Tj
+0 -5 Td
+(------------------------) Tj
+/F1 16 Tf
+0 -25 Td
+(TOTAL: Rs  ${(bill.total || 0).toFixed(2)}) Tj
+/F1 10 Tf
+-300 -30 Td
+(Payment Method: ${bill.paymentMethod}) Tj
+0 -40 Td
+(================================================) Tj
+100 -25 Td
+(Thank you for your business!) Tj
+-50 -15 Td
+(Visit us again!) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000053 00000 n 
+0000000125 00000 n 
+0000000348 00000 n 
+0000000565 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+625
+%%EOF`
+                            
+                            const blob = new Blob([doc], { type: 'application/pdf' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `Bill-${bill.billNo}.pdf`
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                            URL.revokeObjectURL(url)
+                          }}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
                         {bill.customerPhone && (
                           <Button 
                             variant="ghost" 
@@ -330,6 +467,142 @@ Thank you for your business! 🙏
                     <span>Total:</span>
                     <span>₹ {(selectedBill.total || 0).toFixed(2)}</span>
                   </div>
+                </div>
+
+                <div className="flex justify-center mt-4">
+                  <Button 
+                    onClick={() => {
+                      // Generate PDF directly in browser
+                      const doc = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 800
+>>
+stream
+BT
+/F1 18 Tf
+200 750 Td
+(${(selectedBill.storeName || 'STORE').toUpperCase()}) Tj
+/F1 10 Tf
+-150 -25 Td
+(${selectedBill.address || 'Store Address'}) Tj
+50 -15 Td
+(Phone: ${selectedBill.phone || '9427300816'}) Tj
+-50 -35 Td
+(================================================) Tj
+/F1 12 Tf
+0 -25 Td
+(Bill No: ${selectedBill.billNo}) Tj
+250 0 Td
+(Date: ${new Date(selectedBill.createdAt).toLocaleDateString()}) Tj
+-250 -25 Td
+(Customer: ${selectedBill.customerName}) Tj
+${selectedBill.customerPhone ? `0 -20 Td\n(Phone: ${selectedBill.customerPhone}) Tj` : ''}
+0 -35 Td
+(================================================) Tj
+/F1 14 Tf
+0 -30 Td
+(ITEMS) Tj
+/F1 10 Tf
+0 -25 Td
+(Item Name                    Qty    Rate    Amount) Tj
+0 -15 Td
+(------------------------------------------------) Tj
+${selectedBill.items.map((item: any) => `0 -20 Td\n(${item.name.padEnd(25)} ${String(item.quantity).padStart(3)}  ${('Rs' + ' ' + (item.price || 0).toFixed(2)).padStart(8)}  ${('Rs' + ' ' + (item.total || 0).toFixed(2)).padStart(8)}) Tj`).join('\n')}
+0 -25 Td
+(------------------------------------------------) Tj
+/F1 12 Tf
+300 -25 Td
+(Subtotal: Rs${(selectedBill.subtotal || 0).toFixed(2)}) Tj
+0 -20 Td
+(Tax: Rs${(selectedBill.tax || 0).toFixed(2)}) Tj
+0 -5 Td
+(------------------------) Tj
+/F1 16 Tf
+0 -25 Td
+(TOTAL: Rs${(selectedBill.total || 0).toFixed(2)}) Tj
+/F1 10 Tf
+-300 -30 Td
+(Payment Method: ${selectedBill.paymentMethod}) Tj
+0 -40 Td
+(================================================) Tj
+100 -25 Td
+(Thank you for your business!) Tj
+-50 -15 Td
+(Visit us again!) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000053 00000 n 
+0000000125 00000 n 
+0000000348 00000 n 
+0000000565 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+625
+%%EOF`
+                      
+                      const blob = new Blob([doc], { type: 'application/pdf' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `Bill-${selectedBill.billNo}.pdf`
+                      document.body.appendChild(a)
+                      a.click()
+                      document.body.removeChild(a)
+                      URL.revokeObjectURL(url)
+                    }}
+                    className="w-full"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
                 </div>
               </div>
             )}

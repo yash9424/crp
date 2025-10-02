@@ -32,6 +32,7 @@ import {
   Upload,
   Barcode,
 } from "lucide-react"
+import { showToast, confirmDelete } from "@/lib/toast"
 
 interface InventoryItem {
   id: string
@@ -128,34 +129,20 @@ export default function InventoryPage() {
   }
 
   const filterDropdownsByCategory = (category: string) => {
-    if (!category || !inventory.length) {
-      setFilteredDropdownData({
-        sizes: dropdownData.sizes || [],
-        colors: dropdownData.colors || [],
-        materials: dropdownData.materials || [],
-        brands: dropdownData.brands || []
-      })
-      return
-    }
-
-    const categoryItems = inventory.filter((item: any) => item.category === category)
-    
-    const availableSizes = [...new Set(categoryItems.flatMap((item: any) => item.sizes || []))].filter(Boolean)
-    const availableColors = [...new Set(categoryItems.flatMap((item: any) => item.colors || []))].filter(Boolean)
-    const availableMaterials = [...new Set(categoryItems.map((item: any) => item.material).filter(Boolean))]
-    const availableBrands = [...new Set(categoryItems.map((item: any) => item.brand).filter(Boolean))]
-
+    // Always show all dropdown options
     setFilteredDropdownData({
-      sizes: availableSizes,
-      colors: availableColors,
-      materials: availableMaterials,
-      brands: availableBrands
+      sizes: dropdownData.sizes || [],
+      colors: dropdownData.colors || [],
+      materials: dropdownData.materials || [],
+      brands: dropdownData.brands || []
     })
 
     setFormData(prev => ({
       ...prev,
       sizes: '',
-      colors: ''
+      colors: '',
+      material: '',
+      brand: ''
     }))
   }
 
@@ -175,6 +162,9 @@ export default function InventoryPage() {
         fetchInventory()
         setIsAddDialogOpen(false)
         resetForm()
+        showToast.success('Item added successfully!')
+      } else {
+        showToast.error('Failed to add item')
       }
     } catch (error) {
       console.error('Failed to create item:', error)
@@ -198,6 +188,9 @@ export default function InventoryPage() {
         fetchInventory()
         setIsEditDialogOpen(false)
         resetForm()
+        showToast.success('Item updated successfully!')
+      } else {
+        showToast.error('Failed to update item')
       }
     } catch (error) {
       console.error('Failed to update item:', error)
@@ -206,16 +199,20 @@ export default function InventoryPage() {
 
   // Delete inventory item
   const deleteItem = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return
+    if (!confirmDelete('Are you sure you want to delete this item?')) return
     try {
       const response = await fetch(`/api/inventory/${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
         fetchInventory()
+        showToast.success('Item deleted successfully!')
+      } else {
+        showToast.error('Failed to delete item')
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
+      showToast.error('Error deleting item')
     }
   }
 
@@ -234,6 +231,12 @@ export default function InventoryPage() {
       material: '',
       brand: ''
     })
+    setFilteredDropdownData({
+      sizes: dropdownData.sizes || [],
+      colors: dropdownData.colors || [],
+      materials: dropdownData.materials || [],
+      brands: dropdownData.brands || []
+    })
     setSelectedItem(null)
   }
 
@@ -249,7 +252,15 @@ export default function InventoryPage() {
       minStock: (item.minStock ?? 0).toString(),
       sizes: (item.sizes || []).join(', '),
       colors: (item.colors || []).join(', '),
-      description: item.description || ''
+      description: item.description || '',
+      material: (item as any).material || '',
+      brand: (item as any).brand || ''
+    })
+    setFilteredDropdownData({
+      sizes: dropdownData.sizes || [],
+      colors: dropdownData.colors || [],
+      materials: dropdownData.materials || [],
+      brands: dropdownData.brands || []
     })
     setIsEditDialogOpen(true)
   }
@@ -282,25 +293,28 @@ export default function InventoryPage() {
   }
 
   const getStockStatus = (item: any) => {
-    if (item.stock <= item.minStock) {
+    const stock = item.stock || 0
+    const minStock = item.minStock || 0
+    
+    if (stock === 0) {
       return (
         <Badge variant="destructive" className="flex items-center space-x-1">
           <AlertTriangle className="w-3 h-3" />
-          <span>Low Stock</span>
+          <span>Out of Stock</span>
         </Badge>
       )
-    } else if (item.stock >= item.maxStock) {
+    } else if (stock <= minStock) {
       return (
-        <Badge variant="secondary" className="flex items-center space-x-1">
-          <TrendingUp className="w-3 h-3" />
-          <span>Overstock</span>
+        <Badge variant="outline" className="flex items-center space-x-1 text-orange-600 border-orange-600">
+          <AlertTriangle className="w-3 h-3" />
+          <span>Low Stock</span>
         </Badge>
       )
     } else {
       return (
         <Badge variant="outline" className="flex items-center space-x-1">
           <Package className="w-3 h-3" />
-          <span>Normal</span>
+          <span>In Stock</span>
         </Badge>
       )
     }
@@ -462,7 +476,12 @@ export default function InventoryPage() {
                 >
                   Clear All
                 </Button>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+                  setIsAddDialogOpen(open)
+                  if (open) {
+                    resetForm()
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
@@ -531,7 +550,7 @@ export default function InventoryPage() {
                               <SelectValue placeholder="Select size" />
                             </SelectTrigger>
                             <SelectContent>
-                              {(formData.category ? filteredDropdownData.sizes : dropdownData.sizes).map((size) => (
+                              {dropdownData.sizes.map((size) => (
                                 <SelectItem key={size} value={size}>{size}</SelectItem>
                               ))}
                             </SelectContent>
@@ -544,7 +563,7 @@ export default function InventoryPage() {
                               <SelectValue placeholder="Select color" />
                             </SelectTrigger>
                             <SelectContent>
-                              {(formData.category ? filteredDropdownData.colors : dropdownData.colors).map((color) => (
+                              {dropdownData.colors.map((color) => (
                                 <SelectItem key={color} value={color}>{color}</SelectItem>
                               ))}
                             </SelectContent>
@@ -557,7 +576,7 @@ export default function InventoryPage() {
                               <SelectValue placeholder="Select material" />
                             </SelectTrigger>
                             <SelectContent>
-                              {(formData.category ? filteredDropdownData.materials : dropdownData.materials).map((material) => (
+                              {dropdownData.materials.map((material) => (
                                 <SelectItem key={material} value={material}>{material}</SelectItem>
                               ))}
                             </SelectContent>
@@ -619,7 +638,7 @@ export default function InventoryPage() {
                             <SelectValue placeholder="Select brand" />
                           </SelectTrigger>
                           <SelectContent>
-                            {(formData.category ? filteredDropdownData.brands : dropdownData.brands).map((brand) => (
+                            {dropdownData.brands.map((brand) => (
                               <SelectItem key={brand} value={brand}>{brand}</SelectItem>
                             ))}
                           </SelectContent>
@@ -627,7 +646,12 @@ export default function InventoryPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
-                        <Textarea id="description" placeholder="Clothing item description" />
+                        <Textarea 
+                          id="description" 
+                          placeholder="Clothing item description" 
+                          value={formData.description}
+                          onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        />
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
@@ -640,7 +664,12 @@ export default function InventoryPage() {
                 </Dialog>
 
                 {/* Edit Dialog */}
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+                  setIsEditDialogOpen(open)
+                  if (!open) {
+                    resetForm()
+                  }
+                }}>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Edit Item</DialogTitle>
@@ -691,6 +720,47 @@ export default function InventoryPage() {
                       </div>
                       <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
+                          <Label htmlFor="editSize">Size</Label>
+                          <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dropdownData.sizes.map((size) => (
+                                <SelectItem key={size} value={size}>{size}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editColor">Color</Label>
+                          <Select value={formData.colors} onValueChange={(value) => setFormData({...formData, colors: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select color" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dropdownData.colors.map((color) => (
+                                <SelectItem key={color} value={color}>{color}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editMaterial">Material</Label>
+                          <Select value={formData.material} onValueChange={(value) => setFormData({...formData, material: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select material" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dropdownData.materials.map((material) => (
+                                <SelectItem key={material} value={material}>{material}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
                           <Label htmlFor="editCostPrice">Cost Price</Label>
                           <Input 
                             id="editCostPrice" 
@@ -715,6 +785,30 @@ export default function InventoryPage() {
                             type="number" 
                             value={formData.minStock}
                             onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editBrand">Brand</Label>
+                          <Select value={formData.brand} onValueChange={(value) => setFormData({...formData, brand: value})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select brand" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dropdownData.brands.map((brand) => (
+                                <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editDescription">Description</Label>
+                          <Textarea 
+                            id="editDescription" 
+                            placeholder="Item description" 
+                            value={formData.description}
+                            onChange={(e) => setFormData({...formData, description: e.target.value})}
                           />
                         </div>
                       </div>

@@ -37,8 +37,15 @@ export async function POST(request: NextRequest) {
     const purchasesCollection = await getTenantCollection(session.user.tenantId, 'purchases')
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
     
+    const subtotal = body.items.reduce((sum: number, item: any) => sum + (item.total || 0), 0)
+    const tax = subtotal * 0.18 // 18% GST
+    const total = subtotal + tax
+    
     const purchase = {
       ...body,
+      subtotal,
+      tax,
+      total,
       tenantId: session.user.tenantId,
       createdBy: session.user.name,
       createdAt: new Date(),
@@ -46,23 +53,6 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await purchasesCollection.insertOne(purchase)
-    
-    // Update inventory stock for each item
-    for (const item of body.items) {
-      if (item.updateInventory) {
-        await inventoryCollection.updateOne(
-          { sku: item.sku },
-          { 
-            $inc: { stock: parseInt(item.quantity) },
-            $set: { 
-              costPrice: parseFloat(item.unitPrice),
-              updatedAt: new Date() 
-            }
-          },
-          { upsert: true }
-        )
-      }
-    }
     
     return NextResponse.json({ 
       ...purchase, 

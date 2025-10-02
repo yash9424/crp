@@ -55,6 +55,8 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   const { storeName, tenantId } = useStore()
 
@@ -210,7 +212,14 @@ export default function CustomersPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedCustomer(customer)
+                              setIsViewDialogOpen(true)
+                            }}
+                          >
                             <Eye className="w-4 h-4" />
                           </Button>
                         </div>
@@ -222,6 +231,86 @@ export default function CustomersPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* View Customer Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Customer Details</DialogTitle>
+              <DialogDescription>View customer information and purchase history</DialogDescription>
+            </DialogHeader>
+            {selectedCustomer && (
+              <div className="space-y-6 py-4">
+                <div className="flex items-center space-x-4 pb-4 border-b">
+                  <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">
+                    {selectedCustomer.name?.charAt(0) || 'C'}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
+                    <p className="text-muted-foreground">{selectedCustomer.phone || 'No phone number'}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant={
+                        (selectedCustomer.orderCount || 0) >= 10 ? "default" : 
+                        (selectedCustomer.orderCount || 0) >= 5 ? "secondary" : "outline"
+                      }>
+                        {(selectedCustomer.orderCount || 0) >= 10 ? "VIP Customer" : 
+                         (selectedCustomer.orderCount || 0) >= 5 ? "Regular Customer" : "New Customer"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Customer Information</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Customer ID:</span>
+                        <p className="text-sm text-muted-foreground">{selectedCustomer.id}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Phone:</span>
+                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Customer Since:</span>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(selectedCustomer.createdAt).toLocaleDateString('en-IN')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Purchase Summary</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Total Orders:</span>
+                        <span className="text-sm text-muted-foreground ml-2">{selectedCustomer.orderCount || 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Total Spent:</span>
+                        <span className="text-sm text-muted-foreground ml-2">₹{(selectedCustomer.totalSpent || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Last Purchase:</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-IN') : 'No purchases yet'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium">Average Order Value:</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ₹{selectedCustomer.orderCount > 0 ? Math.round((selectedCustomer.totalSpent || 0) / selectedCustomer.orderCount) : 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
       </div>
     </MainLayout>
