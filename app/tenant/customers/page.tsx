@@ -37,6 +37,7 @@ import {
   UserPlus,
   Gift,
 } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Customer {
   id: string
@@ -106,6 +107,7 @@ export default function CustomersPage() {
 
   return (
     <MainLayout title="Customer Management" userRole="tenant-admin">
+      <FeatureGuard feature="customers">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -313,6 +315,7 @@ export default function CustomersPage() {
         </Dialog>
 
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

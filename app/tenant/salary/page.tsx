@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Download, Calculator, Users } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface SalaryData {
   employeeId: string
@@ -151,6 +152,7 @@ export default function SalaryPage() {
 
   return (
     <MainLayout title="Salary Management" userRole="tenant-admin">
+      <FeatureGuard feature="salary">
       <div className="space-y-8">
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
@@ -265,6 +267,7 @@ export default function SalaryPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

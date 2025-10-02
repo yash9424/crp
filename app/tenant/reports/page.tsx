@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Receipt, Search, Download, Eye } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Sale {
   id: string
@@ -68,6 +69,7 @@ export default function ReportsPage() {
 
   return (
     <MainLayout title="Sales Reports" userRole="tenant-admin">
+      <FeatureGuard feature="reports">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-3">
@@ -169,6 +171,7 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

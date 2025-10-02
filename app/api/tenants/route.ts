@@ -41,11 +41,23 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantsCollection = await getTenantsCollection()
+    const { connectDB } = require('@/lib/database')
+    const db = await connectDB()
+    const plansCollection = db.collection('plans')
     
     // Check if tenant already exists
     const existingTenant = await tenantsCollection.findOne({ email })
     if (existingTenant) {
       return NextResponse.json({ error: 'Tenant with this email already exists' }, { status: 400 })
+    }
+
+    // Find plan by name and get its ID
+    let planId = null
+    if (plan) {
+      const planDoc = await plansCollection.findOne({ name: { $regex: new RegExp(plan, 'i') } })
+      if (planDoc) {
+        planId = planDoc._id
+      }
     }
 
     // Hash password
@@ -60,7 +72,7 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       phone: phone || null,
       address: address || null,
-      plan: plan || 'basic',
+      plan: planId,
       status: 'active',
       referralCode: tenantReferralCode,
       usedReferralCode: referralCode || null,
@@ -69,6 +81,19 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await tenantsCollection.insertOne(tenant)
+    
+    // Create admin user for the tenant
+    const usersCollection = await getUsersCollection()
+    const adminUser = {
+      email,
+      password: hashedPassword,
+      name: `${name} Admin`,
+      role: 'tenant-admin',
+      tenantId: result.insertedId.toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    await usersCollection.insertOne(adminUser)
     
     // Initialize tenant-specific data collections
     await initializeTenantData(result.insertedId.toString())

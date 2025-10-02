@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Settings, Store, Percent } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -18,7 +19,8 @@ export default function SettingsPage() {
     taxRate: 10,
     terms: '',
     billPrefix: 'BILL',
-    billCounter: 1
+    billCounter: 1,
+    whatsappMessage: ''
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -73,6 +75,7 @@ export default function SettingsPage() {
 
   return (
     <MainLayout title="Store Settings" userRole="tenant-admin">
+      <FeatureGuard feature="settings">
       <div className="space-y-8">
         <Card>
           <CardHeader>
@@ -160,6 +163,16 @@ export default function SettingsPage() {
                 className="w-full p-2 border rounded-md h-20 text-sm"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="whatsappMessage">Custom WhatsApp Message</Label>
+              <textarea
+                id="whatsappMessage"
+                value={settings.whatsappMessage}
+                onChange={(e) => setSettings({...settings, whatsappMessage: e.target.value})}
+                placeholder="Custom message to add after 'Thank you for your business!' in WhatsApp"
+                className="w-full p-2 border rounded-md h-16 text-sm"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -190,6 +203,7 @@ export default function SettingsPage() {
           {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

@@ -252,8 +252,8 @@ export default function TenantsPage() {
   }
 
   const filteredTenants = tenants.filter((tenant) => {
-    const matchesSearch = tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tenant.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (tenant.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (tenant.email || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesPlan = planFilter === "all" || tenant.plan === planFilter
     const matchesStatus = statusFilter === "all" || tenant.status === statusFilter
     return matchesSearch && matchesPlan && matchesStatus

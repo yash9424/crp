@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, price, features, maxUsers, maxProducts, description } = body
+    const { name, price, features, maxUsers, maxProducts, description, allowedFeatures } = body
 
     const db = await connectDB()
     const plansCollection = db.collection('plans')
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       maxUsers: Number(maxUsers),
       maxProducts: Number(maxProducts),
       description: description || '',
+      allowedFeatures: allowedFeatures || ['dashboard'],
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()

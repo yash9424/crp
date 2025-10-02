@@ -34,6 +34,7 @@ import {
   Copy,
   CheckCircle,
 } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 const mockReferrals = [
   {
@@ -158,6 +159,7 @@ export default function ReferralsPage() {
 
   return (
     <MainLayout title="Referral Management System" userRole="tenant-admin">
+      <FeatureGuard feature="referrals">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
@@ -470,6 +472,7 @@ export default function ReferralsPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

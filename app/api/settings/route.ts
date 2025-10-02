@@ -23,7 +23,8 @@ export async function GET() {
       taxRate: 10,
       terms: '',
       billPrefix: 'BILL',
-      billCounter: 1
+      billCounter: 1,
+      whatsappMessage: ''
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
@@ -54,6 +55,7 @@ export async function PUT(request: NextRequest) {
           terms: body.terms || '',
           billPrefix: body.billPrefix || 'BILL',
           billCounter: parseInt(body.billCounter) || 1,
+          whatsappMessage: body.whatsappMessage || '',
           updatedAt: new Date()
         }
       },

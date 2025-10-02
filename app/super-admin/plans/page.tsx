@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { AVAILABLE_FEATURES, FEATURE_CATEGORIES, DEFAULT_FEATURE_SETS, FeatureKey } from "@/lib/feature-permissions"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   CreditCard,
   Users,
@@ -29,6 +31,7 @@ import {
   DollarSign,
   Check,
   Filter,
+  Settings,
 } from "lucide-react"
 
 interface Plan {
@@ -42,6 +45,7 @@ interface Plan {
   status: string
   subscribers?: number
   createdAt: string
+  allowedFeatures?: string[]
 }
 
 export default function PlansPage() {
@@ -58,7 +62,8 @@ export default function PlansPage() {
     maxUsers: '',
     maxProducts: '',
     features: '',
-    description: ''
+    description: '',
+    allowedFeatures: [] as string[]
   })
 
   // Fetch plans from API
@@ -84,7 +89,8 @@ export default function PlansPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          features: formData.features.split(',').map(f => f.trim())
+          features: formData.features.split(',').map(f => f.trim()),
+          allowedFeatures: formData.allowedFeatures
         })
       })
       if (response.ok) {
@@ -106,7 +112,8 @@ export default function PlansPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          features: formData.features.split(',').map(f => f.trim())
+          features: formData.features.split(',').map(f => f.trim()),
+          allowedFeatures: formData.allowedFeatures
         })
       })
       if (response.ok) {
@@ -161,7 +168,8 @@ export default function PlansPage() {
       maxUsers: '',
       maxProducts: '',
       features: '',
-      description: ''
+      description: '',
+      allowedFeatures: []
     })
     setSelectedPlan(null)
   }
@@ -174,9 +182,26 @@ export default function PlansPage() {
       maxUsers: plan.maxUsers.toString(),
       maxProducts: plan.maxProducts.toString(),
       features: plan.features.join(', '),
-      description: plan.description
+      description: plan.description,
+      allowedFeatures: plan.allowedFeatures || []
     })
     setIsEditPlanOpen(true)
+  }
+
+  const handleFeatureToggle = (featureKey: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      allowedFeatures: checked 
+        ? [...prev.allowedFeatures, featureKey]
+        : prev.allowedFeatures.filter(f => f !== featureKey)
+    }))
+  }
+
+  const applyFeatureTemplate = (template: keyof typeof DEFAULT_FEATURE_SETS) => {
+    setFormData(prev => ({
+      ...prev,
+      allowedFeatures: [...DEFAULT_FEATURE_SETS[template]]
+    }))
   }
 
   useEffect(() => {
@@ -343,6 +368,49 @@ export default function PlansPage() {
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                       />
                     </div>
+                    
+                    {/* Feature Access Control */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">Feature Access Control</Label>
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('basic')}>Basic</Button>
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('standard')}>Standard</Button>
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('premium')}>Premium</Button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-4">
+                        {FEATURE_CATEGORIES.map(category => {
+                          const categoryFeatures = Object.entries(AVAILABLE_FEATURES)
+                            .filter(([_, feature]) => feature.category === category)
+                          
+                          if (categoryFeatures.length === 0) return null
+                          
+                          return (
+                            <div key={category} className="space-y-2">
+                              <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {categoryFeatures.map(([key, feature]) => (
+                                  <div key={key} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`feature-${key}`}
+                                      checked={formData.allowedFeatures.includes(key)}
+                                      onCheckedChange={(checked) => handleFeatureToggle(key, checked as boolean)}
+                                      disabled={feature.required}
+                                    />
+                                    <Label htmlFor={`feature-${key}`} className="text-sm">
+                                      {feature.name}
+                                      {feature.required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button variant="outline" onClick={() => {
@@ -427,6 +495,49 @@ export default function PlansPage() {
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                       />
                     </div>
+                    
+                    {/* Feature Access Control */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">Feature Access Control</Label>
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('basic')}>Basic</Button>
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('standard')}>Standard</Button>
+                          <Button type="button" variant="outline" size="sm" onClick={() => applyFeatureTemplate('premium')}>Premium</Button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-4">
+                        {FEATURE_CATEGORIES.map(category => {
+                          const categoryFeatures = Object.entries(AVAILABLE_FEATURES)
+                            .filter(([_, feature]) => feature.category === category)
+                          
+                          if (categoryFeatures.length === 0) return null
+                          
+                          return (
+                            <div key={category} className="space-y-2">
+                              <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {categoryFeatures.map(([key, feature]) => (
+                                  <div key={key} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`edit-feature-${key}`}
+                                      checked={formData.allowedFeatures.includes(key)}
+                                      onCheckedChange={(checked) => handleFeatureToggle(key, checked as boolean)}
+                                      disabled={feature.required}
+                                    />
+                                    <Label htmlFor={`edit-feature-${key}`} className="text-sm">
+                                      {feature.name}
+                                      {feature.required && <span className="text-xs text-muted-foreground ml-1">(Required)</span>}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button variant="outline" onClick={() => {
@@ -502,14 +613,17 @@ export default function PlansPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex flex-wrap justify-center gap-1">
-                          {plan.features.slice(0, 2).map((feature, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {feature}
-                            </Badge>
-                          ))}
-                          {plan.features.length > 2 && (
+                          {(plan.allowedFeatures || []).slice(0, 3).map((featureKey, index) => {
+                            const feature = AVAILABLE_FEATURES[featureKey as FeatureKey]
+                            return (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {feature?.name || featureKey}
+                              </Badge>
+                            )
+                          })}
+                          {(plan.allowedFeatures || []).length > 3 && (
                             <Badge variant="outline" className="text-xs">
-                              +{plan.features.length - 2}
+                              +{(plan.allowedFeatures || []).length - 3}
                             </Badge>
                           )}
                         </div>

@@ -34,6 +34,7 @@ import {
   Mail,
   MapPin,
 } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Employee {
   _id?: string
@@ -242,6 +243,7 @@ export default function HRPage() {
 
   return (
     <MainLayout title="HR & Staff Management" userRole="tenant-admin">
+      <FeatureGuard feature="hr">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
@@ -632,6 +634,7 @@ export default function HRPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

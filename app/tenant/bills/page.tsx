@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Receipt, Search, Eye, Printer, MessageCircle, Download } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Bill {
   id: string
@@ -203,6 +204,7 @@ Contact: ${storePhone}`
 
   return (
     <MainLayout title="Bill History" userRole="tenant-admin">
+      <FeatureGuard feature="bills">
       <div className="space-y-8">
         <Card>
           <CardHeader>
@@ -609,6 +611,7 @@ startxref
           </DialogContent>
         </Dialog>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

@@ -33,6 +33,7 @@ import {
   Phone,
   User,
 } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 const mockMessages = [
   {
@@ -137,6 +138,7 @@ export default function WhatsAppPage() {
 
   return (
     <MainLayout title="WhatsApp Business Integration" userRole="tenant-admin">
+      <FeatureGuard feature="whatsapp">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
@@ -426,6 +428,7 @@ export default function WhatsAppPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

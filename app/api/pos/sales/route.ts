@@ -3,8 +3,9 @@ import { getTenantCollection } from '@/lib/tenant-data'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { ObjectId } from 'mongodb'
+import { withFeatureAccess } from '@/lib/api-middleware'
 
-export async function POST(request: NextRequest) {
+export const POST = withFeatureAccess('pos')(async function(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -116,9 +117,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to process sale' }, { status: 500 })
   }
-}
+})
 
-export async function GET() {
+export const GET = withFeatureAccess('pos')(async function() {
   try {
     const session = await getServerSession(authOptions)
     
@@ -138,4 +139,4 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 })
   }
-}
+})

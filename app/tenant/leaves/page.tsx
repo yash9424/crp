@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Calendar, Clock, Users, Filter, Trash2 } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Employee {
   _id: string
@@ -196,6 +197,7 @@ export default function LeavesPage() {
 
   return (
     <MainLayout title="Leave Management" userRole="tenant-admin">
+      <FeatureGuard feature="leaves">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-3">
@@ -456,6 +458,7 @@ export default function LeavesPage() {
           </CardContent>
         </Card>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

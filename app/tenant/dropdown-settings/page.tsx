@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, Save, Settings } from "lucide-react"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface DropdownData {
   categories: string[]
@@ -172,6 +173,7 @@ export default function DropdownSettingsPage() {
 
   return (
     <MainLayout title="Dropdown Settings" userRole="tenant-admin">
+      <FeatureGuard feature="dropdownSettings">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -219,6 +221,7 @@ export default function DropdownSettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

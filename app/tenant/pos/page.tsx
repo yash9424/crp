@@ -34,6 +34,7 @@ import {
   X,
 } from "lucide-react"
 import { showToast } from "@/lib/toast"
+import { FeatureGuard } from "@/components/feature-guard"
 
 interface Product {
   id: string
@@ -70,7 +71,8 @@ export default function POSPage() {
     phone: '',
     gst: '',
     email: '',
-    terms: ''
+    terms: '',
+    whatsappMessage: ''
   })
   const [customerName, setCustomerName] = useState<string>("")
   const [customerPhone, setCustomerPhone] = useState<string>("")
@@ -234,6 +236,7 @@ export default function POSPage() {
 
   return (
     <MainLayout title="Fashion Point of Sale" userRole="tenant-admin">
+      <FeatureGuard feature="pos">
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Product Selection */}
         <div className="lg:col-span-2 space-y-6">
@@ -805,25 +808,28 @@ export default function POSPage() {
                       // Create PDF download link
                     const pdfLink = `${window.location.origin}/api/bill-pdf/${completedSale._id || completedSale.id}`
                     
-                    const billMessage = `🧾 *${settings.storeName || 'STORE'}*
+                    const customMessage = settings.whatsappMessage || completedSale.whatsappMessage || ''
+                    const billMessage = `*${settings.storeName || 'STORE'}*
 
-📋 Bill No: ${completedSale.billNo}
-👤 Customer: ${completedSale.customerName}
-📅 Date: ${completedSale.date.toLocaleDateString('en-IN')}
+Bill No: ${completedSale.billNo}
+Customer: ${completedSale.customerName}
+Date: ${completedSale.date.toLocaleDateString('en-IN')}
 
 *ITEMS:*
 ${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = ₹${item.total.toFixed(2)}`).join('\n')}
 
-💰 *TOTAL AMOUNT: ₹${completedSale.total.toFixed(2)}*
-💳 Payment: ${completedSale.paymentMethod}
+*TOTAL AMOUNT: ₹${completedSale.total.toFixed(2)}*
+Payment: ${completedSale.paymentMethod}
 
-📎 *Download Bill PDF:*
+*Download Bill PDF:*
 ${pdfLink}
 
-Thank you for your business! 🙏
+Thank you for your business!${customMessage ? `
 
-📍 ${settings.address || 'Store Address'}
-📞 Contact: ${settings.phone || '9427300816'}`
+${customMessage}` : ''}
+
+${settings.address || 'Store Address'}
+Contact: ${settings.phone || '9427300816'}`
 
                     const whatsappUrl = `https://wa.me/${completedSale.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
                     window.open(whatsappUrl, '_blank')
@@ -847,6 +853,7 @@ Thank you for your business! 🙏
           )}
         </DialogContent>
       </Dialog>
+      </FeatureGuard>
     </MainLayout>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useStore } from "@/lib/store-context"
 import { MainLayout } from "@/components/layout/main-layout"
+import { FeatureGuard } from "@/components/feature-guard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -326,7 +327,8 @@ export default function InventoryPage() {
 
   return (
     <MainLayout title="Clothing Inventory Management" userRole="tenant-admin">
-      <div className="space-y-8">
+      <FeatureGuard feature="inventory">
+        <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
           <Card>
@@ -931,7 +933,8 @@ export default function InventoryPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </FeatureGuard>
     </MainLayout>
   )
 }

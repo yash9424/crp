@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTenantCollection } from '@/lib/tenant-data'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { withFeatureAccess } from '@/lib/api-middleware'
 
-export async function GET() {
+export const GET = withFeatureAccess('customers')(async function() {
   try {
     const session = await getServerSession(authOptions)
     
@@ -23,9 +24,9 @@ export async function GET() {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withFeatureAccess('customers')(async function(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -87,4 +88,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
   }
-}
+})
