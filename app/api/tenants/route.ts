@@ -51,10 +51,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tenant with this email already exists' }, { status: 400 })
     }
 
-    // Find plan by name and get its ID
+    // Find plan by ID or name and get its ID
     let planId = null
     if (plan) {
-      const planDoc = await plansCollection.findOne({ name: { $regex: new RegExp(plan, 'i') } })
+      let planDoc = null
+      
+      // Try to find by ObjectId first (if plan is an ID)
+      try {
+        planDoc = await plansCollection.findOne({ _id: new ObjectId(plan) })
+      } catch {
+        // If not ObjectId, try by name
+        planDoc = await plansCollection.findOne({ name: { $regex: new RegExp(plan, 'i') } })
+      }
+      
       if (planDoc) {
         planId = planDoc._id
       }

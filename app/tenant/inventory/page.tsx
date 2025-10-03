@@ -32,8 +32,10 @@ import {
   Download,
   Upload,
   Barcode,
+  Crown,
 } from "lucide-react"
 import { showToast, confirmDelete } from "@/lib/toast"
+import { UpgradePopup } from "@/components/upgrade-popup"
 
 interface InventoryItem {
   id: string
@@ -62,6 +64,7 @@ export default function InventoryPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [importing, setImporting] = useState(false)
+  const [settings, setSettings] = useState({ taxRate: 10 })
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -85,6 +88,7 @@ export default function InventoryPage() {
     sku: '',
     category: '',
     price: '',
+    finalPrice: '',
     costPrice: '',
     stock: '',
     minStock: '',
@@ -94,6 +98,14 @@ export default function InventoryPage() {
     material: '',
     brand: ''
   })
+  const [planLimits, setPlanLimits] = useState<{
+    maxProducts: number
+    maxUsers: number
+    currentProducts: number
+    currentUsers: number
+    planName: string
+  } | null>(null)
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const { storeName, tenantId } = useStore()
 
   // Fetch inventory from API
@@ -129,6 +141,36 @@ export default function InventoryPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings')
+      if (response.ok) {
+        const data = await response.json()
+        setSettings({ taxRate: data.taxRate || 10 })
+      }
+    } catch (error) {
+      console.error('Failed to fetch settings:', error)
+    }
+  }
+
+  const fetchPlanLimits = async () => {
+    try {
+      const response = await fetch('/api/plan-limits')
+      if (response.ok) {
+        const data = await response.json()
+        setPlanLimits(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch plan limits:', error)
+    }
+  }
+
+  const calculatePriceExcludingGST = (originalPrice: number) => {
+    const taxRate = settings.taxRate || 10
+    const taxAmount = (originalPrice * taxRate) / 100
+    return (originalPrice - taxAmount).toFixed(2)
+  }
+
   const filterDropdownsByCategory = (category: string) => {
     // Always show all dropdown options
     setFilteredDropdownData({
@@ -155,20 +197,34 @@ export default function InventoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          price: formData.finalPrice,
+          originalPrice: formData.price,
           sizes: formData.sizes.split(',').map(s => s.trim()),
           colors: formData.colors.split(',').map(c => c.trim())
         })
       })
+      
       if (response.ok) {
         fetchInventory()
+        fetchPlanLimits() // Refresh limits
         setIsAddDialogOpen(false)
         resetForm()
-        showToast.success('Item added successfully!')
+        showToast.success('✅ Product added to inventory successfully!')
+      } else if (response.status === 403) {
+        const errorData = await response.json()
+        if (errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
+          setPlanLimits(errorData.limits)
+          setShowUpgradePopup(true)
+          setIsAddDialogOpen(false)
+        } else {
+          showToast.error('❌ ' + (errorData.message || 'Failed to add product'))
+        }
       } else {
-        showToast.error('Failed to add item')
+        showToast.error('❌ Failed to add product. Please try again.')
       }
     } catch (error) {
       console.error('Failed to create item:', error)
+      showToast.error('❌ Error adding product. Please check your connection.')
     }
   }
 
@@ -181,6 +237,8 @@ export default function InventoryPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          price: formData.finalPrice,
+          originalPrice: formData.price,
           sizes: formData.sizes.split(',').map(s => s.trim()),
           colors: formData.colors.split(',').map(c => c.trim())
         })
@@ -189,31 +247,32 @@ export default function InventoryPage() {
         fetchInventory()
         setIsEditDialogOpen(false)
         resetForm()
-        showToast.success('Item updated successfully!')
+        showToast.success('✅ Product updated successfully!')
       } else {
-        showToast.error('Failed to update item')
+        showToast.error('❌ Failed to update product. Please try again.')
       }
     } catch (error) {
       console.error('Failed to update item:', error)
+      showToast.error('❌ Error updating product. Please check your connection.')
     }
   }
 
   // Delete inventory item
   const deleteItem = async (id: string) => {
-    if (!confirmDelete('Are you sure you want to delete this item?')) return
+    if (!confirmDelete('⚠️ Are you sure you want to delete this product? This action cannot be undone.')) return
     try {
       const response = await fetch(`/api/inventory/${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
         fetchInventory()
-        showToast.success('Item deleted successfully!')
+        showToast.success('🗑️ Product deleted successfully!')
       } else {
-        showToast.error('Failed to delete item')
+        showToast.error('❌ Failed to delete product. Please try again.')
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
-      showToast.error('Error deleting item')
+      showToast.error('❌ Error deleting product. Please check your connection.')
     }
   }
 
@@ -223,6 +282,7 @@ export default function InventoryPage() {
       sku: '',
       category: '',
       price: '',
+      finalPrice: '',
       costPrice: '',
       stock: '',
       minStock: '',
@@ -243,11 +303,13 @@ export default function InventoryPage() {
 
   const openEditDialog = (item: InventoryItem) => {
     setSelectedItem(item)
+    const currentPrice = (item.price ?? 0).toString()
     setFormData({
       name: item.name || '',
-      sku: item.sku || '',
+        sku: item.sku || '',
       category: item.category || '',
-      price: (item.price ?? 0).toString(),
+      price: currentPrice,
+      finalPrice: currentPrice,
       costPrice: (item.costPrice ?? 0).toString(),
       stock: (item.stock ?? 0).toString(),
       minStock: (item.minStock ?? 0).toString(),
@@ -269,6 +331,8 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchInventory()
     fetchDropdownData()
+    fetchSettings()
+    fetchPlanLimits()
   }, [tenantId])
 
   const filteredInventory = inventory.filter((item) => {
@@ -331,13 +395,47 @@ export default function InventoryPage() {
         <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
-          <Card>
+          <Card className={planLimits && totalProducts >= planLimits.maxProducts * 0.9 ? 'border-orange-200 bg-orange-50' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-medium">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                {planLimits && totalProducts >= planLimits.maxProducts && (
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                )}
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalProducts}</div>
+              {planLimits && (
+                <div className="space-y-2 mt-2">
+                  <div className="text-xs text-muted-foreground">
+                    {totalProducts}/{planLimits.maxProducts} ({planLimits.planName})
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all ${
+                        totalProducts >= planLimits.maxProducts 
+                          ? 'bg-red-500' 
+                          : totalProducts >= planLimits.maxProducts * 0.9 
+                          ? 'bg-orange-500' 
+                          : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min((totalProducts / planLimits.maxProducts) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  {totalProducts >= planLimits.maxProducts && (
+                    <div className="text-xs text-red-600 font-medium">
+                      Limit reached! Upgrade to add more products.
+                    </div>
+                  )}
+                  {totalProducts >= planLimits.maxProducts * 0.9 && totalProducts < planLimits.maxProducts && (
+                    <div className="text-xs text-orange-600 font-medium">
+                      Approaching limit. Consider upgrading soon.
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -379,8 +477,25 @@ export default function InventoryPage() {
               <div>
                 <CardTitle>Clothing Inventory</CardTitle>
                 <CardDescription>Manage your clothing stock, sizes, colors and details</CardDescription>
+                {planLimits && totalProducts >= planLimits.maxProducts && (
+                  <div className="mt-2">
+                    <Badge variant="destructive" className="text-xs">
+                      Product limit reached ({totalProducts}/{planLimits.maxProducts})
+                    </Badge>
+                  </div>
+                )}
               </div>
               <div className="flex space-x-2">
+                {planLimits && totalProducts >= planLimits.maxProducts && (
+                  <Button 
+                    variant="outline"
+                    className="border-orange-500 text-orange-600 hover:bg-orange-50"
+                    onClick={() => setShowUpgradePopup(true)}
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    Upgrade Plan
+                  </Button>
+                )}
                 <input
                   type="file"
                   accept=".csv"
@@ -400,13 +515,22 @@ export default function InventoryPage() {
                       
                       if (response.ok) {
                         const result = await response.json()
-                        alert(`Imported ${result.count} items successfully!`)
+                        alert(`✅ Successfully imported ${result.count} products!`)
                         fetchInventory()
+                        fetchPlanLimits() // Refresh limits
+                      } else if (response.status === 403) {
+                        const errorData = await response.json()
+                        if (errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
+                          setPlanLimits(errorData.limits)
+                          setShowUpgradePopup(true)
+                        } else {
+                          alert('❌ ' + (errorData.message || 'Import failed'))
+                        }
                       } else {
-                        alert('Import failed')
+                        alert('❌ Import failed. Please check your CSV file format.')
                       }
                     } catch (error) {
-                      alert('Import error')
+                      alert('❌ Import error. Please try again.')
                     } finally {
                       setImporting(false)
                       e.target.value = ''
@@ -433,7 +557,7 @@ export default function InventoryPage() {
                 <Button 
                   variant="outline"
                   onClick={async () => {
-                    if (confirm('Set selling prices for products without them? (Cost Price + 50% markup)')) {
+                    if (confirm('💰 Set selling prices for products without them? (Cost Price + 50% markup)')) {
                       try {
                         const response = await fetch('/api/inventory/bulk-update-prices', {
                           method: 'POST'
@@ -441,13 +565,13 @@ export default function InventoryPage() {
                         
                         if (response.ok) {
                           const result = await response.json()
-                          alert(`Updated ${result.count} products with selling prices!`)
+                          alert(`💰 Updated ${result.count} products with selling prices!`)
                           fetchInventory()
                         } else {
-                          alert('Failed to update prices')
+                          alert('❌ Failed to update prices. Please try again.')
                         }
                       } catch (error) {
-                        alert('Error updating prices')
+                        alert('❌ Error updating prices. Please check your connection.')
                       }
                     }
                   }}
@@ -457,7 +581,7 @@ export default function InventoryPage() {
                 <Button 
                   variant="destructive"
                   onClick={async () => {
-                    if (confirm('Are you sure you want to clear ALL inventory items? This cannot be undone!')) {
+                    if (confirm('⚠️ Are you sure you want to clear ALL inventory items? This action cannot be undone!')) {
                       try {
                         const response = await fetch('/api/inventory/clear', {
                           method: 'DELETE'
@@ -465,13 +589,13 @@ export default function InventoryPage() {
                         
                         if (response.ok) {
                           const result = await response.json()
-                          alert(`Cleared ${result.count} items successfully!`)
+                          alert(`🗑️ Successfully cleared ${result.count} products from inventory!`)
                           fetchInventory()
                         } else {
-                          alert('Failed to clear inventory')
+                          alert('❌ Failed to clear inventory. Please try again.')
                         }
                       } catch (error) {
-                        alert('Error clearing inventory')
+                        alert('❌ Error clearing inventory. Please check your connection.')
                       }
                     }
                   }}
@@ -479,10 +603,15 @@ export default function InventoryPage() {
                   Clear All
                 </Button>
                 <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-                  setIsAddDialogOpen(open)
                   if (open) {
+                    // Check if at product limit before opening dialog
+                    if (planLimits && totalProducts >= planLimits.maxProducts) {
+                      setShowUpgradePopup(true)
+                      return
+                    }
                     resetForm()
                   }
+                  setIsAddDialogOpen(open)
                 }}>
                   <DialogTrigger asChild>
                     <Button>
@@ -490,177 +619,209 @@ export default function InventoryPage() {
                       Add Product
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Add New Clothing Item</DialogTitle>
-                      <DialogDescription>Enter clothing item details for inventory</DialogDescription>
+                  <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0 pb-4 border-b">
+                      <DialogTitle className="text-xl font-semibold">Add New Clothing Item</DialogTitle>
+                      <DialogDescription className="text-sm text-muted-foreground">Enter clothing item details for inventory</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="productName">Item Name</Label>
-                          <Input 
-                            id="productName" 
-                            placeholder="Enter item name" 
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sku">SKU</Label>
-                          <Input 
-                            id="sku" 
-                            placeholder="Item SKU" 
-                            value={formData.sku}
-                            onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="barcode">Barcode</Label>
-                          <div className="flex space-x-2">
-                            <Input id="barcode" placeholder="Barcode number" className="flex-1" />
-                            <Button variant="outline" size="sm">
-                              <Barcode className="w-4 h-4" />
-                            </Button>
+                    <div className="flex-1 overflow-y-auto px-1 py-4">
+                      <div className="space-y-6">
+                        {/* Basic Information */}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="text-sm font-medium text-gray-900 mb-3">Basic Information</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="productName" className="text-sm font-medium">Item Name *</Label>
+                              <Input 
+                                id="productName" 
+                                placeholder="Enter item name" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="sku" className="text-sm font-medium">SKU</Label>
+                              <Input 
+                                id="sku" 
+                                placeholder="Item SKU" 
+                                value={formData.sku}
+                                onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="barcode" className="text-sm font-medium">Barcode</Label>
+                              <div className="flex space-x-2">
+                                <Input id="barcode" placeholder="Barcode number" className="flex-1 h-10" />
+                                <Button variant="outline" size="sm" className="h-10 px-3">
+                                  <Barcode className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="category" className="text-sm font-medium">Category *</Label>
+                              <Select value={formData.category} onValueChange={(value) => {
+                                setFormData({...formData, category: value})
+                                filterDropdownsByCategory(value)
+                              }}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.categories.map((category) => (
+                                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="category">Category</Label>
-                          <Select value={formData.category} onValueChange={(value) => {
-                            setFormData({...formData, category: value})
-                            filterDropdownsByCategory(value)
-                          }}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.categories.map((category) => (
-                                <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        {/* Clothing Attributes */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Clothing Attributes</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="size" className="text-sm font-medium">Size</Label>
+                              <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select size" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.sizes.map((size) => (
+                                    <SelectItem key={size} value={size}>{size}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="material" className="text-sm font-medium">Material</Label>
+                              <Select value={formData.material || ''} onValueChange={(value) => setFormData({...formData, material: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select material" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.materials.map((material) => (
+                                    <SelectItem key={material} value={material}>{material}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="brand" className="text-sm font-medium">Brand</Label>
+                              <Select value={formData.brand || ''} onValueChange={(value) => setFormData({...formData, brand: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select brand" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.brands.map((brand) => (
+                                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      {/* Added clothing-specific fields */}
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="size">Size</Label>
-                          <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.sizes.map((size) => (
-                                <SelectItem key={size} value={size}>{size}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        {/* Pricing */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Pricing Information</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="costPrice" className="text-sm font-medium">Cost Price</Label>
+                              <Input    
+                                id="costPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.costPrice}
+                                onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="sellingPrice" className="text-sm font-medium">Selling Price *</Label>
+                              <Input 
+                                id="sellingPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.price}
+                                onChange={(e) => {
+                                  const priceWithGST = parseFloat(e.target.value) || 0
+                                  const finalPrice = calculatePriceExcludingGST(priceWithGST)
+                                  setFormData({...formData, price: e.target.value, finalPrice: finalPrice})
+                                }}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="finalPrice" className="text-sm font-medium">Final Price (After Tax {settings.taxRate}%)</Label>
+                              <Input 
+                                id="finalPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.finalPrice}
+                                readOnly
+                                className="bg-gray-100 h-10 font-medium"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="color">Color</Label>
-                          <Select value={formData.colors} onValueChange={(value) => setFormData({...formData, colors: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select color" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.colors.map((color) => (
-                                <SelectItem key={color} value={color}>{color}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+
+                        {/* Stock Management */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Stock Management</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="initialStock" className="text-sm font-medium">Initial Stock *</Label>
+                              <Input 
+                                id="initialStock" 
+                                type="number" 
+                                placeholder="0" 
+                                value={formData.stock}
+                                onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="minStock" className="text-sm font-medium">Minimum Stock</Label>
+                              <Input 
+                                id="minStock" 
+                                type="number" 
+                                placeholder="0" 
+                                value={formData.minStock}
+                                onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="maxStock" className="text-sm font-medium">Maximum Stock</Label>
+                              <Input id="maxStock" type="number" placeholder="0" className="h-10" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="material">Material</Label>
-                          <Select value={formData.material || ''} onValueChange={(value) => setFormData({...formData, material: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select material" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.materials.map((material) => (
-                                <SelectItem key={material} value={material}>{material}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+
+                        {/* Description */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Additional Details</h3>
+                          <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+                            <Textarea 
+                              id="description" 
+                              placeholder="Clothing item description, features, care instructions..." 
+                              value={formData.description}
+                              onChange={(e) => setFormData({...formData, description: e.target.value})}
+                              className="min-h-[80px] resize-none"
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="costPrice">Cost Price</Label>
-                          <Input    
-                            id="costPrice" 
-                            type="number" 
-                            placeholder="0.00" 
-                            value={formData.costPrice}
-                            onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="sellingPrice">Selling Price</Label>
-                          <Input 
-                            id="sellingPrice" 
-                            type="number" 
-                            placeholder="0.00" 
-                            value={formData.price}
-                            onChange={(e) => setFormData({...formData, price: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="initialStock">Initial Stock</Label>
-                          <Input 
-                            id="initialStock" 
-                            type="number" 
-                            placeholder="0" 
-                            value={formData.stock}
-                            onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="minStock">Minimum Stock</Label>
-                          <Input 
-                            id="minStock" 
-                            type="number" 
-                            placeholder="0" 
-                            value={formData.minStock}
-                            onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="maxStock">Maximum Stock</Label>
-                          <Input id="maxStock" type="number" placeholder="0" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="brand">Brand</Label>
-                        <Select value={formData.brand || ''} onValueChange={(value) => setFormData({...formData, brand: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select brand" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {dropdownData.brands.map((brand) => (
-                              <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea 
-                          id="description" 
-                          placeholder="Clothing item description" 
-                          value={formData.description}
-                          onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        />
                       </div>
                     </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    <div className="flex-shrink-0 flex justify-end space-x-3 pt-4 border-t bg-white">
+                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="px-6">
                         Cancel
                       </Button>
-                      <Button onClick={createItem}>Add Item</Button>
+                      <Button onClick={createItem} className="px-6 bg-blue-600 hover:bg-blue-700">
+                        Add Item
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -672,7 +833,7 @@ export default function InventoryPage() {
                     resetForm()
                   }
                 }}>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Edit Item</DialogTitle>
                       <DialogDescription>Update item details</DialogDescription>
@@ -720,7 +881,7 @@ export default function InventoryPage() {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="editSize">Size</Label>
                           <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
@@ -730,19 +891,6 @@ export default function InventoryPage() {
                             <SelectContent>
                               {dropdownData.sizes.map((size) => (
                                 <SelectItem key={size} value={size}>{size}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editColor">Color</Label>
-                          <Select value={formData.colors} onValueChange={(value) => setFormData({...formData, colors: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select color" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.colors.map((color) => (
-                                <SelectItem key={color} value={color}>{color}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -777,7 +925,21 @@ export default function InventoryPage() {
                             id="editPrice" 
                             type="number" 
                             value={formData.price}
-                            onChange={(e) => setFormData({...formData, price: e.target.value})}
+                            onChange={(e) => {
+                              const priceWithGST = parseFloat(e.target.value) || 0
+                              const finalPrice = calculatePriceExcludingGST(priceWithGST)
+                              setFormData({...formData, price: e.target.value, finalPrice: finalPrice})
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editFinalPrice">Final Price (After Tax {settings.taxRate}% deduction)</Label>
+                          <Input 
+                            id="editFinalPrice" 
+                            type="number" 
+                            value={formData.finalPrice}
+                            readOnly
+                            className="bg-gray-50"
                           />
                         </div>
                         <div className="space-y-2">
@@ -872,7 +1034,13 @@ export default function InventoryPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {inventory.length === 0 ? 'Start by adding your first product to inventory' : 'Try adjusting your search or filters'}
                 </p>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Button onClick={() => {
+                  if (planLimits && totalProducts >= planLimits.maxProducts) {
+                    setShowUpgradePopup(true)
+                    return
+                  }
+                  setIsAddDialogOpen(true)
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add First Product
                 </Button>
@@ -934,6 +1102,16 @@ export default function InventoryPage() {
           </CardContent>
         </Card>
         </div>
+        
+        {/* Upgrade Popup */}
+        {planLimits && (
+          <UpgradePopup 
+            isOpen={showUpgradePopup}
+            onClose={() => setShowUpgradePopup(false)}
+            limits={planLimits}
+            type="product"
+          />
+        )}
       </FeatureGuard>
     </MainLayout>
   )

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Receipt, Search, Eye, Printer, MessageCircle, Download } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Receipt, Search, Eye, Printer, MessageCircle, Download, X } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 
 interface Bill {
@@ -38,11 +39,14 @@ export default function BillsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
+  const [billToDelete, setBillToDelete] = useState<Bill | null>(null)
+  const [password, setPassword] = useState('')
   const [settings, setSettings] = useState<any>({})
 
   const fetchBills = async () => {
     try {
-      const response = await fetch('/api/pos/sales')
+      const response = await fetch('/api/pos/sales?t=' + Date.now())
       if (response.ok) {
         const data = await response.json()
         setBills(data)
@@ -73,12 +77,62 @@ export default function BillsPage() {
 
   const filteredBills = bills.filter(bill =>
     bill.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    bill.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+    bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bill.customerPhone && bill.customerPhone.includes(searchTerm))
   )
 
   const viewBill = (bill: Bill) => {
     setSelectedBill(bill)
     setIsViewModalOpen(true)
+  }
+
+  const handleDeleteBill = async () => {
+    if (!billToDelete) return
+    
+    const correctPassword = settings.deletePassword || 'admin123'
+    console.log('Entered password:', password)
+    console.log('Correct password:', correctPassword)
+    if (password !== correctPassword) {
+      alert('❌ Incorrect password!')
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/pos/sales/${(billToDelete as any)._id || billToDelete.id}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        // Remove bill from local state immediately
+        setBills(prevBills => {
+          const newBills = prevBills.filter(b => {
+            const billId = (b as any)._id || b.id
+            const deleteId = (billToDelete as any)._id || billToDelete.id
+            return billId !== deleteId
+          })
+          return newBills
+        })
+        setIsPasswordModalOpen(false)
+        setPassword('')
+        setBillToDelete(null)
+        // Show success message in a better way
+        const successDiv = document.createElement('div')
+        successDiv.innerHTML = `
+          <div style="position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; font-family: system-ui; font-weight: 500;">
+            ✅ Bill deleted successfully!
+          </div>
+        `
+        document.body.appendChild(successDiv)
+        setTimeout(() => {
+          document.body.removeChild(successDiv)
+        }, 3000)
+        // Refresh data in background
+        fetchBills()
+      } else {
+        alert('❌ Failed to delete bill. Please try again.')
+      }
+    } catch (error) {
+      alert('❌ Error deleting bill. Please check your connection.')
+    }
   }
 
   const sendBillViaWhatsApp = (bill: Bill) => {
@@ -216,10 +270,11 @@ Contact: ${storePhone}`
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search bills..."
+                  placeholder="Search by bill no, customer, phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-64"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -408,6 +463,17 @@ startxref
                             <MessageCircle className="w-4 h-4" />
                           </Button>
                         )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            setBillToDelete(bill)
+                            setIsPasswordModalOpen(true)
+                          }}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -416,6 +482,62 @@ startxref
             </Table>
           </CardContent>
         </Card>
+
+        {/* Password Modal */}
+        <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <X className="w-5 h-5 text-red-500" />
+                <span>Delete Bill</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Enter admin password to delete bill: <strong>{billToDelete?.billNo}</strong>
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="deletePassword">Password</Label>
+                <Input
+                  id="deletePassword"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  autoComplete="new-password"
+                  autoFocus={false}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleDeleteBill()
+                    }
+                  }}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  onKeyUp={(e) => e.stopPropagation()}
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setIsPasswordModalOpen(false)
+                    setPassword('')
+                    setBillToDelete(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={handleDeleteBill}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* View Bill Modal */}
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>

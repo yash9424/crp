@@ -17,10 +17,12 @@ export default function SettingsPage() {
     email: '',
     gst: '',
     taxRate: 10,
+    gstRate: 18,
     terms: '',
     billPrefix: 'BILL',
     billCounter: 1,
-    whatsappMessage: ''
+    whatsappMessage: '',
+    deletePassword: ''
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -173,6 +175,16 @@ export default function SettingsPage() {
                 className="w-full p-2 border rounded-md h-16 text-sm"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="deletePassword">Delete Password</Label>
+              <Input
+                id="deletePassword"
+                type="password"
+                value={settings.deletePassword || ''}
+                onChange={(e) => setSettings({...settings, deletePassword: e.target.value})}
+                placeholder="Set password for deleting bills"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -184,15 +196,17 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="taxRate">Tax Rate (%)</Label>
-              <Input
-                id="taxRate"
-                type="number"
-                value={settings.taxRate}
-                onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
-                placeholder="Enter tax rate"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Input
+                  id="taxRate"
+                  type="number"
+                  value={settings.taxRate}
+                  onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
+                  placeholder="Enter tax rate"
+                />
+              </div>
             </div>
 
           </CardContent>

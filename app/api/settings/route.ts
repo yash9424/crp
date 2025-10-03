@@ -24,7 +24,8 @@ export async function GET() {
       terms: '',
       billPrefix: 'BILL',
       billCounter: 1,
-      whatsappMessage: ''
+      whatsappMessage: '',
+      deletePassword: 'admin123'
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
@@ -56,6 +57,7 @@ export async function PUT(request: NextRequest) {
           billPrefix: body.billPrefix || 'BILL',
           billCounter: parseInt(body.billCounter) || 1,
           whatsappMessage: body.whatsappMessage || '',
+          deletePassword: body.deletePassword || 'admin123',
           updatedAt: new Date()
         }
       },

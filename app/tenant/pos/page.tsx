@@ -32,6 +32,8 @@ import {
   Download,
   Pause,
   X,
+  UserPlus,
+  Edit,
 } from "lucide-react"
 import { showToast } from "@/lib/toast"
 import { FeatureGuard } from "@/components/feature-guard"
@@ -72,7 +74,8 @@ export default function POSPage() {
     gst: '',
     email: '',
     terms: '',
-    whatsappMessage: ''
+    whatsappMessage: '',
+    deletePassword: 'admin123'
   })
   const [customerName, setCustomerName] = useState<string>("")
   const [customerPhone, setCustomerPhone] = useState<string>("")
@@ -84,6 +87,11 @@ export default function POSPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cash')
   const [customers, setCustomers] = useState<any[]>([])
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editPrice, setEditPrice] = useState<string>('')
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<any>(null)
+  const [customerFormData, setCustomerFormData] = useState({ name: '', phone: '', email: '', address: '' })
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -160,12 +168,13 @@ export default function POSPage() {
   }, [searchTerm, products])
 
   const addToCart = (product: any) => {
+    const displayPrice = product.price
     const existingItem = cart.find((item) => item.id === product.id)
     if (existingItem) {
       setCart(
         cart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * item.price }
+            ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * displayPrice }
             : item,
         ),
       )
@@ -175,9 +184,9 @@ export default function POSPage() {
         {
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: displayPrice,
           quantity: 1,
-          total: product.price,
+          total: displayPrice,
         },
       ])
     }
@@ -199,7 +208,7 @@ export default function POSPage() {
     setCart(cart.filter((item) => item.id !== id))
   }
 
-  const subtotal = cart.reduce((sum, item) => sum + item.total, 0)
+  const subtotal = cart.reduce((sum, item) => sum + (Number(item.total) || 0), 0)
   const discountAmount = (subtotal * discount) / 100
   const tax = (subtotal - discountAmount) * (settings.taxRate / 100)
   const total = subtotal - discountAmount + tax
@@ -243,7 +252,17 @@ export default function POSPage() {
           {/* Customer Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer Information</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Customer Information</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditingCustomer(null)
+                  setCustomerFormData({ name: '', phone: '', email: '', address: '' })
+                  setIsCustomerDialogOpen(true)
+                }}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Customer
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
@@ -278,9 +297,30 @@ export default function POSPage() {
                               setShowCustomerSuggestions(false)
                             }}
                           >
-                            <div className="font-medium">{customer.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {customer.phone} • {customer.orderCount} orders
+                            <div className="flex items-center justify-between w-full">
+                              <div>
+                                <div className="font-medium">{customer.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {customer.phone} • {customer.orderCount} orders
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEditingCustomer(customer)
+                                  setCustomerFormData({
+                                    name: customer.name,
+                                    phone: customer.phone || '',
+                                    email: customer.email || '',
+                                    address: customer.address || ''
+                                  })
+                                  setIsCustomerDialogOpen(true)
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
                             </div>
                           </div>
                         ))
@@ -338,7 +378,7 @@ export default function POSPage() {
                     <div className="flex-1">
                       <h4 className="font-medium">{product.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {product.category} • Size: {product.size} • {product.color} • Stock: {product.stock}
+                        {product.category} • Size: {product.size || 'N/A'} • Brand: {(product as any).brand || 'N/A'} • Stock: {product.stock}
                       </p>
                     </div>
                     <div className="text-right">
@@ -414,7 +454,42 @@ export default function POSPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 pr-2">
                           <h5 className="font-medium text-sm leading-tight">{item.name}</h5>
-                          <p className="text-xs text-muted-foreground">₹ {item.price} each</p>
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(e.target.value)}
+                              onBlur={() => {
+                                if (editPrice && !isNaN(Number(editPrice))) {
+                                  const updatedPrice = Number(editPrice)
+                                  setCart(cart.map(cartItem => 
+                                    cartItem.id === item.id 
+                                      ? { ...cartItem, price: updatedPrice, total: updatedPrice * cartItem.quantity }
+                                      : cartItem
+                                  ))
+                                }
+                                setEditingItemId(null)
+                                setEditPrice('')
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                }
+                              }}
+                              className="text-xs h-6 w-20"
+                              autoFocus
+                            />
+                          ) : (
+                            <p 
+                              className="text-xs text-muted-foreground cursor-pointer" 
+                              onClick={() => {
+                                setEditingItemId(item.id)
+                                setEditPrice(item.price.toString())
+                              }}
+                            >
+                              ₹ {item.price} each
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-sm">₹ {item.total}</p>
@@ -429,6 +504,7 @@ export default function POSPage() {
                           <Button variant="outline" size="sm" onClick={() => updateQuantity(item.id, item.quantity + 1)}>
                             <Plus className="w-3 h-3" />
                           </Button>
+
                         </div>
                         <Button
                           variant="ghost"
@@ -736,11 +812,15 @@ export default function POSPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-2 mt-4">
+              <div className="flex space-x-2 mt-4 no-print">
                 <Button 
                   variant="outline" 
                   className="flex-1"
                   onClick={() => {
+                    // Hide action buttons during print
+                    const actionButtons = document.querySelector('.no-print') as HTMLElement
+                    if (actionButtons) actionButtons.style.display = 'none'
+                    
                     const printContent = document.getElementById('bill-receipt')?.innerHTML
                     const printWindow = window.open('', '_blank')
                     if (printWindow && printContent) {
@@ -749,36 +829,56 @@ export default function POSPage() {
                           <head>
                             <title>Fashion Store - Receipt</title>
                             <style>
-                              * { margin: 0; padding: 0; box-sizing: border-box; }
+                              * { 
+                                margin: 0; 
+                                padding: 0; 
+                                box-sizing: border-box; 
+                                color: #000000 !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                              }
                               body { 
                                 font-family: 'Courier New', monospace; 
                                 margin: 0; 
                                 padding: 0;
-                                background: white;
-                                color: black;
-                                line-height: 1.2;
+                                background: white !important;
+                                color: #000000 !important;
+                                line-height: 1.3;
                                 width: 100%;
+                                font-weight: bold !important;
                               }
                               @media print { 
+                                * {
+                                  color: #000000 !important;
+                                  background: transparent !important;
+                                  font-weight: bold !important;
+                                }
                                 body { 
                                   margin: 0 !important; 
                                   padding: 0 !important;
-                                  -webkit-print-color-adjust: exact;
-                                  print-color-adjust: exact;
+                                  color: #000000 !important;
+                                  background: white !important;
+                                  font-weight: bold !important;
                                 }
                                 @page {
                                   size: 80mm auto;
-                                  margin: 0 !important;
-                                  padding: 0 !important;
+                                  margin: 2mm !important;
                                 }
+                                .no-print { display: none !important; }
                               }
                               .receipt {
                                 width: 100%;
                                 max-width: 80mm;
                                 margin: 0;
                                 padding: 2mm;
-                                font-size: 12px;
+                                font-size: 14px;
                                 box-sizing: border-box;
+                                color: #000000 !important;
+                                font-weight: bold !important;
+                              }
+                              div, span, p {
+                                color: #000000 !important;
+                                font-weight: bold !important;
                               }
                             </style>
                           </head>
@@ -791,6 +891,9 @@ export default function POSPage() {
                       printWindow.print()
                       printWindow.close()
                     }
+                    
+                    // Show action buttons again after print
+                    if (actionButtons) actionButtons.style.display = 'flex'
                   }}
                 >
                   <Printer className="w-4 h-4 mr-2" />
@@ -801,40 +904,44 @@ export default function POSPage() {
                   className="flex-1"
                   onClick={() => {
                     if (!completedSale.customerPhone) {
-                      alert('Customer phone number required')
+                      showToast.error('Customer phone number required for WhatsApp')
                       return
                     }
                     
+                    try {
                       // Create PDF download link
-                    const pdfLink = `${window.location.origin}/api/bill-pdf/${completedSale._id || completedSale.id}`
-                    
-                    const customMessage = settings.whatsappMessage || completedSale.whatsappMessage || ''
-                    const billMessage = `*${settings.storeName || 'STORE'}*
+                      const pdfLink = `${window.location.origin}/api/bill-pdf/${completedSale._id || completedSale.id}`
+                      
+                      const customMessage = settings.whatsappMessage || ''
+                      const billMessage = `*${(settings.storeName || 'STORE').toUpperCase()}*
 
-Bill No: ${completedSale.billNo}
-Customer: ${completedSale.customerName}
-Date: ${completedSale.date.toLocaleDateString('en-IN')}
+*Bill No:* ${completedSale.billNo}
+*Customer:* ${completedSale.customerName}
+*Date:* ${completedSale.date.toLocaleDateString('en-IN')}
+*Time:* ${completedSale.date.toLocaleTimeString('en-IN', {hour12: true})}
 
-*ITEMS:*
-${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = ₹${item.total.toFixed(2)}`).join('\n')}
+*ITEMS PURCHASED:*
+${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = Rs${item.total.toFixed(2)}`).join('\n')}
 
-*TOTAL AMOUNT: ₹${completedSale.total.toFixed(2)}*
-Payment: ${completedSale.paymentMethod}
+*TOTAL AMOUNT: Rs${completedSale.total.toFixed(2)}*
+*Payment Method:* ${completedSale.paymentMethod || 'Cash'}
 
-*Download Bill PDF:*
+*Download Your Bill:*
 ${pdfLink}
 
-Thank you for your business!${customMessage ? `
-
-${customMessage}` : ''}
+${customMessage ? `\n*Note:* ${customMessage}\n` : ''}Thank you for shopping with us!
 
 ${settings.address || 'Store Address'}
 Contact: ${settings.phone || '9427300816'}`
 
-                    const whatsappUrl = `https://wa.me/${completedSale.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
-                    window.open(whatsappUrl, '_blank')
+                      const whatsappUrl = `https://wa.me/${completedSale.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
+                      window.open(whatsappUrl, '_blank')
+                      showToast.success('WhatsApp message opened successfully!')
+                    } catch (error) {
+                      showToast.error('Failed to open WhatsApp')
+                      console.error('WhatsApp error:', error)
+                    }
                   }}
-                  disabled={!completedSale.customerPhone}
                 >
                   <Smartphone className="w-4 h-4 mr-2" />
                   Send WhatsApp

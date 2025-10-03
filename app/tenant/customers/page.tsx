@@ -38,6 +38,7 @@ import {
   Gift,
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface Customer {
   id: string
@@ -58,6 +59,11 @@ export default function CustomersPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
+  const [customerFormData, setCustomerFormData] = useState({ name: '', phone: '', email: '', address: '' })
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
 
   const { storeName, tenantId } = useStore()
 
@@ -158,9 +164,16 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Customer Database</CardTitle>
-                <CardDescription>Customers are automatically added when making sales in POS</CardDescription>
+                <CardDescription>Manage your customer database</CardDescription>
               </div>
-
+              <Button onClick={() => {
+                setEditingCustomer(null)
+                setCustomerFormData({ name: '', phone: '', email: '', address: '' })
+                setIsCustomerDialogOpen(true)
+              }}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Customer
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -223,6 +236,32 @@ export default function CustomersPage() {
                             }}
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingCustomer(customer)
+                              setCustomerFormData({
+                                name: customer.name,
+                                phone: customer.phone || '',
+                                email: (customer as any).email || '',
+                                address: (customer as any).address || ''
+                              })
+                              setIsCustomerDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setCustomerToDelete(customer)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -311,6 +350,131 @@ export default function CustomersPage() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Customer CRUD Dialog */}
+        <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+              <DialogDescription>
+                {editingCustomer ? 'Update customer information' : 'Create a new customer profile'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerFormName">Name *</Label>
+                <Input
+                  id="customerFormName"
+                  value={customerFormData.name}
+                  onChange={(e) => setCustomerFormData({...customerFormData, name: e.target.value})}
+                  placeholder="Enter customer name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerFormPhone">Phone</Label>
+                <Input
+                  id="customerFormPhone"
+                  value={customerFormData.phone}
+                  onChange={(e) => setCustomerFormData({...customerFormData, phone: e.target.value})}
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerFormEmail">Email</Label>
+                <Input
+                  id="customerFormEmail"
+                  type="email"
+                  value={customerFormData.email}
+                  onChange={(e) => setCustomerFormData({...customerFormData, email: e.target.value})}
+                  placeholder="Enter email address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerFormAddress">Address</Label>
+                <Input
+                  id="customerFormAddress"
+                  value={customerFormData.address}
+                  onChange={(e) => setCustomerFormData({...customerFormData, address: e.target.value})}
+                  placeholder="Enter address"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsCustomerDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!customerFormData.name.trim()) {
+                      showToast.error('Customer name is required')
+                      return
+                    }
+                    try {
+                      const method = editingCustomer ? 'PUT' : 'POST'
+                      const url = editingCustomer ? `/api/customers/${editingCustomer.id}` : '/api/customers'
+                      const response = await fetch(url, {
+                        method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(customerFormData)
+                      })
+                      if (response.ok) {
+                        showToast.success(`Customer ${editingCustomer ? 'updated' : 'created'} successfully!`)
+                        fetchCustomers()
+                        setIsCustomerDialogOpen(false)
+                      } else {
+                        showToast.error(`Failed to ${editingCustomer ? 'update' : 'create'} customer`)
+                      }
+                    } catch (error) {
+                      console.error('Error saving customer:', error)
+                    }
+                  }}
+                >
+                  {editingCustomer ? 'Update' : 'Create'}
+                </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Customer</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete {customerToDelete?.name}? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (customerToDelete) {
+                    try {
+                      const response = await fetch(`/api/customers/${customerToDelete.id}`, {
+                        method: 'DELETE'
+                      })
+                      if (response.ok) {
+                        showToast.success('Customer deleted successfully!')
+                        fetchCustomers()
+                      } else {
+                        showToast.error('Failed to delete customer')
+                      }
+                    } catch (error) {
+                      showToast.error('Error deleting customer')
+                    }
+                    setIsDeleteDialogOpen(false)
+                    setCustomerToDelete(null)
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
 

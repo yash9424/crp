@@ -3,6 +3,7 @@ import { getTenantCollection } from '@/lib/tenant-data'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { withFeatureAccess } from '@/lib/api-middleware'
+import { checkProductLimit } from '@/lib/plan-limits'
 
 export const GET = withFeatureAccess('inventory')(async function() {
   try {
@@ -34,6 +35,16 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Check product limit before adding
+    const limitCheck = await checkProductLimit(session.user.tenantId)
+    if (!limitCheck.canAdd) {
+      return NextResponse.json({ 
+        error: 'PRODUCT_LIMIT_EXCEEDED',
+        message: limitCheck.message,
+        limits: limitCheck.limits
+      }, { status: 403 })
+    }
+
     const body = await request.json()
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
     
@@ -48,6 +59,8 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
       minStock: parseInt(body.minStock || 0),
       sizes: body.sizes || [],
       colors: body.colors || [],
+      brand: body.brand || '',
+      material: body.material || '',
       description: body.description || '',
       tenantId: session.user.tenantId,
       storeId: session.user.tenantId,

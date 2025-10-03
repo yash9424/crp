@@ -119,7 +119,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
   }
 })
 
-export const GET = withFeatureAccess('pos')(async function() {
+export const GET = withFeatureAccess('pos')(async function(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -127,8 +127,23 @@ export const GET = withFeatureAccess('pos')(async function() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
+    
     const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
-    const sales = await salesCollection.find({}).sort({ createdAt: -1 }).limit(50).toArray()
+    
+    let query = {}
+    if (search) {
+      query = {
+        $or: [
+          { billNo: { $regex: search, $options: 'i' } },
+          { customerName: { $regex: search, $options: 'i' } },
+          { customerPhone: { $regex: search, $options: 'i' } }
+        ]
+      }
+    }
+    
+    const sales = await salesCollection.find(query).sort({ createdAt: -1 }).limit(50).toArray()
     
     const formattedSales = sales.map(sale => ({
       ...sale,
