@@ -25,7 +25,8 @@ export async function GET() {
       billPrefix: 'BILL',
       billCounter: 1,
       whatsappMessage: '',
-      deletePassword: 'admin123'
+      deletePassword: 'admin123',
+      discountMode: false
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
@@ -58,6 +59,7 @@ export async function PUT(request: NextRequest) {
           billCounter: parseInt(body.billCounter) || 1,
           whatsappMessage: body.whatsappMessage || '',
           deletePassword: body.deletePassword || 'admin123',
+          discountMode: body.discountMode === true || body.discountMode === 'true',
           updatedAt: new Date()
         }
       },

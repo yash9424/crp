@@ -22,7 +22,8 @@ export default function SettingsPage() {
     billPrefix: 'BILL',
     billCounter: 1,
     whatsappMessage: '',
-    deletePassword: ''
+    deletePassword: '',
+    discountMode: false
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -192,11 +193,11 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Percent className="w-5 h-5" />
-              <span>Tax Settings</span>
+              <span>Tax & Pricing Settings</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="taxRate">Tax Rate (%)</Label>
                 <Input
@@ -207,8 +208,26 @@ export default function SettingsPage() {
                   placeholder="Enter tax rate"
                 />
               </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="discountMode"
+                    checked={settings.discountMode}
+                    onChange={(e) => setSettings({...settings, discountMode: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="discountMode" className="cursor-pointer">
+                    Enable Text Minus Mode
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  When ON: Shows "text minus" in product pricing.
+                  When OFF: Shows normal pricing without text minus.
+                </p>
+              </div>
             </div>
-
           </CardContent>
         </Card>
 

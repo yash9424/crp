@@ -64,7 +64,7 @@ export default function InventoryPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [importing, setImporting] = useState(false)
-  const [settings, setSettings] = useState({ taxRate: 10 })
+  const [settings, setSettings] = useState({ taxRate: 10, discountMode: false })
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -146,7 +146,7 @@ export default function InventoryPage() {
       const response = await fetch('/api/settings')
       if (response.ok) {
         const data = await response.json()
-        setSettings({ taxRate: data.taxRate || 10 })
+        setSettings({ taxRate: data.taxRate || 10, discountMode: data.discountMode || false })
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
@@ -334,6 +334,23 @@ export default function InventoryPage() {
     fetchSettings()
     fetchPlanLimits()
   }, [tenantId])
+
+  // Refresh settings when component mounts
+  useEffect(() => {
+    const refreshSettings = async () => {
+      try {
+        const response = await fetch('/api/settings?t=' + Date.now())
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Fresh settings:', data)
+          setSettings(data)
+        }
+      } catch (error) {
+        console.error('Failed to refresh settings:', error)
+      }
+    }
+    refreshSettings()
+  }, [])
 
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
@@ -554,30 +571,7 @@ export default function InventoryPage() {
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={async () => {
-                    if (confirm('💰 Set selling prices for products without them? (Cost Price + 50% markup)')) {
-                      try {
-                        const response = await fetch('/api/inventory/bulk-update-prices', {
-                          method: 'POST'
-                        })
-                        
-                        if (response.ok) {
-                          const result = await response.json()
-                          alert(`💰 Updated ${result.count} products with selling prices!`)
-                          fetchInventory()
-                        } else {
-                          alert('❌ Failed to update prices. Please try again.')
-                        }
-                      } catch (error) {
-                        alert('❌ Error updating prices. Please check your connection.')
-                      }
-                    }
-                  }}
-                >
-                  Fix Prices
-                </Button>
+
                 <Button 
                   variant="destructive"
                   onClick={async () => {
@@ -738,22 +732,39 @@ export default function InventoryPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="sellingPrice" className="text-sm font-medium">Selling Price *</Label>
+                              <Label htmlFor="sellingPrice" className="text-sm font-medium">
+                                Selling Price {settings.discountMode ? '(text minus)' : ''} *
+                              </Label>
+                              <div className="text-xs text-gray-500">
+                                Mode: {settings.discountMode ? 'ON - Text Minus Active' : 'OFF - Normal Price'}
+                              </div>
                               <Input 
                                 id="sellingPrice" 
                                 type="number" 
-                                placeholder="0.00" 
+                                placeholder="0.00"
                                 value={formData.price}
                                 onChange={(e) => {
-                                  const priceWithGST = parseFloat(e.target.value) || 0
-                                  const finalPrice = calculatePriceExcludingGST(priceWithGST)
-                                  setFormData({...formData, price: e.target.value, finalPrice: finalPrice})
+                                  const inputPrice = parseFloat(e.target.value) || 0
+                                  console.log('Discount mode:', settings.discountMode)
+                                  
+                                  if (settings.discountMode) {
+                                    // When ON: Apply 10% minus, then set as final price
+                                    const finalSellingPrice = inputPrice - (inputPrice * 0.10)
+                                    console.log('ON mode - Final price:', finalSellingPrice)
+                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                  } else {
+                                    // When OFF: Selling price = Final price
+                                    console.log('OFF mode - Final price:', inputPrice)
+                                    setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                  }
                                 }}
                                 className="h-10"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="finalPrice" className="text-sm font-medium">Final Price (After Tax {settings.taxRate}%)</Label>
+                              <Label htmlFor="finalPrice" className="text-sm font-medium">
+                                {settings.discountMode ? 'Final Price (After 10% minus)' : 'Final Price'}
+                              </Label>
                               <Input 
                                 id="finalPrice" 
                                 type="number" 
