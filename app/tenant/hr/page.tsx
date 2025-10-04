@@ -35,6 +35,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface Employee {
   _id?: string
@@ -108,13 +109,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsAddDialogOpen(false)
         resetForm()
-        alert('Employee created successfully!')
+        showToast.success('Employee created successfully!')
       } else {
-        alert('Failed to create employee')
+        showToast.error('Failed to create employee')
       }
     } catch (error) {
       console.error('Failed to create employee:', error)
-      alert('Error creating employee')
+      showToast.error('Error creating employee')
     }
   }
 
@@ -134,13 +135,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsEditDialogOpen(false)
         resetForm()
-        alert('Employee updated successfully!')
+        showToast.success('Employee updated successfully!')
       } else {
-        alert('Failed to update employee')
+        showToast.error('Failed to update employee')
       }
     } catch (error) {
       console.error('Failed to update employee:', error)
-      alert('Error updating employee')
+      showToast.error('Error updating employee')
     }
   }
 
@@ -160,13 +161,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsDeleteDialogOpen(false)
         setEmployeeToDelete(null)
-        alert('Employee deleted successfully!')
+        showToast.success('Employee deleted successfully!')
       } else {
-        alert('Failed to delete employee')
+        showToast.error('Failed to delete employee')
       }
     } catch (error) {
       console.error('Failed to delete employee:', error)
-      alert('Error deleting employee')
+      showToast.error('Error deleting employee')
     }
   }
 
@@ -296,8 +297,7 @@ export default function HRPage() {
                 <CardTitle>Employee Directory</CardTitle>
                 <CardDescription>Manage HR records and staff information</CardDescription>
               </div>
-              <div className="flex space-x-2">
-               
+              <div className="flex space-x-2">              
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
@@ -614,6 +614,30 @@ export default function HRPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={async () => {
+                                const newStatus = employee.status === 'Active' ? 'Inactive' : 'Active'
+                                try {
+                                  const response = await fetch(`/api/employees/${employee._id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: newStatus })
+                                  })
+                                  if (response.ok) {
+                                    fetchEmployees()
+                                    showToast.success('✅ Employee status updated successfully!')
+                                  }
+                                } catch (error) {
+                                  console.error('Failed to update status:', error)
+                                }
+                              }}
+                              className={employee.status === 'Active' ? 'text-black hover:text-black' : 'text-red-600 hover:text-red-800'}
+                              title={employee.status === 'Active' ? 'Deactivate Employee' : 'Activate Employee'}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => window.location.href = '/tenant/leaves'} title="View Leaves">
                               <Calendar className="w-4 h-4" />
                             </Button>

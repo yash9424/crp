@@ -348,7 +348,16 @@ export default function POSPage() {
                   <CardTitle>Clothing Selection</CardTitle>
                   <CardDescription>Search and add clothing items to cart</CardDescription>
                 </div>
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    const searchInput = document.querySelector('input[placeholder*="barcode"]') as HTMLInputElement
+                    if (searchInput) {
+                      searchInput.focus()
+                      showToast.success('Ready to scan barcode - type or scan into search field')
+                    }
+                  }}
+                >
                   <Scan className="w-4 h-4 mr-2" />
                   Scan Barcode
                 </Button>
@@ -358,9 +367,19 @@ export default function POSPage() {
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search clothing items or scan barcode..."
+                  placeholder="Search by name, SKU, barcode, or category..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchTerm.trim()) {
+                      // If search term looks like a barcode (numbers/alphanumeric), focus on exact match
+                      const isBarcode = /^[A-Za-z0-9]+$/.test(searchTerm.trim())
+                      if (isBarcode && filteredProducts.length === 1) {
+                        addToCart(filteredProducts[0])
+                        setSearchTerm('')
+                      }
+                    }
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -929,8 +948,7 @@ ${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = R
 *Download Your Bill:*
 ${pdfLink}
 
-${customMessage ? `\n*Note:* ${customMessage}\n` : ''}Thank you for shopping with us!
-
+${customMessage ? `\n*Note:* ${customMessage}\n` : ''}
 ${settings.address || 'Store Address'}
 Contact: ${settings.phone || '9427300816'}`
 

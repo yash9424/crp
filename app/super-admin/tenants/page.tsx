@@ -28,7 +28,10 @@ import {
   Mail,
   Phone,
   MapPin,
+  Ban,
+  CheckCircle,
 } from "lucide-react"
+import { showToast } from "@/lib/toast"
 
 interface Tenant {
   id: string
@@ -40,6 +43,7 @@ interface Tenant {
   planName?: string
   status: string
   createdAt: string
+  referralCode?: string
   users: Array<{
     id: string
     name: string
@@ -69,7 +73,7 @@ export default function TenantsPage() {
   })
   const [referralValidation, setReferralValidation] = useState({ valid: false, message: "", referrer: "" })
   const [availableReferralCodes, setAvailableReferralCodes] = useState<Array<{code: string, name: string}>>([])
-  const [plans, setPlans] = useState<Array<{id: string, name: string, price: number}>>([])
+  const [plans, setPlans] = useState<Array<{id?: string, _id?: string, name: string, price: number, status?: string}>>([])
 
   // Fetch tenants from API
   const fetchTenants = async () => {
@@ -135,17 +139,17 @@ export default function TenantsPage() {
         
         // Show success message
         if (formData.referralCode) {
-          alert(`Tenant created successfully! Referral reward has been processed for code: ${formData.referralCode}`)
+          showToast.success(`Tenant created successfully! Referral reward has been processed for code: ${formData.referralCode}`)
         } else {
-          alert('Tenant created successfully!')
+          showToast.success('Tenant created successfully!')
         }
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to create tenant')
+        showToast.error(error.error || 'Failed to create tenant')
       }
     } catch (error) {
       console.error('Failed to create tenant:', error)
-      alert('Network error - please try again')
+      showToast.error('Network error - please try again')
     }
   }
 
@@ -165,10 +169,10 @@ export default function TenantsPage() {
         setIsEditTenantOpen(false)
         setEditingTenant(null)
         setFormData({ name: "", email: "", password: "", phone: "", address: "", plan: "", referralCode: "", customReward: "" })
-        alert('Tenant updated successfully!')
+        showToast.success('Tenant updated successfully!')
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to update tenant')
+        showToast.error(error.error || 'Failed to update tenant')
       }
     } catch (error) {
       console.error('Failed to update tenant:', error)
@@ -191,16 +195,46 @@ export default function TenantsPage() {
     setIsEditTenantOpen(true)
   }
 
+  // Toggle tenant status
+  const toggleTenantStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
+    const action = newStatus === 'active' ? 'activate' : 'deactivate'
+    
+    if (window.confirm(`Are you sure you want to ${action} this tenant?`)) {
+      try {
+        const response = await fetch(`/api/tenants/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        })
+        
+        if (response.ok) {
+          fetchTenants()
+          showToast.success(`Tenant ${action}d successfully!`)
+        } else {
+          showToast.error(`Failed to ${action} tenant`)
+        }
+      } catch (error) {
+        console.error(`Failed to ${action} tenant:`, error)
+        showToast.error(`Error ${action}ing tenant`)
+      }
+    }
+  }
+
   // Delete tenant
   const deleteTenant = async (id: string) => {
-    if (confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
       try {
         const response = await fetch(`/api/tenants/${id}`, { method: 'DELETE' })
         if (response.ok) {
           fetchTenants()
+          showToast.success('Tenant deleted successfully!')
+        } else {
+          showToast.error('Failed to delete tenant')
         }
       } catch (error) {
         console.error('Failed to delete tenant:', error)
+        showToast.error('Error deleting tenant')
       }
     }
   }
@@ -456,7 +490,7 @@ export default function TenantsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {plans.map((plan) => (
-                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id}>
+                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
                               {plan.name} - ₹{plan.price}
                             </SelectItem>
                           ))}
@@ -592,7 +626,7 @@ export default function TenantsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {plans.map((plan) => (
-                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id}>
+                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
                               {plan.name} - ₹{plan.price}
                             </SelectItem>
                           ))}
@@ -722,6 +756,15 @@ export default function TenantsPage() {
                             onClick={() => openEditModal(tenant)}
                           >
                             <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className={tenant.status === 'active' ? 'text-orange-500 hover:text-orange-700' : 'text-green-500 hover:text-green-700'}
+                            onClick={() => toggleTenantStatus(tenant.id, tenant.status)}
+                            title={tenant.status === 'active' ? 'Deactivate tenant' : 'Activate tenant'}
+                          >
+                            {tenant.status === 'active' ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                           </Button>
                           <Button 
                             variant="ghost" 

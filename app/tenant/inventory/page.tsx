@@ -41,6 +41,7 @@ interface InventoryItem {
   id: string
   name: string
   sku: string
+  barcode?: string
   category: string
   price: number
   costPrice: number
@@ -62,7 +63,9 @@ export default function InventoryPage() {
   const [stockFilter, setStockFilter] = useState("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
   const [importing, setImporting] = useState(false)
   const [settings, setSettings] = useState({ taxRate: 10, discountMode: false })
   const [dropdownData, setDropdownData] = useState({
@@ -86,6 +89,7 @@ export default function InventoryPage() {
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
+    barcode: '',
     category: '',
     price: '',
     finalPrice: '',
@@ -257,22 +261,28 @@ export default function InventoryPage() {
     }
   }
 
-  // Delete inventory item
-  const deleteItem = async (id: string) => {
-    if (!confirmDelete('⚠️ Are you sure you want to delete this product? This action cannot be undone.')) return
+  const openDeleteDialog = (item: InventoryItem) => {
+    setItemToDelete(item)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deleteItem = async () => {
+    if (!itemToDelete) return
     try {
-      const response = await fetch(`/api/inventory/${id}`, {
+      const response = await fetch(`/api/inventory/${itemToDelete.id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
         fetchInventory()
-        showToast.success('🗑️ Product deleted successfully!')
+        setIsDeleteDialogOpen(false)
+        setItemToDelete(null)
+        showToast.success('Product deleted successfully!')
       } else {
-        showToast.error('❌ Failed to delete product. Please try again.')
+        showToast.error('Failed to delete product')
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
-      showToast.error('❌ Error deleting product. Please check your connection.')
+      showToast.error('Error deleting product')
     }
   }
 
@@ -280,6 +290,7 @@ export default function InventoryPage() {
     setFormData({
       name: '',
       sku: '',
+      barcode: '',
       category: '',
       price: '',
       finalPrice: '',
@@ -306,7 +317,8 @@ export default function InventoryPage() {
     const currentPrice = (item.price ?? 0).toString()
     setFormData({
       name: item.name || '',
-        sku: item.sku || '',
+      sku: item.sku || '',
+      barcode: (item as any).barcode || '',
       category: item.category || '',
       price: currentPrice,
       finalPrice: currentPrice,
@@ -355,7 +367,8 @@ export default function InventoryPage() {
   const filteredInventory = inventory.filter((item) => {
     const matchesSearch =
       (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.sku || '').toLowerCase().includes(searchTerm.toLowerCase())
+      (item.sku || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ((item as any).barcode || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === "all" || (item.category || '') === categoryFilter
     const matchesStock =
       stockFilter === "all" ||
@@ -532,7 +545,7 @@ export default function InventoryPage() {
                       
                       if (response.ok) {
                         const result = await response.json()
-                        alert(`✅ Successfully imported ${result.count} products!`)
+                        showToast.success(`✅ Successfully imported ${result.count} products!`)
                         fetchInventory()
                         fetchPlanLimits() // Refresh limits
                       } else if (response.status === 403) {
@@ -541,13 +554,13 @@ export default function InventoryPage() {
                           setPlanLimits(errorData.limits)
                           setShowUpgradePopup(true)
                         } else {
-                          alert('❌ ' + (errorData.message || 'Import failed'))
+                          showToast.error('❌ ' + (errorData.message || 'Import failed'))
                         }
                       } else {
-                        alert('❌ Import failed. Please check your CSV file format.')
+                        showToast.error('❌ Import failed. Please check your CSV file format.')
                       }
                     } catch (error) {
-                      alert('❌ Import error. Please try again.')
+                      showToast.error('❌ Import error. Please try again.')
                     } finally {
                       setImporting(false)
                       e.target.value = ''
@@ -583,13 +596,13 @@ export default function InventoryPage() {
                         
                         if (response.ok) {
                           const result = await response.json()
-                          alert(`🗑️ Successfully cleared ${result.count} products from inventory!`)
+                          showToast.success(`🗑️ Successfully cleared ${result.count} products from inventory!`)
                           fetchInventory()
                         } else {
-                          alert('❌ Failed to clear inventory. Please try again.')
+                          showToast.error('❌ Failed to clear inventory. Please try again.')
                         }
                       } catch (error) {
-                        alert('❌ Error clearing inventory. Please check your connection.')
+                        showToast.error('❌ Error clearing inventory. Please check your connection.')
                       }
                     }
                   }}
@@ -647,7 +660,13 @@ export default function InventoryPage() {
                             <div className="space-y-2">
                               <Label htmlFor="barcode" className="text-sm font-medium">Barcode</Label>
                               <div className="flex space-x-2">
-                                <Input id="barcode" placeholder="Barcode number" className="flex-1 h-10" />
+                                <Input 
+                                  id="barcode" 
+                                  placeholder="Barcode number" 
+                                  value={formData.barcode}
+                                  onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+                                  className="flex-1 h-10" 
+                                />
                                 <Button variant="outline" size="sm" className="h-10 px-3">
                                   <Barcode className="w-4 h-4" />
                                 </Button>
@@ -830,8 +849,8 @@ export default function InventoryPage() {
                       <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="px-6">
                         Cancel
                       </Button>
-                      <Button onClick={createItem} className="px-6 bg-blue-600 hover:bg-blue-700">
-                        Add Item
+                      <Button onClick={createItem} className="px-6 bg-black hover:bg-black">
+                        Add Product
                       </Button>
                     </div>
                   </DialogContent>
@@ -844,158 +863,245 @@ export default function InventoryPage() {
                     resetForm()
                   }
                 }}>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Edit Item</DialogTitle>
-                      <DialogDescription>Update item details</DialogDescription>
+                  <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
+                    <DialogHeader className="flex-shrink-0 pb-4 border-b">
+                      <DialogTitle className="text-xl font-semibold">Edit Clothing Item</DialogTitle>
+                      <DialogDescription className="text-sm text-muted-foreground">Update clothing item details</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editName">Item Name</Label>
-                          <Input 
-                            id="editName" 
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                          />
+                    <div className="flex-1 overflow-y-auto px-1 py-4">
+                      <div className="space-y-6">
+                        {/* Basic Information */}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <h3 className="text-sm font-medium text-gray-900 mb-3">Basic Information</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editName" className="text-sm font-medium">Item Name *</Label>
+                              <Input 
+                                id="editName" 
+                                placeholder="Enter item name" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editSku" className="text-sm font-medium">SKU</Label>
+                              <Input 
+                                id="editSku" 
+                                placeholder="Item SKU" 
+                                value={formData.sku}
+                                onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editBarcode" className="text-sm font-medium">Barcode</Label>
+                              <div className="flex space-x-2">
+                                <Input 
+                                  id="editBarcode" 
+                                  placeholder="Barcode number" 
+                                  value={formData.barcode}
+                                  onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+                                  className="flex-1 h-10" 
+                                />
+                                <Button variant="outline" size="sm" className="h-10 px-3">
+                                  <Barcode className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editCategory" className="text-sm font-medium">Category *</Label>
+                              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.categories.map((category) => (
+                                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editSku">SKU</Label>
-                          <Input 
-                            id="editSku" 
-                            value={formData.sku}
-                            onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                          />
+                        
+                        {/* Clothing Attributes */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Clothing Attributes</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editSize" className="text-sm font-medium">Size</Label>
+                              <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select size" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.sizes.map((size) => (
+                                    <SelectItem key={size} value={size}>{size}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editMaterial" className="text-sm font-medium">Material</Label>
+                              <Select value={formData.material} onValueChange={(value) => setFormData({...formData, material: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select material" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.materials.map((material) => (
+                                    <SelectItem key={material} value={material}>{material}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editBrand" className="text-sm font-medium">Brand</Label>
+                              <Select value={formData.brand} onValueChange={(value) => setFormData({...formData, brand: value})}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue placeholder="Select brand" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {dropdownData.brands.map((brand) => (
+                                    <SelectItem key={brand} value={brand}>{brand}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editCategory">Category</Label>
-                          <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.categories.map((category) => (
-                                <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        
+                        {/* Pricing */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Pricing Information</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editCostPrice" className="text-sm font-medium">Cost Price</Label>
+                              <Input 
+                                id="editCostPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.costPrice}
+                                onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editPrice" className="text-sm font-medium">
+                                Selling Price {settings.discountMode ? '(text minus)' : ''} *
+                              </Label>
+                              <div className="text-xs text-gray-500">
+                                Mode: {settings.discountMode ? 'ON - Text Minus Active' : 'OFF - Normal Price'}
+                              </div>
+                              <Input 
+                                id="editPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.price}
+                                onChange={(e) => {
+                                  const inputPrice = parseFloat(e.target.value) || 0
+                                  
+                                  if (settings.discountMode) {
+                                    const finalSellingPrice = inputPrice - (inputPrice * 0.10)
+                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                  } else {
+                                    setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                  }
+                                }}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editFinalPrice" className="text-sm font-medium">
+                                {settings.discountMode ? 'Final Price (After 10% minus)' : 'Final Price'}
+                              </Label>
+                              <Input 
+                                id="editFinalPrice" 
+                                type="number" 
+                                placeholder="0.00" 
+                                value={formData.finalPrice}
+                                readOnly
+                                className="bg-gray-100 h-10 font-medium"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editStock">Stock</Label>
-                          <Input 
-                            id="editStock" 
-                            type="number" 
-                            value={formData.stock}
-                            onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                          />
+                        
+                        {/* Stock Management */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Stock Management</h3>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editStock" className="text-sm font-medium">Current Stock *</Label>
+                              <Input 
+                                id="editStock" 
+                                type="number" 
+                                placeholder="0" 
+                                value={formData.stock}
+                                onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editMinStock" className="text-sm font-medium">Minimum Stock</Label>
+                              <Input 
+                                id="editMinStock" 
+                                type="number" 
+                                placeholder="0" 
+                                value={formData.minStock}
+                                onChange={(e) => setFormData({...formData, minStock: e.target.value})}
+                                className="h-10"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editSize">Size</Label>
-                          <Select value={formData.sizes} onValueChange={(value) => setFormData({...formData, sizes: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select size" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.sizes.map((size) => (
-                                <SelectItem key={size} value={size}>{size}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editMaterial">Material</Label>
-                          <Select value={formData.material} onValueChange={(value) => setFormData({...formData, material: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select material" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.materials.map((material) => (
-                                <SelectItem key={material} value={material}>{material}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editCostPrice">Cost Price</Label>
-                          <Input 
-                            id="editCostPrice" 
-                            type="number" 
-                            value={formData.costPrice}
-                            onChange={(e) => setFormData({...formData, costPrice: e.target.value})}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editPrice">Selling Price</Label>
-                          <Input 
-                            id="editPrice" 
-                            type="number" 
-                            value={formData.price}
-                            onChange={(e) => {
-                              const priceWithGST = parseFloat(e.target.value) || 0
-                              const finalPrice = calculatePriceExcludingGST(priceWithGST)
-                              setFormData({...formData, price: e.target.value, finalPrice: finalPrice})
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editFinalPrice">Final Price (After Tax {settings.taxRate}% deduction)</Label>
-                          <Input 
-                            id="editFinalPrice" 
-                            type="number" 
-                            value={formData.finalPrice}
-                            readOnly
-                            className="bg-gray-50"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editMinStock">Min Stock</Label>
-                          <Input 
-                            id="editMinStock" 
-                            type="number" 
-                            value={formData.minStock}
-                            onChange={(e) => setFormData({...formData, minStock: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="editBrand">Brand</Label>
-                          <Select value={formData.brand} onValueChange={(value) => setFormData({...formData, brand: value})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select brand" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dropdownData.brands.map((brand) => (
-                                <SelectItem key={brand} value={brand}>{brand}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="editDescription">Description</Label>
-                          <Textarea 
-                            id="editDescription" 
-                            placeholder="Item description" 
-                            value={formData.description}
-                            onChange={(e) => setFormData({...formData, description: e.target.value})}
-                          />
+                        
+                        {/* Description */}
+                        <div className="p-4 rounded-lg border">
+                          <h3 className="text-sm font-medium mb-3">Additional Details</h3>
+                          <div className="space-y-2">
+                            <Label htmlFor="editDescription" className="text-sm font-medium">Description</Label>
+                            <Textarea 
+                              id="editDescription" 
+                              placeholder="Clothing item description, features, care instructions..." 
+                              value={formData.description}
+                              onChange={(e) => setFormData({...formData, description: e.target.value})}
+                              className="min-h-[80px] resize-none"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-end space-x-2">
+                    <div className="flex-shrink-0 flex justify-end space-x-3 pt-4 border-t bg-white">
                       <Button variant="outline" onClick={() => {
                         setIsEditDialogOpen(false)
                         resetForm()
-                      }}>
+                      }} className="px-6">
                         Cancel
                       </Button>
-                      <Button onClick={updateItem}>Update Item</Button>
+                      <Button onClick={updateItem} className="px-6 bg-black hover:bg-black">
+                        Update Product
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete Product</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to delete {itemToDelete?.name}? This action cannot be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={deleteItem}>
+                        Delete
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -1063,6 +1169,7 @@ export default function InventoryPage() {
                     <TableRow>
                       <TableHead className="text-center">Item</TableHead>
                       <TableHead className="text-center">SKU</TableHead>
+                      <TableHead className="text-center">Barcode</TableHead>
                       <TableHead className="text-center">Category</TableHead>
                       <TableHead className="text-center">Stock</TableHead>
                       <TableHead className="text-center">Status</TableHead>
@@ -1078,6 +1185,7 @@ export default function InventoryPage() {
                           <div className="font-medium">{item.name || 'No Name'}</div>
                         </TableCell>
                         <TableCell className="text-center">{item.sku || 'No SKU'}</TableCell>
+                        <TableCell className="text-center">{(item as any).barcode || 'No Barcode'}</TableCell>
                         <TableCell className="text-center">{item.category || 'No Category'}</TableCell>
                         <TableCell className="text-center">{item.stock || 0}</TableCell>
                         <TableCell className="text-center">
@@ -1098,7 +1206,7 @@ export default function InventoryPage() {
                               variant="ghost" 
                               size="sm" 
                               className="text-red-500 hover:text-red-700"
-                              onClick={() => deleteItem(item.id)}
+                              onClick={() => openDeleteDialog(item)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

@@ -130,6 +130,22 @@ export function Sidebar({ userRole }: SidebarProps) {
           })}
         </nav>
       </ScrollArea>
+      
+      {!collapsed && (
+        <div className="p-3 border-t">
+          <div className="text-center text-xs text-muted-foreground">
+            Product of{" "}
+            <a 
+              href="https://www.technovatechnologies.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-black hover:text-black "
+            >
+              Technova Technologies
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

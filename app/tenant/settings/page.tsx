@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Settings, Store, Percent } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -53,10 +54,13 @@ export default function SettingsPage() {
       if (response.ok) {
         const updatedSettings = await response.json()
         setSettings(updatedSettings)
-        alert('Settings saved successfully!')
+        showToast.success('Settings saved successfully!')
+      } else {
+        showToast.error('Failed to save settings')
       }
     } catch (error) {
       console.error('Failed to save settings:', error)
+      showToast.error('Error saving settings')
     } finally {
       setSaving(false)
     }

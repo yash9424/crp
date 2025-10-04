@@ -20,6 +20,7 @@ export async function PUT(
     
     const updateData = {
       ...body,
+      barcode: body.barcode || '',
       price: parseFloat(body.price),
       costPrice: parseFloat(body.costPrice),
       stock: parseInt(body.stock),

@@ -52,6 +52,7 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
       ...body,
       name: body.name || 'Unnamed Product',
       sku: body.sku || `SKU-${Date.now()}`,
+      barcode: body.barcode || '',
       category: body.category || 'General',
       price: parseFloat(body.price || 0),
       costPrice: parseFloat(body.costPrice || 0),

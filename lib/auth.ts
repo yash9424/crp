@@ -40,16 +40,21 @@ export const authOptions: NextAuthOptions = {
           const db = await connectDB()
           const tenantsCollection = db.collection('tenants')
           
+          // First check if tenant exists with this email
           const tenant = await tenantsCollection.findOne({ 
-            email: credentials.email,
-            status: 'active'
+            email: credentials.email
           })
           
           if (!tenant) return null
           
-          // Verify password
+          // Verify password first
           const isValidPassword = await bcrypt.compare(credentials.password, tenant.password)
           if (!isValidPassword) return null
+          
+          // Check if account is inactive after password verification
+          if (tenant.status !== 'active') {
+            return null
+          }
           
           return {
             id: tenant._id.toString(),

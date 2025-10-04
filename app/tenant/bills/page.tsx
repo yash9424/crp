@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Receipt, Search, Eye, Printer, MessageCircle, Download, X } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface Bill {
   id: string
@@ -93,7 +94,7 @@ export default function BillsPage() {
     console.log('Entered password:', password)
     console.log('Correct password:', correctPassword)
     if (password !== correctPassword) {
-      alert('❌ Incorrect password!')
+      showToast.error('❌ Incorrect password!')
       return
     }
     
@@ -128,16 +129,16 @@ export default function BillsPage() {
         // Refresh data in background
         fetchBills()
       } else {
-        alert('❌ Failed to delete bill. Please try again.')
+        showToast.error('❌ Failed to delete bill. Please try again.')
       }
     } catch (error) {
-      alert('❌ Error deleting bill. Please check your connection.')
+      showToast.error('❌ Error deleting bill. Please check your connection.')
     }
   }
 
   const sendBillViaWhatsApp = (bill: Bill) => {
     if (!bill.customerPhone) {
-      alert('Customer phone number required')
+      showToast.error('Customer phone number required')
       return
     }
 
