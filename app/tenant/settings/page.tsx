@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Store, Percent } from "lucide-react"
+import { Settings, Store, Percent, Eye, EyeOff } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -16,14 +17,18 @@ export default function SettingsPage() {
     phone: '',
     email: '',
     gst: '',
-    taxRate: 10,
+    taxRate: 0,
+    gstRate: 18,
     terms: '',
     billPrefix: 'BILL',
     billCounter: 1,
-    whatsappMessage: ''
+    whatsappMessage: '',
+    deletePassword: '',
+    discountMode: false
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const fetchSettings = async () => {
     try {
@@ -50,10 +55,13 @@ export default function SettingsPage() {
       if (response.ok) {
         const updatedSettings = await response.json()
         setSettings(updatedSettings)
-        alert('Settings saved successfully!')
+        showToast.success('Settings saved successfully!')
+      } else {
+        showToast.error('Failed to save settings')
       }
     } catch (error) {
       console.error('Failed to save settings:', error)
+      showToast.error('Error saving settings')
     } finally {
       setSaving(false)
     }
@@ -173,6 +181,28 @@ export default function SettingsPage() {
                 className="w-full p-2 border rounded-md h-16 text-sm"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="deletePassword">Delete Password</Label>
+              <div className="relative">
+                <Input
+                  id="deletePassword"
+                  type={showPassword ? "text" : "password"}
+                  value={settings.deletePassword || ''}
+                  onChange={(e) => setSettings({...settings, deletePassword: e.target.value})}
+                  placeholder="Set password for deleting bills"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -180,21 +210,41 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Percent className="w-5 h-5" />
-              <span>Tax Settings</span>
+              <span>Tax & Pricing Settings</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="taxRate">Tax Rate (%)</Label>
-              <Input
-                id="taxRate"
-                type="number"
-                value={settings.taxRate}
-                onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
-                placeholder="Enter tax rate"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Input
+                  id="taxRate"
+                  type="number"
+                  value={settings.taxRate}
+                  onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
+                  placeholder="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="discountMode"
+                    checked={settings.discountMode}
+                    onChange={(e) => setSettings({...settings, discountMode: e.target.checked})}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="discountMode" className="cursor-pointer">
+                    Enable Text Minus Mode
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  When ON: Shows "text minus" in product pricing.
+                  When OFF: Shows normal pricing without text minus.
+                </p>
+              </div>
             </div>
-
           </CardContent>
         </Card>
 

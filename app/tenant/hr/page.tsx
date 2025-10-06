@@ -35,6 +35,7 @@ import {
   MapPin,
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface Employee {
   _id?: string
@@ -73,7 +74,9 @@ export default function HRPage() {
     salary: '',
     joinDate: '',
     address: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    commissionType: 'none',
+    commissionRate: ''
   })
 
   const fetchEmployees = async () => {
@@ -100,7 +103,9 @@ export default function HRPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          salary: parseFloat(formData.salary) || 0
+          salary: parseFloat(formData.salary) || 0,
+          commissionRate: parseFloat(formData.commissionRate) || 0,
+          salesTarget: parseFloat(formData.salesTarget) || 0
         })
       })
       
@@ -108,13 +113,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsAddDialogOpen(false)
         resetForm()
-        alert('Employee created successfully!')
+        showToast.success('Employee created successfully!')
       } else {
-        alert('Failed to create employee')
+        showToast.error('Failed to create employee')
       }
     } catch (error) {
       console.error('Failed to create employee:', error)
-      alert('Error creating employee')
+      showToast.error('Error creating employee')
     }
   }
 
@@ -126,7 +131,9 @@ export default function HRPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          salary: parseFloat(formData.salary) || 0
+          salary: parseFloat(formData.salary) || 0,
+          commissionRate: parseFloat(formData.commissionRate) || 0,
+          salesTarget: parseFloat(formData.salesTarget) || 0
         })
       })
       
@@ -134,13 +141,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsEditDialogOpen(false)
         resetForm()
-        alert('Employee updated successfully!')
+        showToast.success('Employee updated successfully!')
       } else {
-        alert('Failed to update employee')
+        showToast.error('Failed to update employee')
       }
     } catch (error) {
       console.error('Failed to update employee:', error)
-      alert('Error updating employee')
+      showToast.error('Error updating employee')
     }
   }
 
@@ -160,13 +167,13 @@ export default function HRPage() {
         fetchEmployees()
         setIsDeleteDialogOpen(false)
         setEmployeeToDelete(null)
-        alert('Employee deleted successfully!')
+        showToast.success('Employee deleted successfully!')
       } else {
-        alert('Failed to delete employee')
+        showToast.error('Failed to delete employee')
       }
     } catch (error) {
       console.error('Failed to delete employee:', error)
-      alert('Error deleting employee')
+      showToast.error('Error deleting employee')
     }
   }
 
@@ -180,7 +187,9 @@ export default function HRPage() {
       salary: employee.salary?.toString() || '',
       joinDate: employee.joinDate || '',
       address: employee.address || '',
-      emergencyContact: employee.emergencyContact || ''
+      emergencyContact: employee.emergencyContact || '',
+      commissionType: (employee as any).commissionType || 'none',
+      commissionRate: (employee as any).commissionRate?.toString() || ''
     })
     setIsEditDialogOpen(true)
   }
@@ -195,7 +204,9 @@ export default function HRPage() {
       salary: '',
       joinDate: '',
       address: '',
-      emergencyContact: ''
+      emergencyContact: '',
+      commissionType: 'none',
+      commissionRate: ''
     })
     setSelectedEmployee(null)
   }
@@ -296,8 +307,7 @@ export default function HRPage() {
                 <CardTitle>Employee Directory</CardTitle>
                 <CardDescription>Manage HR records and staff information</CardDescription>
               </div>
-              <div className="flex space-x-2">
-               
+              <div className="flex space-x-2">              
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
@@ -392,6 +402,40 @@ export default function HRPage() {
                           value={formData.emergencyContact}
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
+                      </div>
+                      
+                      {/* Commission Settings */}
+                      <div className="space-y-4 border-t pt-4">
+                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                          <div className="space-y-2">
+                            <Label htmlFor="commissionType">Commission Type</Label>
+                            <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Commission</SelectItem>
+                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="commissionRate">Commission Rate</Label>
+                            <Input 
+                              id="commissionRate" 
+                              type="number" 
+                              placeholder={formData.commissionType === 'percentage' ? '5' : '100'}
+                              value={formData.commissionRate}
+                              onChange={(e) => setFormData({...formData, commissionRate: e.target.value})}
+                              disabled={formData.commissionType === 'none'}
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                            </div>
+                          </div>
+
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
@@ -490,6 +534,40 @@ export default function HRPage() {
                           value={formData.emergencyContact}
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
+                      </div>
+                      
+                      {/* Commission Settings */}
+                      <div className="space-y-4 border-t pt-4">
+                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                          <div className="space-y-2">
+                            <Label htmlFor="editCommissionType">Commission Type</Label>
+                            <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Commission</SelectItem>
+                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="editCommissionRate">Commission Rate</Label>
+                            <Input 
+                              id="editCommissionRate" 
+                              type="number" 
+                              placeholder={formData.commissionType === 'percentage' ? '5' : '100'}
+                              value={formData.commissionRate}
+                              onChange={(e) => setFormData({...formData, commissionRate: e.target.value})}
+                              disabled={formData.commissionType === 'none'}
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                            </div>
+                          </div>
+
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
@@ -614,6 +692,30 @@ export default function HRPage() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={async () => {
+                                const newStatus = employee.status === 'Active' ? 'Inactive' : 'Active'
+                                try {
+                                  const response = await fetch(`/api/employees/${employee._id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: newStatus })
+                                  })
+                                  if (response.ok) {
+                                    fetchEmployees()
+                                    showToast.success('✅ Employee status updated successfully!')
+                                  }
+                                } catch (error) {
+                                  console.error('Failed to update status:', error)
+                                }
+                              }}
+                              className={employee.status === 'Active' ? 'text-black hover:text-black' : 'text-red-600 hover:text-red-800'}
+                              title={employee.status === 'Active' ? 'Deactivate Employee' : 'Activate Employee'}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => window.location.href = '/tenant/leaves'} title="View Leaves">
                               <Calendar className="w-4 h-4" />
                             </Button>

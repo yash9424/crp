@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTenantCollection } from '@/lib/tenant-data'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { getTenantPlanLimits } from '@/lib/plan-limits'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,11 @@ export async function POST(request: NextRequest) {
     const lines = text.split('\n')
     const headers = lines[0].split(',')
     
+    // Check current product count and limits
+    const limits = await getTenantPlanLimits(session.user.tenantId)
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
+    const currentCount = await inventoryCollection.countDocuments({})
+    
     const items = []
     
     for (let i = 1; i < lines.length; i++) {
@@ -52,6 +57,18 @@ export async function POST(request: NextRequest) {
     }
     
     if (items.length > 0) {
+      // Check if importing would exceed limits
+      if (limits && (currentCount + items.length) > limits.maxProducts) {
+        return NextResponse.json({ 
+          error: 'PRODUCT_LIMIT_EXCEEDED',
+          message: `Cannot import ${items.length} products. Your ${limits.planName} plan allows ${limits.maxProducts} products. You currently have ${currentCount} products.`,
+          limits: {
+            ...limits,
+            currentProducts: currentCount
+          }
+        }, { status: 403 })
+      }
+      
       await inventoryCollection.insertMany(items)
     }
     

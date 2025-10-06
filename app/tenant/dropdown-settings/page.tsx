@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, Save, Settings } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface DropdownData {
   categories: string[]
@@ -62,13 +63,13 @@ export default function DropdownSettingsPage() {
       })
       
       if (response.ok) {
-        alert('Dropdown data saved successfully!')
+        showToast.success('Dropdown data saved successfully!')
       } else {
-        alert('Failed to save dropdown data')
+        showToast.error('Failed to save dropdown data')
       }
     } catch (error) {
       console.error('Failed to save dropdown data:', error)
-      alert('Error saving dropdown data')
+      showToast.error('Error saving dropdown data')
     } finally {
       setSaving(false)
     }

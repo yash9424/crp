@@ -35,7 +35,7 @@ export const POST = withFeatureAccess('customers')(async function(request: NextR
     }
 
     const body = await request.json()
-    const { name, phone } = body
+    const { name, phone, email, address } = body
     
     const customersCollection = await getTenantCollection(session.user.tenantId, 'customers')
     
@@ -71,9 +71,11 @@ export const POST = withFeatureAccess('customers')(async function(request: NextR
     const customer = {
       name,
       phone: phone || null,
-      orderCount: 1,
+      email: email || null,
+      address: address || null,
+      orderCount: body.orderCount || 0,
       totalSpent: 0,
-      lastOrderDate: new Date(),
+      lastOrderDate: body.orderCount > 0 ? new Date() : null,
       tenantId: session.user.tenantId,
       createdAt: new Date(),
       updatedAt: new Date()

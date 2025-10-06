@@ -1,5 +1,5 @@
 import { connectDB } from './database'
-import { FeatureKey } from './feature-permissions'
+import { FeatureKey, AVAILABLE_FEATURES } from './feature-permissions'
 import { ObjectId } from 'mongodb'
 
 export async function getTenantFeatures(tenantId: string): Promise<FeatureKey[]> {
@@ -25,12 +25,34 @@ export async function getTenantFeatures(tenantId: string): Promise<FeatureKey[]>
     }
     
     // Get plan's allowed features - handle plan as ObjectId
-    const plan = await db.collection('plans').findOne({ _id: tenant.plan })
-    console.log('Found plan:', plan)
+    let planQuery
+    try {
+      planQuery = { _id: new ObjectId(tenant.plan) }
+    } catch {
+      planQuery = { _id: tenant.plan }
+    }
     
-    if (!plan?.allowedFeatures) {
-      console.log('Plan has no allowedFeatures, returning default')
+    const plan = await db.collection('plans').findOne(planQuery)
+    console.log('Found plan:', plan)
+    console.log('Plan query used:', planQuery)
+    console.log('Tenant plan field:', tenant.plan)
+    
+    if (!plan) {
+      console.log('Plan not found, returning default features')
       return ['dashboard'] // Default minimal access
+    }
+    
+    if (!plan.allowedFeatures || plan.allowedFeatures.length === 0) {
+      console.log('Plan has no allowedFeatures, returning default based on plan name')
+      // Fallback based on plan name
+      const planName = plan.name?.toLowerCase()
+      if (planName?.includes('premium') || planName?.includes('pro')) {
+        return Object.keys(AVAILABLE_FEATURES) as FeatureKey[]
+      } else if (planName?.includes('standard')) {
+        return ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'settings', 'dropdownSettings']
+      } else {
+        return ['dashboard', 'inventory', 'pos', 'customers', 'settings']
+      }
     }
     
     console.log('Returning features:', plan.allowedFeatures)

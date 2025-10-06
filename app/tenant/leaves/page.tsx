@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Calendar, Clock, Users, Filter, Trash2 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { showToast } from "@/lib/toast"
 
 interface Employee {
   _id: string
@@ -108,13 +109,13 @@ export default function LeavesPage() {
         fetchLeaves()
         setIsAddDialogOpen(false)
         resetForm()
-        alert('Leave request created successfully!')
+        showToast.success('Leave request created successfully!')
       } else {
-        alert('Failed to create leave request')
+        showToast.error('Failed to create leave request')
       }
     } catch (error) {
       console.error('Failed to create leave:', error)
-      alert('Error creating leave request')
+      showToast.error('Error creating leave request')
     }
   }
 
@@ -134,13 +135,13 @@ export default function LeavesPage() {
         fetchLeaves()
         setIsDeleteDialogOpen(false)
         setLeaveToDelete(null)
-        alert('Leave record deleted successfully!')
+        showToast.success('Leave record deleted successfully!')
       } else {
-        alert('Failed to delete leave record')
+        showToast.error('Failed to delete leave record')
       }
     } catch (error) {
       console.error('Failed to delete leave:', error)
-      alert('Error deleting leave record')
+      showToast.error('Error deleting leave record')
     }
   }
 
@@ -203,7 +204,7 @@ export default function LeavesPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Leaves</CardTitle>
+              <CardTitle className="text-2xl font-medium">Total Leaves</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -213,7 +214,7 @@ export default function LeavesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
+              <CardTitle className="text-2xl font-medium">Approved</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -223,7 +224,7 @@ export default function LeavesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-2xl font-medium">Pending</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>

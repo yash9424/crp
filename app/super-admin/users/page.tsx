@@ -30,6 +30,7 @@ import {
   Mail,
   Phone,
 } from "lucide-react"
+import { showToast } from "@/lib/toast"
 
 interface AdminUser {
   _id?: string
@@ -81,6 +82,9 @@ export default function SuperAdminUsersPage() {
         fetchUsers()
         setIsAddUserOpen(false)
         setFormData({ name: "", email: "", phone: "", role: "", password: "" })
+        showToast.success('Admin user created successfully!')
+      } else {
+        showToast.error('Failed to create admin user')
       }
     } catch (error) {
       console.error('Failed to create user:', error)
@@ -100,6 +104,9 @@ export default function SuperAdminUsersPage() {
         setIsEditUserOpen(false)
         setEditingUser(null)
         setFormData({ name: "", email: "", phone: "", role: "", password: "" })
+        showToast.success('Admin user updated successfully!')
+      } else {
+        showToast.error('Failed to update admin user')
       }
     } catch (error) {
       console.error('Failed to update user:', error)
@@ -109,9 +116,15 @@ export default function SuperAdminUsersPage() {
   const deleteUser = async (id: string) => {
     try {
       const response = await fetch(`/api/super-admin/users?id=${id}`, { method: 'DELETE' })
-      if (response.ok) fetchUsers()
+      if (response.ok) {
+        fetchUsers()
+        showToast.success('Admin user deleted successfully!')
+      } else {
+        showToast.error('Failed to delete admin user')
+      }
     } catch (error) {
       console.error('Failed to delete user:', error)
+      showToast.error('Error deleting admin user')
     }
   }
 
@@ -123,9 +136,15 @@ export default function SuperAdminUsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: newStatus })
       })
-      if (response.ok) fetchUsers()
+      if (response.ok) {
+        fetchUsers()
+        showToast.success(`User status updated to ${newStatus}`)
+      } else {
+        showToast.error('Failed to update user status')
+      }
     } catch (error) {
       console.error('Failed to toggle status:', error)
+      showToast.error('Error updating user status')
     }
   }
 

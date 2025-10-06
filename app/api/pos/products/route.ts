@@ -24,10 +24,13 @@ export async function GET() {
       name: product.name || 'Unnamed Product',
       sku: product.sku || 'No SKU',
       price: product.price || 0,
+      originalPrice: product.originalPrice || product.price || 0,
       barcode: product.barcode || product.sku || 'No Barcode',
       category: product.category || 'General',
-      size: product.size || 'N/A',
-      color: product.color || 'N/A',
+      size: Array.isArray(product.sizes) ? (product.sizes[0] || 'N/A') : (product.sizes || 'N/A'),
+      color: Array.isArray(product.colors) ? (product.colors[0] || 'N/A') : (product.colors || 'N/A'),
+      brand: product.brand || 'N/A',
+      material: product.material || 'N/A',
       stock: product.stock || 0,
       image: product.image
     }))

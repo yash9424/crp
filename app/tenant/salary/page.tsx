@@ -25,11 +25,11 @@ export default function SalaryPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
   const calculateSalary = async () => {
     try {
-      const response = await fetch(`/api/salary/calculate?month=${selectedMonth}&year=${selectedYear}`)
+      const currentYear = new Date().getFullYear()
+      const response = await fetch(`/api/salary/calculate?month=${selectedMonth}&year=${currentYear}`)
       if (response.ok) {
         const data = await response.json()
         setSalaryData(data)
@@ -43,7 +43,8 @@ export default function SalaryPage() {
 
   const downloadSalarySlip = async (employeeId: string) => {
     try {
-      const response = await fetch(`/api/salary/slip?employeeId=${employeeId}&month=${selectedMonth}&year=${selectedYear}`)
+      const currentYear = new Date().getFullYear()
+      const response = await fetch(`/api/salary/slip?employeeId=${employeeId}&month=${selectedMonth}&year=${currentYear}`)
       if (response.ok) {
         const data = await response.json()
         
@@ -72,7 +73,7 @@ export default function SalaryPage() {
         pdf.text('SALARY SLIP', 105, 48, { align: 'center' })
         
         pdf.setFontSize(10)
-        pdf.text(`${new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })} ${selectedYear}`, 105, 58, { align: 'center' })
+        pdf.text(`${new Date(0, selectedMonth - 1).toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`, 105, 58, { align: 'center' })
         
         // Employee Info
         pdf.setFontSize(10)
@@ -124,7 +125,7 @@ export default function SalaryPage() {
         pdf.setFontSize(8)
         pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 270, { align: 'center' })
         
-        pdf.save(`${data.employeeName}-Salary-${selectedMonth}-${selectedYear}.pdf`)
+        pdf.save(`${data.employeeName}-Salary-${selectedMonth}-${new Date().getFullYear()}.pdf`)
       }
     } catch (error) {
       console.error('Failed to download salary slip:', error)
@@ -133,7 +134,7 @@ export default function SalaryPage() {
 
   useEffect(() => {
     calculateSalary()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth])
 
   const filteredSalaryData = salaryData.filter((salary) =>
     salary.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -203,25 +204,13 @@ export default function SalaryPage() {
                 />
               </div>
               <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {Array.from({length: 12}, (_, i) => (
                     <SelectItem key={i + 1} value={(i + 1).toString()}>
                       {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({length: 5}, (_, i) => (
-                    <SelectItem key={2020 + i} value={(2020 + i).toString()}>
-                      {2020 + i}
                     </SelectItem>
                   ))}
                 </SelectContent>

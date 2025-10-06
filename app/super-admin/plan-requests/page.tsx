@@ -53,6 +53,19 @@ export default function PlanRequestsPage() {
           body: JSON.stringify({ requestId, status: 'completed' })
         })
         
+        // Send notification to tenant
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId,
+            type: 'plan_approved',
+            title: 'Plan Upgrade Approved',
+            message: `Your plan upgrade request has been approved and activated.`,
+            priority: 'high'
+          })
+        })
+        
         showToast.success('Plan updated successfully!')
         fetchRequests()
       } else {
@@ -63,12 +76,25 @@ export default function PlanRequestsPage() {
     }
   }
 
-  const rejectRequest = async (requestId: string) => {
+  const rejectRequest = async (requestId: string, tenantId: string) => {
     try {
       await fetch('/api/plan-requests', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ requestId, status: 'rejected' })
+      })
+      
+      // Send notification to tenant
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          type: 'plan_rejected',
+          title: 'Plan Upgrade Rejected',
+          message: `Your plan upgrade request has been rejected. Please contact support for more information.`,
+          priority: 'medium'
+        })
       })
       
       showToast.success('Request rejected')
@@ -135,7 +161,7 @@ export default function PlanRequestsPage() {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => rejectRequest(request.id)}
+                          onClick={() => rejectRequest(request.id, request.tenantId)}
                         >
                           <X className="w-4 h-4" />
                         </Button>

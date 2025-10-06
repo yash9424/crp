@@ -2,7 +2,21 @@ export const showToast = {
   success: (message: string) => {
     if (typeof window === 'undefined') return
     const toast = document.createElement('div')
-    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] font-medium'
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #10b981;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 99999;
+      font-family: system-ui;
+      font-weight: 500;
+      max-width: 400px;
+      word-wrap: break-word;
+    `
     toast.textContent = message
     document.body.appendChild(toast)
     setTimeout(() => {
@@ -15,7 +29,21 @@ export const showToast = {
   error: (message: string) => {
     if (typeof window === 'undefined') return
     const toast = document.createElement('div')
-    toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] font-medium'
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #ef4444;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 99999;
+      font-family: system-ui;
+      font-weight: 500;
+      max-width: 400px;
+      word-wrap: break-word;
+    `
     toast.textContent = message
     document.body.appendChild(toast)
     setTimeout(() => {
@@ -28,7 +56,21 @@ export const showToast = {
   alert: (message: string) => {
     if (typeof window === 'undefined') return
     const toast = document.createElement('div')
-    toast.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] font-medium'
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #f59e0b;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 99999;
+      font-family: system-ui;
+      font-weight: 500;
+      max-width: 400px;
+      word-wrap: break-word;
+    `
     toast.textContent = message
     document.body.appendChild(toast)
     setTimeout(() => {

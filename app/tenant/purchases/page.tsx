@@ -36,7 +36,11 @@ export default function PurchasesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false)
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null)
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null)
+  const [purchaseToComplete, setPurchaseToComplete] = useState<Purchase | null>(null)
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -119,11 +123,16 @@ export default function PurchasesPage() {
     }
   }
 
-  const completePurchaseOrder = async (purchaseId: string) => {
-    if (!confirmDelete('Complete this purchase order? Items will be added to inventory.')) return
+  const openCompleteDialog = (purchase: Purchase) => {
+    setPurchaseToComplete(purchase)
+    setIsCompleteDialogOpen(true)
+  }
+
+  const completePurchaseOrder = async () => {
+    if (!purchaseToComplete) return
     
     try {
-      const response = await fetch(`/api/purchases/${purchaseId}`, {
+      const response = await fetch(`/api/purchases/${purchaseToComplete.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'completed' })
@@ -131,7 +140,9 @@ export default function PurchasesPage() {
       
       if (response.ok) {
         fetchPurchases()
-        showToast.success('Purchase order completed! Stock has been refilled for existing products.')
+        setIsCompleteDialogOpen(false)
+        setPurchaseToComplete(null)
+        showToast.success('Purchase order completed successfully! Stock has been updated.')
       } else {
         showToast.error('Failed to complete purchase order')
       }
@@ -178,17 +189,23 @@ export default function PurchasesPage() {
     }
   }
 
-  const deletePurchase = async (purchaseId: string) => {
-    console.log('Delete button clicked for purchase:', purchaseId)
-    if (!confirmDelete('Are you sure you want to delete this purchase order?')) return
+  const openDeleteDialog = (purchase: Purchase) => {
+    setPurchaseToDelete(purchase)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const deletePurchase = async () => {
+    if (!purchaseToDelete) return
     
     try {
-      const response = await fetch(`/api/purchases/${purchaseId}`, {
+      const response = await fetch(`/api/purchases/${purchaseToDelete.id}`, {
         method: 'DELETE'
       })
       
       if (response.ok) {
         fetchPurchases()
+        setIsDeleteDialogOpen(false)
+        setPurchaseToDelete(null)
         showToast.success('Purchase order deleted successfully!')
       } else {
         showToast.error('Failed to delete purchase order')
@@ -377,7 +394,7 @@ export default function PurchasesPage() {
                         <Label className="text-base font-medium">Order Items</Label>
                         <Button variant="outline" size="sm" onClick={addItem}>
                           <Plus className="w-4 h-4 mr-2" />
-                          Add Item
+                          Add Product
                         </Button>
                       </div>
                       
@@ -420,7 +437,7 @@ export default function PurchasesPage() {
                               <Label>Quantity</Label>
                               <Input 
                                 type="number" 
-                                value={item.quantity}
+                                value={item.quantity === 0 ? '' : item.quantity}
                                 onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
                                 placeholder="0" 
                               />
@@ -433,7 +450,7 @@ export default function PurchasesPage() {
                               <Input 
                                 type="number" 
                                 step="0.01"
-                                value={item.unitPrice}
+                                value={item.unitPrice === 0 ? '' : item.unitPrice}
                                 onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                                 placeholder="0.00" 
                               />
@@ -605,6 +622,46 @@ export default function PurchasesPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              {/* Delete Confirmation Dialog */}
+              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Purchase Order</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete purchase order {purchaseToDelete?.poNumber}? This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={deletePurchase}>
+                      Delete
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Complete Confirmation Dialog */}
+              <Dialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Complete Purchase Order</DialogTitle>
+                    <DialogDescription>
+                      Complete purchase order {purchaseToComplete?.poNumber}? Items will be added to inventory.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsCompleteDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={completePurchaseOrder}>
+                      Complete Order
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
@@ -659,10 +716,11 @@ export default function PurchasesPage() {
                         <div className="flex items-center justify-center space-x-2">
                           {purchase.status === 'pending' && (
                             <Button 
-                              variant="default" 
+                              variant="ghost" 
                               size="sm"
-                              onClick={() => completePurchaseOrder(purchase.id)}
+                              onClick={() => openCompleteDialog(purchase)}
                               title="Complete Order"
+                              className="text-black hover:text-black"
                             >
                               <Check className="w-4 h-4" />
                             </Button>
@@ -679,7 +737,7 @@ export default function PurchasesPage() {
                             variant="ghost" 
                             size="sm" 
                             className="text-red-500 hover:text-red-700"
-                            onClick={() => deletePurchase(purchase.id)}
+                            onClick={() => openDeleteDialog(purchase)}
                             disabled={purchase.status === 'completed'}
                           >
                             <Trash2 className="w-4 h-4" />

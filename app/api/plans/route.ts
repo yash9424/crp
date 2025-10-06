@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/database'
 import { ObjectId } from 'mongodb'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 // GET - Fetch all plans
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions)
     const db = await connectDB()
     const plansCollection = db.collection('plans')
+    const tenantsCollection = db.collection('tenants')
     
-    const plans = await plansCollection.find({}).sort({ createdAt: -1 }).toArray()
+    // Show only active plans for tenant users, all plans for super-admin
+    const filter = session?.user?.role === 'super-admin' ? {} : { status: 'active' }
+    const plans = await plansCollection.find(filter).sort({ createdAt: -1 }).toArray()
     
-    const plansWithId = plans.map(plan => ({
-      ...plan,
-      id: plan._id.toString()
-    }))
+    // Add subscriber count for each plan
+    const plansWithSubscribers = await Promise.all(
+      plans.map(async (plan) => {
+        const subscriberCount = await tenantsCollection.countDocuments({ plan: plan._id })
+        return {
+          ...plan,
+          id: plan._id.toString(),
+          subscribers: subscriberCount
+        }
+      })
+    )
     
-    return NextResponse.json(plansWithId)
+    return NextResponse.json(plansWithSubscribers)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 })
   }

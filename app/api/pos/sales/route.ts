@@ -14,7 +14,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
     }
 
     const body = await request.json()
-    const { items, customerName, customerPhone, subtotal, discount, discountAmount, tax, total, paymentMethod, taxRate, storeName } = body
+    const { items, customerName, customerPhone, subtotal, discount, discountAmount, tax, total, paymentMethod, taxRate, storeName, staffMember } = body
 
     const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
@@ -56,6 +56,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
       billPrefix: storeSettings.billPrefix || 'BILL',
       tenantId: session.user.tenantId,
       cashier: session.user.name || 'Admin',
+      staffMember: staffMember || 'admin',
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -119,7 +120,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
   }
 })
 
-export const GET = withFeatureAccess('pos')(async function() {
+export const GET = withFeatureAccess('pos')(async function(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -127,8 +128,23 @@ export const GET = withFeatureAccess('pos')(async function() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
+    
     const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
-    const sales = await salesCollection.find({}).sort({ createdAt: -1 }).limit(50).toArray()
+    
+    let query = {}
+    if (search) {
+      query = {
+        $or: [
+          { billNo: { $regex: search, $options: 'i' } },
+          { customerName: { $regex: search, $options: 'i' } },
+          { customerPhone: { $regex: search, $options: 'i' } }
+        ]
+      }
+    }
+    
+    const sales = await salesCollection.find(query).sort({ createdAt: -1 }).limit(50).toArray()
     
     const formattedSales = sales.map(sale => ({
       ...sale,

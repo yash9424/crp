@@ -32,6 +32,7 @@ import {
   Check,
   Filter,
   Settings,
+  X,
 } from "lucide-react"
 
 interface Plan {
@@ -59,7 +60,6 @@ export default function PlansPage() {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    maxUsers: '',
     maxProducts: '',
     features: '',
     description: '',
@@ -89,6 +89,7 @@ export default function PlansPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          maxUsers: 999999, // Unlimited users
           features: formData.features.split(',').map(f => f.trim()),
           allowedFeatures: formData.allowedFeatures
         })
@@ -112,6 +113,7 @@ export default function PlansPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          maxUsers: 999999, // Unlimited users
           features: formData.features.split(',').map(f => f.trim()),
           allowedFeatures: formData.allowedFeatures
         })
@@ -165,7 +167,6 @@ export default function PlansPage() {
     setFormData({
       name: '',
       price: '',
-      maxUsers: '',
       maxProducts: '',
       features: '',
       description: '',
@@ -179,7 +180,6 @@ export default function PlansPage() {
     setFormData({
       name: plan.name,
       price: plan.price.toString(),
-      maxUsers: plan.maxUsers.toString(),
       maxProducts: plan.maxProducts.toString(),
       features: plan.features.join(', '),
       description: plan.description,
@@ -244,7 +244,7 @@ export default function PlansPage() {
     <MainLayout title="Plan Management" userRole="super-admin">
       <div className="space-y-8">
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-medium">Total Plans</CardTitle>
@@ -262,6 +262,16 @@ export default function PlansPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{activePlans}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xl font-medium">Inactive Plans</CardTitle>
+              <X className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalPlans - activePlans}</div>
             </CardContent>
           </Card>
 
@@ -301,7 +311,7 @@ export default function PlansPage() {
                     Add Plan
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Add New Plan</DialogTitle>
                     <DialogDescription>Create a new subscription plan</DialogDescription>
@@ -318,7 +328,7 @@ export default function PlansPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="planPrice">Price (₹ /month)</Label>
+                        <Label htmlFor="planPrice">Price (₹ /year)</Label>
                         <Input 
                           id="planPrice" 
                           type="number" 
@@ -328,35 +338,14 @@ export default function PlansPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="maxUsers">Max Users</Label>
-                        <Input 
-                          id="maxUsers" 
-                          type="number" 
-                          placeholder="5" 
-                          value={formData.maxUsers}
-                          onChange={(e) => setFormData({...formData, maxUsers: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="maxProducts">Max Products</Label>
-                        <Input 
-                          id="maxProducts" 
-                          type="number" 
-                          placeholder="1000" 
-                          value={formData.maxProducts}
-                          onChange={(e) => setFormData({...formData, maxProducts: e.target.value})}
-                        />
-                      </div>
-                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="features">Features (comma separated)</Label>
+                      <Label htmlFor="maxProducts">Max Products</Label>
                       <Input 
-                        id="features" 
-                        placeholder="POS System, Inventory Management, Reports" 
-                        value={formData.features}
-                        onChange={(e) => setFormData({...formData, features: e.target.value})}
+                        id="maxProducts" 
+                        type="number" 
+                        placeholder="1000" 
+                        value={formData.maxProducts}
+                        onChange={(e) => setFormData({...formData, maxProducts: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
@@ -428,7 +417,7 @@ export default function PlansPage() {
 
               {/* Edit Plan Dialog */}
               <Dialog open={isEditPlanOpen} onOpenChange={setIsEditPlanOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Edit Plan</DialogTitle>
                     <DialogDescription>Update the subscription plan details</DialogDescription>
@@ -445,7 +434,7 @@ export default function PlansPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="editPlanPrice">Price (₹ /month)</Label>
+                        <Label htmlFor="editPlanPrice">Price (₹ /year)</Label>
                         <Input 
                           id="editPlanPrice" 
                           type="number" 
@@ -455,35 +444,14 @@ export default function PlansPage() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="editMaxUsers">Max Users</Label>
-                        <Input 
-                          id="editMaxUsers" 
-                          type="number" 
-                          placeholder="5" 
-                          value={formData.maxUsers}
-                          onChange={(e) => setFormData({...formData, maxUsers: e.target.value})}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="editMaxProducts">Max Products</Label>
-                        <Input 
-                          id="editMaxProducts" 
-                          type="number" 
-                          placeholder="1000" 
-                          value={formData.maxProducts}
-                          onChange={(e) => setFormData({...formData, maxProducts: e.target.value})}
-                        />
-                      </div>
-                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="editFeatures">Features (comma separated)</Label>
+                      <Label htmlFor="editMaxProducts">Max Products</Label>
                       <Input 
-                        id="editFeatures" 
-                        placeholder="POS System, Inventory Management, Reports" 
-                        value={formData.features}
-                        onChange={(e) => setFormData({...formData, features: e.target.value})}
+                        id="editMaxProducts" 
+                        type="number" 
+                        placeholder="1000" 
+                        value={formData.maxProducts}
+                        onChange={(e) => setFormData({...formData, maxProducts: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
@@ -602,12 +570,11 @@ export default function PlansPage() {
                       <TableCell className="text-center">
                         <div>
                           <div className="font-bold text-lg">₹ {plan.price}</div>
-                          <div className="text-xs text-muted-foreground">per month</div>
+                          <div className="text-xs text-muted-foreground">per year</div>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-sm">
-                          <div>{plan.maxUsers} users</div>
                           <div>{plan.maxProducts} products</div>
                         </div>
                       </TableCell>

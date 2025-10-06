@@ -44,17 +44,17 @@ export async function GET(
   <meta charset="UTF-8">
   <title>Bill - ${bill.billNo}</title>
   <style>
-    body { font-family: 'Courier New', monospace; max-width: 300px; margin: 0 auto; padding: 10px; font-size: 12px; line-height: 1.3; }
+    body { font-family: 'Courier New', monospace; max-width: 300px; margin: 0 auto; padding: 10px; font-size: 16px; line-height: 1.4; }
     .center { text-align: center; }
     .bold { font-weight: bold; }
     .separator { border-bottom: 1px dashed #000; margin: 8px 0; }
     .item-row { display: flex; justify-content: space-between; margin: 2px 0; }
     .item-name { font-weight: bold; margin-bottom: 2px; }
-    .item-details { display: flex; justify-content: space-between; font-size: 11px; }
+    .item-details { display: flex; justify-content: space-between; font-size: 14px; }
     .totals { margin-top: 10px; }
     .total-row { display: flex; justify-content: space-between; margin: 2px 0; }
-    .final-total { font-weight: bold; font-size: 14px; }
-    .terms { font-size: 8px; margin-top: 10px; text-align: justify; line-height: 1.2; }
+    .final-total { font-weight: bold; font-size: 18px; }
+    .terms { font-size: 16px; margin-top: 10px; text-align: justify; line-height: 1.3; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -98,10 +98,12 @@ export async function GET(
       <span>Subtotal:</span>
       <span>&#8377;${(bill.subtotal || 0).toFixed(2)}</span>
     </div>
+    ${(bill.taxRate || (settings as any).taxRate || 0) > 0 ? `
     <div class="total-row">
-      <span>Tax (GST ${bill.taxRate || (settings as any).taxRate || 12}%):</span>
+      <span>Tax:</span>
       <span>&#8377;${(bill.tax || 0).toFixed(2)}</span>
     </div>
+    ` : ''}
     <div class="total-row final-total">
       <span>TOTAL:</span>
       <span>&#8377;${(bill.total || 0).toFixed(2)}</span>
@@ -114,7 +116,7 @@ export async function GET(
   
   ${((settings as any).terms || bill.terms) ? `
     <div class="separator"></div>
-    <div class="bold" style="font-size: 10px;">Terms & Conditions:</div>
+    <div class="bold" style="font-size: 16px;">Terms & Conditions:</div>
     <div class="terms">${(settings as any).terms || bill.terms}</div>
   ` : ''}
   
@@ -124,7 +126,7 @@ export async function GET(
     <div class="bold">Thank you for shopping with us!</div>
     <div>Visit again soon</div>
     <div>For support: ${storePhone}</div>
-    <div style="margin-top: 8px; font-size: 10px;">Powered by Fashion POS System</div>
+    <div style="margin-top: 8px; font-size: 12px;">Powered by Fashion POS System</div>
   </div>
   
   <script>

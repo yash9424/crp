@@ -50,6 +50,7 @@ const tenantAdminNavItems = [
   { title: "Customers", href: "/tenant/customers", icon: UserCheck, feature: "customers" as FeatureKey },
   { title: "Purchases", href: "/tenant/purchases", icon: Package, feature: "purchases" as FeatureKey },
   { title: "HR & Staff", href: "/tenant/hr", icon: Users, feature: "hr" as FeatureKey },
+  { title: "Commission", href: "/tenant/commission", icon: Calculator, feature: "hr" as FeatureKey },
   { title: "Leaves", href: "/tenant/leaves", icon: Calendar, feature: "leaves" as FeatureKey },
   { title: "Salary", href: "/tenant/salary", icon: Calculator, feature: "salary" as FeatureKey },
   { title: "Bills", href: "/tenant/bills", icon: Receipt, feature: "bills" as FeatureKey },
@@ -130,6 +131,22 @@ export function Sidebar({ userRole }: SidebarProps) {
           })}
         </nav>
       </ScrollArea>
+      
+      {!collapsed && (
+        <div className="p-3 border-t">
+          <div className="text-center text-xs text-muted-foreground">
+            Product of{" "}
+            <a 
+              href="https://www.technovatechnologies.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-black hover:text-black "
+            >
+              Technova Technologies
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

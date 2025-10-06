@@ -30,7 +30,23 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError("Invalid credentials")
+        // Check if it's a blocked account
+        const checkResponse = await fetch('/api/auth/check-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+        
+        if (checkResponse.ok) {
+          const data = await checkResponse.json()
+          if (data.blocked) {
+            setError("Your Account Has Been Blocked, Please Contact To Super Admin")
+          } else {
+            setError("Invalid credentials")
+          }
+        } else {
+          setError("Invalid credentials")
+        }
       } else {
         const session = await getSession()
         if (session?.user?.role === "super-admin") {
@@ -47,7 +63,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">ERP System Login</CardTitle>
@@ -98,10 +114,20 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
-
         </CardContent>
       </Card>
+      
+      <div className="mt-6 pt-4 border-t-2 border-gray-200 text-center text-sm text-gray-500 w-96">
+        Product of{" "}
+        <a 
+          href="https://www.technovatechnologies.com/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-gray-700 hover:text-gray-900 font-medium"
+        >
+          Technova Technologies
+        </a>
+      </div>
     </div>
   )
 }

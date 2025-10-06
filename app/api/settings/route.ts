@@ -20,11 +20,13 @@ export async function GET() {
       phone: '',
       email: '',
       gst: '',
-      taxRate: 10,
+      taxRate: 0,
       terms: '',
       billPrefix: 'BILL',
       billCounter: 1,
-      whatsappMessage: ''
+      whatsappMessage: '',
+      deletePassword: 'admin123',
+      discountMode: false
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
@@ -51,11 +53,13 @@ export async function PUT(request: NextRequest) {
           phone: body.phone || '',
           email: body.email || '',
           gst: body.gst || '',
-          taxRate: parseFloat(body.taxRate) || 10,
+          taxRate: parseFloat(body.taxRate) || 0,
           terms: body.terms || '',
           billPrefix: body.billPrefix || 'BILL',
           billCounter: parseInt(body.billCounter) || 1,
           whatsappMessage: body.whatsappMessage || '',
+          deletePassword: body.deletePassword || 'admin123',
+          discountMode: body.discountMode === true || body.discountMode === 'true',
           updatedAt: new Date()
         }
       },

@@ -26,10 +26,42 @@ export function Header({ title, userRole }: HeaderProps) {
   const { data: session } = useSession()
   const { storeName, tenantId } = useStore()
   const [mounted, setMounted] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (userRole === 'tenant-admin' && tenantId) {
+      fetchNotifications()
+    }
+  }, [userRole, tenantId])
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch(`/api/notifications?tenantId=${tenantId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data)
+        setUnreadCount(data.filter((n: any) => !n.read).length)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+    }
+  }
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, read: true })
+      })
+      fetchNotifications()
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
+    }
+  }
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/login" })
@@ -72,6 +104,8 @@ export function Header({ title, userRole }: HeaderProps) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search..." className="w-64 pl-10" />
         </div>
+
+
 
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-red-600 hover:text-red-700">
           <LogOut className="h-4 w-4 mr-2" />
