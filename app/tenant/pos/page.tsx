@@ -92,6 +92,8 @@ export default function POSPage() {
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<any>(null)
   const [customerFormData, setCustomerFormData] = useState({ name: '', phone: '', email: '', address: '' })
+  const [employees, setEmployees] = useState<any[]>([])
+  const [selectedStaff, setSelectedStaff] = useState<string>('')
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -116,6 +118,19 @@ export default function POSPage() {
       }
     } catch (error) {
       console.error('Failed to fetch customers:', error)
+    }
+  }
+
+  // Fetch employees
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch('/api/employees')
+      if (response.ok) {
+        const data = await response.json()
+        setEmployees(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch employees:', error)
     }
   }
 
@@ -157,6 +172,7 @@ export default function POSPage() {
     fetchProducts()
     fetchSettings()
     fetchCustomers()
+    fetchEmployees()
   }, [])
 
   useEffect(() => {
@@ -265,7 +281,23 @@ export default function POSPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="staffSelect">Staff Member</Label>
+                  <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select staff" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      {employees.map((emp) => (
+                        <SelectItem key={emp._id} value={emp.employeeId}>
+                          {emp.name} ({emp.employeeId})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2 relative">
                   <Label htmlFor="customerName">Customer Name</Label>
                   <Input 
@@ -573,10 +605,12 @@ export default function POSPage() {
                     <span>-₹ {discountAmount.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm">
-                  <span>Tax ({settings.taxRate}%):</span>
-                  <span>₹ {tax.toFixed(2)}</span>
-                </div>
+                {settings.taxRate > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>Tax:</span>
+                    <span>₹ {tax.toFixed(2)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
@@ -668,7 +702,8 @@ export default function POSPage() {
                               total,
                               paymentMethod: selectedPaymentMethod,
                               taxRate: settings.taxRate,
-                              storeName: settings.storeName
+                              storeName: settings.storeName,
+                              staffMember: selectedStaff || 'admin'
                             }
                             
                             const response = await fetch('/api/pos/sales', {
@@ -795,10 +830,13 @@ export default function POSPage() {
                       <span>-₹{(completedSale.discountAmount || 0).toFixed(2)}</span>
                     </div>
                   )}
-                  <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px'}}>
-                    <span>Tax (GST {completedSale.taxRate || settings.taxRate}%):</span>
-                    <span>₹{(completedSale.tax || 0).toFixed(2)}</span>
-                  </div>
+                  {(completedSale.taxRate || settings.taxRate) > 0 && (
+                    <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px'}}>
+                      <span>Tax:</span>
+                      <span>₹{(completedSale.tax || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+
                   <div style={{borderTop: '1px solid #000', paddingTop: '4px', marginTop: '4px'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold'}}>
                       <span>TOTAL:</span>
@@ -843,6 +881,15 @@ export default function POSPage() {
                     const printContent = document.getElementById('bill-receipt')?.innerHTML
                     const printWindow = window.open('', '_blank')
                     if (printWindow && printContent) {
+                      // Remove tax line from print content if tax rate is 0
+                      let modifiedPrintContent = printContent
+                      if ((completedSale.taxRate || settings.taxRate) === 0) {
+                        // Remove the tax line that contains "Tax (" from the print content
+                        modifiedPrintContent = printContent
+                          ?.replace(/<div[^>]*>\s*<span>Tax \([^<]*<\/span>\s*<span>[^<]*<\/span>\s*<\/div>/gi, '')
+                          ?.replace(/Tax \([^\n]*\n?/gi, '')
+                      }
+                      
                       printWindow.document.write(`
                         <html>
                           <head>
@@ -902,7 +949,7 @@ export default function POSPage() {
                             </style>
                           </head>
                           <body>
-                            <div class="receipt">${printContent}</div>
+                            <div class="receipt">${modifiedPrintContent}</div>
                           </body>
                         </html>
                       `)

@@ -36,6 +36,8 @@ export const POST = withFeatureAccess('hr')(async function(request: NextRequest)
       ...body,
       department: 'General',
       position: 'Employee',
+      commissionType: body.commissionType || 'none',
+      commissionRate: parseFloat(body.commissionRate) || 0,
       tenantId: session.user.tenantId,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -220,7 +220,7 @@ export default function SettingsPage() {
                 <Input
                   id="taxRate"
                   type="number"
-                  value={settings.taxRate === 0 ? '' : settings.taxRate}
+                  value={settings.taxRate}
                   onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
                   placeholder="0"
                 />

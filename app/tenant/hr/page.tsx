@@ -74,7 +74,9 @@ export default function HRPage() {
     salary: '',
     joinDate: '',
     address: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    commissionType: 'none',
+    commissionRate: ''
   })
 
   const fetchEmployees = async () => {
@@ -101,7 +103,9 @@ export default function HRPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          salary: parseFloat(formData.salary) || 0
+          salary: parseFloat(formData.salary) || 0,
+          commissionRate: parseFloat(formData.commissionRate) || 0,
+          salesTarget: parseFloat(formData.salesTarget) || 0
         })
       })
       
@@ -127,7 +131,9 @@ export default function HRPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          salary: parseFloat(formData.salary) || 0
+          salary: parseFloat(formData.salary) || 0,
+          commissionRate: parseFloat(formData.commissionRate) || 0,
+          salesTarget: parseFloat(formData.salesTarget) || 0
         })
       })
       
@@ -181,7 +187,9 @@ export default function HRPage() {
       salary: employee.salary?.toString() || '',
       joinDate: employee.joinDate || '',
       address: employee.address || '',
-      emergencyContact: employee.emergencyContact || ''
+      emergencyContact: employee.emergencyContact || '',
+      commissionType: (employee as any).commissionType || 'none',
+      commissionRate: (employee as any).commissionRate?.toString() || ''
     })
     setIsEditDialogOpen(true)
   }
@@ -196,7 +204,9 @@ export default function HRPage() {
       salary: '',
       joinDate: '',
       address: '',
-      emergencyContact: ''
+      emergencyContact: '',
+      commissionType: 'none',
+      commissionRate: ''
     })
     setSelectedEmployee(null)
   }
@@ -393,6 +403,40 @@ export default function HRPage() {
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
                       </div>
+                      
+                      {/* Commission Settings */}
+                      <div className="space-y-4 border-t pt-4">
+                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                          <div className="space-y-2">
+                            <Label htmlFor="commissionType">Commission Type</Label>
+                            <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Commission</SelectItem>
+                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="commissionRate">Commission Rate</Label>
+                            <Input 
+                              id="commissionRate" 
+                              type="number" 
+                              placeholder={formData.commissionType === 'percentage' ? '5' : '100'}
+                              value={formData.commissionRate}
+                              onChange={(e) => setFormData({...formData, commissionRate: e.target.value})}
+                              disabled={formData.commissionType === 'none'}
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -490,6 +534,40 @@ export default function HRPage() {
                           value={formData.emergencyContact}
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
+                      </div>
+                      
+                      {/* Commission Settings */}
+                      <div className="space-y-4 border-t pt-4">
+                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <div className="grid grid-cols-2 gap-8">
+                          <div className="space-y-2">
+                            <Label htmlFor="editCommissionType">Commission Type</Label>
+                            <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Commission</SelectItem>
+                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="editCommissionRate">Commission Rate</Label>
+                            <Input 
+                              id="editCommissionRate" 
+                              type="number" 
+                              placeholder={formData.commissionType === 'percentage' ? '5' : '100'}
+                              value={formData.commissionRate}
+                              onChange={(e) => setFormData({...formData, commissionRate: e.target.value})}
+                              disabled={formData.commissionType === 'none'}
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                            </div>
+                          </div>
+
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">

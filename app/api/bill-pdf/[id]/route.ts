@@ -98,10 +98,12 @@ export async function GET(
       <span>Subtotal:</span>
       <span>&#8377;${(bill.subtotal || 0).toFixed(2)}</span>
     </div>
+    ${(bill.taxRate || (settings as any).taxRate || 0) > 0 ? `
     <div class="total-row">
-      <span>Tax (GST ${bill.taxRate || (settings as any).taxRate || 12}%):</span>
+      <span>Tax:</span>
       <span>&#8377;${(bill.tax || 0).toFixed(2)}</span>
     </div>
+    ` : ''}
     <div class="total-row final-total">
       <span>TOTAL:</span>
       <span>&#8377;${(bill.total || 0).toFixed(2)}</span>

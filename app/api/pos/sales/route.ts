@@ -14,7 +14,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
     }
 
     const body = await request.json()
-    const { items, customerName, customerPhone, subtotal, discount, discountAmount, tax, total, paymentMethod, taxRate, storeName } = body
+    const { items, customerName, customerPhone, subtotal, discount, discountAmount, tax, total, paymentMethod, taxRate, storeName, staffMember } = body
 
     const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
@@ -56,6 +56,7 @@ export const POST = withFeatureAccess('pos')(async function(request: NextRequest
       billPrefix: storeSettings.billPrefix || 'BILL',
       tenantId: session.user.tenantId,
       cashier: session.user.name || 'Admin',
+      staffMember: staffMember || 'admin',
       createdAt: new Date(),
       updatedAt: new Date()
     }
