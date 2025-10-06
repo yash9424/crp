@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Store, Percent } from "lucide-react"
+import { Settings, Store, Percent, Eye, EyeOff } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
 
@@ -17,7 +17,7 @@ export default function SettingsPage() {
     phone: '',
     email: '',
     gst: '',
-    taxRate: 10,
+    taxRate: 0,
     gstRate: 18,
     terms: '',
     billPrefix: 'BILL',
@@ -28,6 +28,7 @@ export default function SettingsPage() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const fetchSettings = async () => {
     try {
@@ -182,13 +183,25 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="deletePassword">Delete Password</Label>
-              <Input
-                id="deletePassword"
-                type="password"
-                value={settings.deletePassword || ''}
-                onChange={(e) => setSettings({...settings, deletePassword: e.target.value})}
-                placeholder="Set password for deleting bills"
-              />
+              <div className="relative">
+                <Input
+                  id="deletePassword"
+                  type={showPassword ? "text" : "password"}
+                  value={settings.deletePassword || ''}
+                  onChange={(e) => setSettings({...settings, deletePassword: e.target.value})}
+                  placeholder="Set password for deleting bills"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -207,9 +220,9 @@ export default function SettingsPage() {
                 <Input
                   id="taxRate"
                   type="number"
-                  value={settings.taxRate}
+                  value={settings.taxRate === 0 ? '' : settings.taxRate}
                   onChange={(e) => setSettings({...settings, taxRate: parseFloat(e.target.value) || 0})}
-                  placeholder="Enter tax rate"
+                  placeholder="0"
                 />
               </div>
               

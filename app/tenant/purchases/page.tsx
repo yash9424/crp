@@ -437,7 +437,7 @@ export default function PurchasesPage() {
                               <Label>Quantity</Label>
                               <Input 
                                 type="number" 
-                                value={item.quantity}
+                                value={item.quantity === 0 ? '' : item.quantity}
                                 onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
                                 placeholder="0" 
                               />
@@ -450,7 +450,7 @@ export default function PurchasesPage() {
                               <Input 
                                 type="number" 
                                 step="0.01"
-                                value={item.unitPrice}
+                                value={item.unitPrice === 0 ? '' : item.unitPrice}
                                 onChange={(e) => updateItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                                 placeholder="0.00" 
                               />

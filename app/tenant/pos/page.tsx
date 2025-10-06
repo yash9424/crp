@@ -554,8 +554,8 @@ export default function POSPage() {
                 <Input
                   id="discount"
                   type="number"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  value={discount === 0 ? '' : discount}
+                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>

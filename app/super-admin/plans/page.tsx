@@ -328,7 +328,7 @@ export default function PlansPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="planPrice">Price (₹ /month)</Label>
+                        <Label htmlFor="planPrice">Price (₹ /year)</Label>
                         <Input 
                           id="planPrice" 
                           type="number" 
@@ -434,7 +434,7 @@ export default function PlansPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="editPlanPrice">Price (₹ /month)</Label>
+                        <Label htmlFor="editPlanPrice">Price (₹ /year)</Label>
                         <Input 
                           id="editPlanPrice" 
                           type="number" 
@@ -570,7 +570,7 @@ export default function PlansPage() {
                       <TableCell className="text-center">
                         <div>
                           <div className="font-bold text-lg">₹ {plan.price}</div>
-                          <div className="text-xs text-muted-foreground">per month</div>
+                          <div className="text-xs text-muted-foreground">per year</div>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

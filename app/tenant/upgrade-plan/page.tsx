@@ -135,7 +135,7 @@ export default function UpgradePlanPage() {
                   {getPlanIcon(currentPlan.name)}
                   <div>
                     <CardTitle>Current Plan: {currentPlan.name}</CardTitle>
-                    <CardDescription>₹{currentPlan.price}/month</CardDescription>
+                    <CardDescription>₹{currentPlan.price}/year</CardDescription>
                   </div>
                 </div>
                 <Badge className="bg-primary">Active</Badge>
@@ -162,7 +162,7 @@ export default function UpgradePlanPage() {
                   </div>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <div className="text-3xl font-bold">₹{plan.price}</div>
-                  <CardDescription>per month</CardDescription>
+                  <CardDescription>per year</CardDescription>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">

@@ -67,7 +67,7 @@ export default function InventoryPage() {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
   const [importing, setImporting] = useState(false)
-  const [settings, setSettings] = useState({ taxRate: 10, discountMode: false })
+  const [settings, setSettings] = useState({ taxRate: 0, discountMode: false })
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -170,7 +170,7 @@ export default function InventoryPage() {
   }
 
   const calculatePriceExcludingGST = (originalPrice: number) => {
-    const taxRate = settings.taxRate || 10
+    const taxRate = settings.taxRate || 0
     const taxAmount = (originalPrice * taxRate) / 100
     return (originalPrice - taxAmount).toFixed(2)
   }
@@ -767,8 +767,9 @@ export default function InventoryPage() {
                                   console.log('Discount mode:', settings.discountMode)
                                   
                                   if (settings.discountMode) {
-                                    // When ON: Apply 10% minus, then set as final price
-                                    const finalSellingPrice = inputPrice - (inputPrice * 0.10)
+                                    // When ON: Apply tax rate minus, then set as final price
+                                    const taxRate = settings.taxRate || 0
+                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
                                     console.log('ON mode - Final price:', finalSellingPrice)
                                     setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
                                   } else {
@@ -782,7 +783,7 @@ export default function InventoryPage() {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="finalPrice" className="text-sm font-medium">
-                                {settings.discountMode ? 'Final Price (After 10% minus)' : 'Final Price'}
+                                {settings.discountMode ? `Final Price (After ${settings.taxRate || 0}% minus)` : 'Final Price'}
                               </Label>
                               <Input 
                                 id="finalPrice" 
@@ -1002,7 +1003,8 @@ export default function InventoryPage() {
                                   const inputPrice = parseFloat(e.target.value) || 0
                                   
                                   if (settings.discountMode) {
-                                    const finalSellingPrice = inputPrice - (inputPrice * 0.10)
+                                    const taxRate = settings.taxRate || 0
+                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
                                     setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
                                   } else {
                                     setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
@@ -1013,7 +1015,7 @@ export default function InventoryPage() {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="editFinalPrice" className="text-sm font-medium">
-                                {settings.discountMode ? 'Final Price (After 10% minus)' : 'Final Price'}
+                                {settings.discountMode ? `Final Price (After ${settings.taxRate || 0}% minus)` : 'Final Price'}
                               </Label>
                               <Input 
                                 id="editFinalPrice" 
