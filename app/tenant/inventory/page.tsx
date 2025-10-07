@@ -33,9 +33,14 @@ import {
   Upload,
   Barcode,
   Crown,
+  RefreshCw,
+  Printer,
 } from "lucide-react"
 import { showToast, confirmDelete } from "@/lib/toast"
 import { UpgradePopup } from "@/components/upgrade-popup"
+import { generateBarcode, validateBarcode } from "@/lib/barcode-utils"
+import { BarcodeDisplay, PrintableBarcode } from "@/components/barcode-display"
+import { BulkBarcodePrint } from "@/components/bulk-barcode-print"
 
 interface InventoryItem {
   id: string
@@ -191,17 +196,48 @@ export default function InventoryPage() {
 
   // Create new inventory item
   const createItem = async () => {
+    // Validate required fields
+    if (!formData.name.trim()) {
+      showToast.error('Product name is required')
+      return
+    }
+    if (!formData.category) {
+      showToast.error('Category is required')
+      return
+    }
+    if (!formData.finalPrice || parseFloat(formData.finalPrice) <= 0) {
+      showToast.error('Valid selling price is required')
+      return
+    }
+    if (!formData.stock || parseInt(formData.stock) < 0) {
+      showToast.error('Valid stock quantity is required')
+      return
+    }
+
     try {
+      const requestData = {
+        name: formData.name.trim(),
+        sku: formData.sku.trim() || `SKU-${Date.now()}`,
+        barcode: formData.barcode.trim(),
+        category: formData.category,
+        price: formData.price || formData.finalPrice,
+        finalPrice: formData.finalPrice,
+        costPrice: formData.costPrice || '0',
+        stock: formData.stock,
+        minStock: formData.minStock || '0',
+        sizes: formData.sizes ? formData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
+        colors: formData.colors ? formData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
+        brand: formData.brand || '',
+        material: formData.material || '',
+        description: formData.description || ''
+      }
+
+      console.log('Sending product data:', requestData)
+
       const response = await fetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: formData.finalPrice,
-          originalPrice: formData.price,
-          sizes: formData.sizes.split(',').map(s => s.trim()),
-          colors: formData.colors.split(',').map(c => c.trim())
-        })
+        body: JSON.stringify(requestData)
       })
       
       if (response.ok) {
@@ -210,17 +246,18 @@ export default function InventoryPage() {
         setIsAddDialogOpen(false)
         resetForm()
         showToast.success('✅ Product added to inventory successfully!')
-      } else if (response.status === 403) {
+      } else {
         const errorData = await response.json()
-        if (errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
+        console.error('API Error Response:', errorData)
+        
+        if (response.status === 403 && errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
           setPlanLimits(errorData.limits)
           setShowUpgradePopup(true)
           setIsAddDialogOpen(false)
         } else {
-          showToast.error('❌ ' + (errorData.message || 'Failed to add product'))
+          const errorMessage = errorData.details || errorData.message || errorData.error || 'Failed to add product'
+          showToast.error(`❌ ${errorMessage}`)
         }
-      } else {
-        showToast.error('❌ Failed to add product. Please try again.')
       }
     } catch (error) {
       console.error('Failed to create item:', error)
@@ -580,6 +617,8 @@ export default function InventoryPage() {
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV
                 </Button>
+                
+                <BulkBarcodePrint products={inventory} />
 
                 <Button 
                   variant="destructive"
@@ -664,10 +703,24 @@ export default function InventoryPage() {
                                   onChange={(e) => setFormData({...formData, barcode: e.target.value})}
                                   className="flex-1 h-10" 
                                 />
-                                <Button variant="outline" size="sm" className="h-10 px-3">
-                                  <Barcode className="w-4 h-4" />
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-3"
+                                  onClick={() => {
+                                    const newBarcode = generateBarcode('FS')
+                                    setFormData({...formData, barcode: newBarcode})
+                                    showToast.success('Barcode generated!')
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </Button>
                               </div>
+                              {formData.barcode && (
+                                <div className="mt-2 p-2 border rounded">
+                                  <BarcodeDisplay value={formData.barcode} height={30} fontSize={8} />
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="category" className="text-sm font-medium">Category *</Label>
@@ -906,10 +959,24 @@ export default function InventoryPage() {
                                   onChange={(e) => setFormData({...formData, barcode: e.target.value})}
                                   className="flex-1 h-10" 
                                 />
-                                <Button variant="outline" size="sm" className="h-10 px-3">
-                                  <Barcode className="w-4 h-4" />
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-3"
+                                  onClick={() => {
+                                    const newBarcode = generateBarcode('FS')
+                                    setFormData({...formData, barcode: newBarcode})
+                                    showToast.success('New barcode generated!')
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </Button>
                               </div>
+                              {formData.barcode && (
+                                <div className="mt-2 p-2 border rounded">
+                                  <BarcodeDisplay value={formData.barcode} height={30} fontSize={8} />
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="editCategory" className="text-sm font-medium">Category *</Label>
@@ -1194,7 +1261,14 @@ export default function InventoryPage() {
                           <div className="font-medium">{item.name || 'No Name'}</div>
                         </TableCell>
                         <TableCell className="text-center">{item.sku || 'No SKU'}</TableCell>
-                        <TableCell className="text-center">{(item as any).barcode || 'No Barcode'}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center space-y-1">
+                            <span className="text-xs">{(item as any).barcode || 'No Barcode'}</span>
+                            {(item as any).barcode && (
+                              <BarcodeDisplay value={(item as any).barcode} height={20} fontSize={6} />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">{item.category || 'No Category'}</TableCell>
                         <TableCell className="text-center">{item.stock || 0}</TableCell>
                         <TableCell className="text-center">
@@ -1211,6 +1285,55 @@ export default function InventoryPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
+                            {(item as any).barcode && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  const printWindow = window.open('', '_blank')
+                                  if (printWindow) {
+                                    printWindow.document.write(`
+                                      <html>
+                                        <head>
+                                          <title>Barcode - ${item.name}</title>
+                                          <style>
+                                            body { font-family: Arial, sans-serif; margin: 20px; }
+                                            .barcode-label { text-align: center; margin: 10px; padding: 10px; border: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; }
+                                            canvas { display: block; margin: 0 auto; }
+                                            @media print { body { margin: 0; } }
+                                          </style>
+                                        </head>
+                                        <body>
+                                          <div class="barcode-label">
+                                            <div style="font-weight: bold; margin-bottom: 5px;">${item.name}</div>
+                                            <div style="font-size: 12px; margin-bottom: 10px;">₹${item.price}</div>
+                                            <canvas id="barcode"></canvas>
+                                          </div>
+                                          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+                                          <script>
+                                            JsBarcode("#barcode", "${(item as any).barcode}", {
+                                              format: "CODE128",
+                                              width: 2,
+                                              height: 50,
+                                              displayValue: true,
+                                              fontSize: 14,
+                                              textAlign: "center",
+                                              textPosition: "bottom",
+                                              textMargin: 2
+                                            });
+                                            window.print();
+                                            window.close();
+                                          </script>
+                                        </body>
+                                      </html>
+                                    `)
+                                    printWindow.document.close()
+                                  }
+                                }}
+                              >
+                                <Printer className="w-4 h-4" />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm" 

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { withFeatureAccess } from '@/lib/api-middleware'
 import { checkProductLimit } from '@/lib/plan-limits'
+import { generateBarcode } from '@/lib/barcode-utils'
 
 export const GET = withFeatureAccess('inventory')(async function() {
   try {
@@ -46,20 +47,38 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
     }
 
     const body = await request.json()
+    console.log('Product creation request:', body)
+    
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
     
+    // Generate barcode if not provided
+    let barcode = body.barcode || ''
+    if (!barcode) {
+      barcode = generateBarcode('FS') // FS = Fashion Store
+      console.log('Generated barcode:', barcode)
+    } else {
+      console.log('Using provided barcode:', barcode)
+    }
+    
+    // Check if barcode already exists
+    const existingProduct = await inventoryCollection.findOne({ barcode })
+    if (existingProduct) {
+      console.log('Barcode already exists:', barcode)
+      return NextResponse.json({ error: 'Barcode already exists' }, { status: 400 })
+    }
+    
     const item = {
-      ...body,
       name: body.name || 'Unnamed Product',
       sku: body.sku || `SKU-${Date.now()}`,
-      barcode: body.barcode || '',
+      barcode,
       category: body.category || 'General',
-      price: parseFloat(body.price || 0),
+      price: parseFloat(body.finalPrice || body.price || 0),
+      originalPrice: parseFloat(body.price || 0),
       costPrice: parseFloat(body.costPrice || 0),
       stock: parseInt(body.stock || 0),
       minStock: parseInt(body.minStock || 0),
-      sizes: body.sizes || [],
-      colors: body.colors || [],
+      sizes: Array.isArray(body.sizes) ? body.sizes : (body.sizes ? body.sizes.split(',').map((s: string) => s.trim()) : []),
+      colors: Array.isArray(body.colors) ? body.colors : (body.colors ? body.colors.split(',').map((c: string) => c.trim()) : []),
       brand: body.brand || '',
       material: body.material || '',
       description: body.description || '',
@@ -70,10 +89,16 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
       updatedAt: new Date()
     }
 
+    console.log('Creating product item:', item)
     const result = await inventoryCollection.insertOne(item)
+    console.log('Product created successfully:', result.insertedId)
     
     return NextResponse.json({ ...item, id: result.insertedId.toString() }, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create inventory item' }, { status: 500 })
+    console.error('Product creation error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create inventory item',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 })
