@@ -150,7 +150,7 @@ export default function InventoryPage() {
       const response = await fetch('/api/settings')
       if (response.ok) {
         const data = await response.json()
-        setSettings({ taxRate: data.taxRate || 10, discountMode: data.discountMode || false })
+        setSettings({ taxRate: data.taxRate ?? 0, discountMode: data.discountMode || false })
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
@@ -169,11 +169,7 @@ export default function InventoryPage() {
     }
   }
 
-  const calculatePriceExcludingGST = (originalPrice: number) => {
-    const taxRate = settings.taxRate || 0
-    const taxAmount = (originalPrice * taxRate) / 100
-    return (originalPrice - taxAmount).toFixed(2)
-  }
+
 
   const filterDropdownsByCategory = (category: string) => {
     // Always show all dropdown options
@@ -617,6 +613,7 @@ export default function InventoryPage() {
                       return
                     }
                     resetForm()
+                    fetchSettings() // Refresh settings to get latest tax rate
                   }
                   setIsAddDialogOpen(open)
                 }}>
@@ -764,17 +761,19 @@ export default function InventoryPage() {
                                 value={formData.price}
                                 onChange={(e) => {
                                   const inputPrice = parseFloat(e.target.value) || 0
-                                  console.log('Discount mode:', settings.discountMode)
                                   
                                   if (settings.discountMode) {
-                                    // When ON: Apply tax rate minus, then set as final price
+                                    // When ON: Apply tax rate minus only if tax rate > 0
                                     const taxRate = settings.taxRate || 0
-                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
-                                    console.log('ON mode - Final price:', finalSellingPrice)
-                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    if (taxRate > 0) {
+                                      const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
+                                      setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    } else {
+                                      // If tax rate is 0%, no deduction
+                                      setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                    }
                                   } else {
                                     // When OFF: Selling price = Final price
-                                    console.log('OFF mode - Final price:', inputPrice)
                                     setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
                                   }
                                 }}
@@ -860,7 +859,9 @@ export default function InventoryPage() {
                 {/* Edit Dialog */}
                 <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
                   setIsEditDialogOpen(open)
-                  if (!open) {
+                  if (open) {
+                    fetchSettings() // Refresh settings to get latest tax rate
+                  } else {
                     resetForm()
                   }
                 }}>
@@ -1003,9 +1004,15 @@ export default function InventoryPage() {
                                   const inputPrice = parseFloat(e.target.value) || 0
                                   
                                   if (settings.discountMode) {
+                                    // When ON: Apply tax rate minus only if tax rate > 0
                                     const taxRate = settings.taxRate || 0
-                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
-                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    if (taxRate > 0) {
+                                      const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
+                                      setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    } else {
+                                      // If tax rate is 0%, no deduction
+                                      setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                    }
                                   } else {
                                     setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
                                   }

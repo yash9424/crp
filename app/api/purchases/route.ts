@@ -37,9 +37,14 @@ export const POST = withFeatureAccess('purchases')(async function(request: NextR
     const body = await request.json()
     const purchasesCollection = await getTenantCollection(session.user.tenantId, 'purchases')
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
+    const settingsCollection = await getTenantCollection(session.user.tenantId, 'settings')
+    
+    // Get tax rate from settings
+    const settings = await settingsCollection.findOne({}) || { taxRate: 0 }
+    const taxRate = (settings.taxRate || 0) / 100
     
     const subtotal = body.items.reduce((sum: number, item: any) => sum + (item.total || 0), 0)
-    const tax = subtotal * 0.18 // 18% GST
+    const tax = subtotal * taxRate
     const total = subtotal + tax
     
     const purchase = {
