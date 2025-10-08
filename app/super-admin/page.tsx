@@ -183,7 +183,7 @@ export default function SuperAdminDashboard() {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {charts.planDistribution.map((entry, index) => (
+                    {charts.planDistribution.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -191,7 +191,7 @@ export default function SuperAdminDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-2 mt-4">
-                {charts.planDistribution.map((plan) => (
+                {charts.planDistribution.map((plan: any) => (
                   <div key={plan.name} className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: plan.color }} />
@@ -238,7 +238,7 @@ export default function SuperAdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activities.length > 0 ? activities.map((activity, index) => (
+                {activities.length > 0 ? activities.map((activity: any, index: number) => (
                   <div key={index} className="flex items-center space-x-4">
                     <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <div className="flex-1 space-y-1">

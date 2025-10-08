@@ -16,6 +16,7 @@ export const AVAILABLE_FEATURES = {
   
   // HR & Staff Management
   hr: { name: 'HR & Staff Management', category: 'HR' },
+  commission: { name: 'Commission Management', category: 'HR' },
   leaves: { name: 'Leave Management', category: 'HR' },
   salary: { name: 'Salary Management', category: 'HR' },
   
@@ -50,6 +51,6 @@ export const FEATURE_CATEGORIES = [
 // Default feature sets for different plan tiers
 export const DEFAULT_FEATURE_SETS = {
   basic: ['dashboard', 'inventory', 'pos', 'customers', 'settings'],
-  standard: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'settings', 'dropdownSettings'],
+  standard: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'commission', 'settings', 'dropdownSettings'],
   premium: Object.keys(AVAILABLE_FEATURES) as FeatureKey[]
 }

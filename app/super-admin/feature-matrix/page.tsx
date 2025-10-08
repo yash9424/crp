@@ -149,7 +149,7 @@ export default function FeatureMatrixPage() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  ₹{plan.price}/month • {plan.maxUsers} users • {plan.maxProducts} products
+                  ₹{plan.price}/year • {plan.maxUsers} users • {plan.maxProducts} products
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -174,13 +174,13 @@ export default function FeatureMatrixPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-64">Feature</TableHead>
-                    <TableHead className="text-center">Category</TableHead>
+                    <TableHead className="w-48 sticky left-0 bg-background z-10 border-r">Feature</TableHead>
+                    <TableHead className="text-center w-24 sticky left-48 bg-background z-10 border-r">Category</TableHead>
                     {plans.map((plan) => (
                       <TableHead key={plan.id} className="text-center min-w-32">
                         <div>
                           <div className="font-medium">{plan.name}</div>
-                          <div className="text-xs text-muted-foreground">₹{plan.price}/mo</div>
+                          <div className="text-xs text-muted-foreground">₹{plan.price}/year</div>
                         </div>
                       </TableHead>
                     ))}
@@ -193,22 +193,22 @@ export default function FeatureMatrixPage() {
                     
                     return categoryFeatures.map(([featureKey, feature], index) => (
                       <TableRow key={featureKey}>
-                        <TableCell>
+                        <TableCell className="sticky left-0 bg-background z-10 border-r">
                           <div>
                             <div className="font-medium">{feature.name}</div>
-                            {feature.required && (
+                            {(feature as any).required && (
                               <Badge variant="outline" className="text-xs mt-1">Required</Badge>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center sticky left-48 bg-background z-10 border-r">
                           <Badge variant="secondary" className="text-xs">
                             {category}
                           </Badge>
                         </TableCell>
                         {plans.map((plan) => (
                           <TableCell key={plan.id} className="text-center">
-                            {editMode && !feature.required ? (
+                            {editMode && !(feature as any).required ? (
                               <Checkbox
                                 checked={hasFeature(plan.id, featureKey as FeatureKey)}
                                 onCheckedChange={() => toggleFeature(plan.id, featureKey as FeatureKey)}

@@ -33,9 +33,15 @@ import {
   Upload,
   Barcode,
   Crown,
+  RefreshCw,
+  Printer,
 } from "lucide-react"
 import { showToast, confirmDelete } from "@/lib/toast"
 import { UpgradePopup } from "@/components/upgrade-popup"
+import { generateBarcode, validateBarcode } from "@/lib/barcode-utils"
+import { BarcodeDisplay, PrintableBarcode } from "@/components/barcode-display"
+import { BulkBarcodePrint } from "@/components/bulk-barcode-print"
+import { QuantityBarcodePrint } from "@/components/quantity-barcode-print"
 
 interface InventoryItem {
   id: string
@@ -150,7 +156,7 @@ export default function InventoryPage() {
       const response = await fetch('/api/settings')
       if (response.ok) {
         const data = await response.json()
-        setSettings({ taxRate: data.taxRate || 10, discountMode: data.discountMode || false })
+        setSettings({ taxRate: data.taxRate ?? 0, discountMode: data.discountMode || false })
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
@@ -169,11 +175,7 @@ export default function InventoryPage() {
     }
   }
 
-  const calculatePriceExcludingGST = (originalPrice: number) => {
-    const taxRate = settings.taxRate || 0
-    const taxAmount = (originalPrice * taxRate) / 100
-    return (originalPrice - taxAmount).toFixed(2)
-  }
+
 
   const filterDropdownsByCategory = (category: string) => {
     // Always show all dropdown options
@@ -196,16 +198,29 @@ export default function InventoryPage() {
   // Create new inventory item
   const createItem = async () => {
     try {
+      const requestData = {
+        name: formData.name.trim(),
+        sku: formData.sku.trim() || `SKU-${Date.now()}`,
+        barcode: formData.barcode.trim(),
+        category: formData.category,
+        price: formData.price || formData.finalPrice,
+        finalPrice: formData.finalPrice,
+        costPrice: formData.costPrice || '0',
+        stock: formData.stock,
+        minStock: formData.minStock || '0',
+        sizes: formData.sizes ? formData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
+        colors: formData.colors ? formData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
+        brand: formData.brand || '',
+        material: formData.material || '',
+        description: formData.description || ''
+      }
+
+      console.log('Sending product data:', requestData)
+
       const response = await fetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: formData.finalPrice,
-          originalPrice: formData.price,
-          sizes: formData.sizes.split(',').map(s => s.trim()),
-          colors: formData.colors.split(',').map(c => c.trim())
-        })
+        body: JSON.stringify(requestData)
       })
       
       if (response.ok) {
@@ -214,17 +229,18 @@ export default function InventoryPage() {
         setIsAddDialogOpen(false)
         resetForm()
         showToast.success('✅ Product added to inventory successfully!')
-      } else if (response.status === 403) {
+      } else {
         const errorData = await response.json()
-        if (errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
+        console.error('API Error Response:', errorData)
+        
+        if (response.status === 403 && errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
           setPlanLimits(errorData.limits)
           setShowUpgradePopup(true)
           setIsAddDialogOpen(false)
         } else {
-          showToast.error('❌ ' + (errorData.message || 'Failed to add product'))
+          const errorMessage = errorData.details || errorData.message || errorData.error || 'Failed to add product'
+          showToast.error(`❌ ${errorMessage}`)
         }
-      } else {
-        showToast.error('❌ Failed to add product. Please try again.')
       }
     } catch (error) {
       console.error('Failed to create item:', error)
@@ -584,6 +600,8 @@ export default function InventoryPage() {
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV
                 </Button>
+                
+                <BulkBarcodePrint products={inventory} />
 
                 <Button 
                   variant="destructive"
@@ -617,6 +635,7 @@ export default function InventoryPage() {
                       return
                     }
                     resetForm()
+                    fetchSettings() // Refresh settings to get latest tax rate
                   }
                   setIsAddDialogOpen(open)
                 }}>
@@ -667,10 +686,24 @@ export default function InventoryPage() {
                                   onChange={(e) => setFormData({...formData, barcode: e.target.value})}
                                   className="flex-1 h-10" 
                                 />
-                                <Button variant="outline" size="sm" className="h-10 px-3">
-                                  <Barcode className="w-4 h-4" />
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-3"
+                                  onClick={() => {
+                                    const newBarcode = generateBarcode('FS')
+                                    setFormData({...formData, barcode: newBarcode})
+                                    showToast.success('Barcode generated!')
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </Button>
                               </div>
+                              {formData.barcode && (
+                                <div className="mt-2 p-2 border rounded">
+                                  <BarcodeDisplay value={formData.barcode} height={30} fontSize={8} />
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="category" className="text-sm font-medium">Category *</Label>
@@ -764,17 +797,19 @@ export default function InventoryPage() {
                                 value={formData.price}
                                 onChange={(e) => {
                                   const inputPrice = parseFloat(e.target.value) || 0
-                                  console.log('Discount mode:', settings.discountMode)
                                   
                                   if (settings.discountMode) {
-                                    // When ON: Apply tax rate minus, then set as final price
+                                    // When ON: Apply tax rate minus only if tax rate > 0
                                     const taxRate = settings.taxRate || 0
-                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
-                                    console.log('ON mode - Final price:', finalSellingPrice)
-                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    if (taxRate > 0) {
+                                      const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
+                                      setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    } else {
+                                      // If tax rate is 0%, no deduction
+                                      setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                    }
                                   } else {
                                     // When OFF: Selling price = Final price
-                                    console.log('OFF mode - Final price:', inputPrice)
                                     setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
                                   }
                                 }}
@@ -860,7 +895,9 @@ export default function InventoryPage() {
                 {/* Edit Dialog */}
                 <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
                   setIsEditDialogOpen(open)
-                  if (!open) {
+                  if (open) {
+                    fetchSettings() // Refresh settings to get latest tax rate
+                  } else {
                     resetForm()
                   }
                 }}>
@@ -905,10 +942,24 @@ export default function InventoryPage() {
                                   onChange={(e) => setFormData({...formData, barcode: e.target.value})}
                                   className="flex-1 h-10" 
                                 />
-                                <Button variant="outline" size="sm" className="h-10 px-3">
-                                  <Barcode className="w-4 h-4" />
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-10 px-3"
+                                  onClick={() => {
+                                    const newBarcode = generateBarcode('FS')
+                                    setFormData({...formData, barcode: newBarcode})
+                                    showToast.success('New barcode generated!')
+                                  }}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </Button>
                               </div>
+                              {formData.barcode && (
+                                <div className="mt-2 p-2 border rounded">
+                                  <BarcodeDisplay value={formData.barcode} height={30} fontSize={8} />
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="editCategory" className="text-sm font-medium">Category *</Label>
@@ -1003,9 +1054,15 @@ export default function InventoryPage() {
                                   const inputPrice = parseFloat(e.target.value) || 0
                                   
                                   if (settings.discountMode) {
+                                    // When ON: Apply tax rate minus only if tax rate > 0
                                     const taxRate = settings.taxRate || 0
-                                    const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
-                                    setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    if (taxRate > 0) {
+                                      const finalSellingPrice = inputPrice - (inputPrice * (taxRate / 100))
+                                      setFormData({...formData, price: e.target.value, finalPrice: finalSellingPrice.toFixed(2)})
+                                    } else {
+                                      // If tax rate is 0%, no deduction
+                                      setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
+                                    }
                                   } else {
                                     setFormData({...formData, price: e.target.value, finalPrice: e.target.value})
                                   }
@@ -1187,7 +1244,14 @@ export default function InventoryPage() {
                           <div className="font-medium">{item.name || 'No Name'}</div>
                         </TableCell>
                         <TableCell className="text-center">{item.sku || 'No SKU'}</TableCell>
-                        <TableCell className="text-center">{(item as any).barcode || 'No Barcode'}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center space-y-1">
+                            <span className="text-xs">{(item as any).barcode || 'No Barcode'}</span>
+                            {(item as any).barcode && (
+                              <BarcodeDisplay value={(item as any).barcode} height={20} fontSize={6} />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-center">{item.category || 'No Category'}</TableCell>
                         <TableCell className="text-center">{item.stock || 0}</TableCell>
                         <TableCell className="text-center">
@@ -1204,6 +1268,9 @@ export default function InventoryPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
+                            {(item as any).barcode && (
+                              <QuantityBarcodePrint product={item} />
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm" 

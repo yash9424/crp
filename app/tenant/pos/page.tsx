@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { showToast } from "@/lib/toast"
 import { FeatureGuard } from "@/components/feature-guard"
+import { BarcodeScanner } from "@/components/barcode-scanner"
 
 interface Product {
   id: string
@@ -94,6 +95,9 @@ export default function POSPage() {
   const [customerFormData, setCustomerFormData] = useState({ name: '', phone: '', email: '', address: '' })
   const [employees, setEmployees] = useState<any[]>([])
   const [selectedStaff, setSelectedStaff] = useState<string>('')
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
+  const [barcodeBuffer, setBarcodeBuffer] = useState('')
+  const [lastKeyTime, setLastKeyTime] = useState(0)
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -173,7 +177,36 @@ export default function POSPage() {
     fetchSettings()
     fetchCustomers()
     fetchEmployees()
-  }, [])
+    
+    // Listen for physical barcode scanner input
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const currentTime = Date.now()
+      const timeDiff = currentTime - lastKeyTime
+      
+      // If time between keystrokes is very short (< 50ms), it's likely a barcode scanner
+      if (timeDiff < 50 && e.key !== 'Enter') {
+        setBarcodeBuffer(prev => prev + e.key)
+        setLastKeyTime(currentTime)
+        e.preventDefault()
+      } else if (e.key === 'Enter' && barcodeBuffer.length > 3) {
+        // Process the scanned barcode
+        handleBarcodeScan(barcodeBuffer)
+        setBarcodeBuffer('')
+        e.preventDefault()
+      } else if (timeDiff > 100) {
+        // Reset buffer if too much time has passed
+        setBarcodeBuffer(e.key === 'Enter' ? '' : e.key)
+        setLastKeyTime(currentTime)
+      }
+    }
+    
+    // Add event listener for barcode scanner
+    document.addEventListener('keypress', handleKeyPress)
+    
+    return () => {
+      document.removeEventListener('keypress', handleKeyPress)
+    }
+  }, [lastKeyTime, barcodeBuffer])
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -205,6 +238,38 @@ export default function POSPage() {
           total: displayPrice,
         },
       ])
+    }
+  }
+
+  // Handle barcode scan
+  const handleBarcodeScan = async (barcode: string) => {
+    try {
+      // Search for product by barcode
+      const product = products.find(p => p.barcode === barcode)
+      
+      if (product) {
+        addToCart(product)
+        showToast.success(`Added ${product.name} to cart`)
+      } else {
+        // Try to fetch from API if not in current products list
+        const response = await fetch(`/api/pos/search?q=${encodeURIComponent(barcode)}`)
+        if (response.ok) {
+          const searchResults = await response.json()
+          const foundProduct = searchResults.find((p: any) => p.barcode === barcode)
+          
+          if (foundProduct) {
+            addToCart(foundProduct)
+            showToast.success(`Added ${foundProduct.name} to cart`)
+          } else {
+            showToast.error(`Product not found for barcode: ${barcode}`)
+          }
+        } else {
+          showToast.error(`Product not found for barcode: ${barcode}`)
+        }
+      }
+    } catch (error) {
+      console.error('Barcode scan error:', error)
+      showToast.error('Error processing barcode scan')
     }
   }
 
@@ -380,19 +445,20 @@ export default function POSPage() {
                   <CardTitle>Clothing Selection</CardTitle>
                   <CardDescription>Search and add clothing items to cart</CardDescription>
                 </div>
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    const searchInput = document.querySelector('input[placeholder*="barcode"]') as HTMLInputElement
-                    if (searchInput) {
-                      searchInput.focus()
-                      showToast.success('Ready to scan barcode - type or scan into search field')
-                    }
-                  }}
-                >
-                  <Scan className="w-4 h-4 mr-2" />
-                  Scan Barcode
-                </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsScannerOpen(true)}
+                  >
+                    <Scan className="w-4 h-4 mr-2" />
+                    Scan Barcode
+                  </Button>
+                  {barcodeBuffer && (
+                    <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                      Scanning: {barcodeBuffer}
+                    </div>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -406,7 +472,10 @@ export default function POSPage() {
                     if (e.key === 'Enter' && searchTerm.trim()) {
                       // If search term looks like a barcode (numbers/alphanumeric), focus on exact match
                       const isBarcode = /^[A-Za-z0-9]+$/.test(searchTerm.trim())
-                      if (isBarcode && filteredProducts.length === 1) {
+                      if (isBarcode) {
+                        handleBarcodeScan(searchTerm.trim())
+                        setSearchTerm('')
+                      } else if (filteredProducts.length === 1) {
                         addToCart(filteredProducts[0])
                         setSearchTerm('')
                       }
@@ -1025,6 +1094,13 @@ Contact: ${settings.phone || '9427300816'}`
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
       </FeatureGuard>
     </MainLayout>
   )
