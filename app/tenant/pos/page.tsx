@@ -96,6 +96,8 @@ export default function POSPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [selectedStaff, setSelectedStaff] = useState<string>('')
   const [isScannerOpen, setIsScannerOpen] = useState(false)
+  const [barcodeBuffer, setBarcodeBuffer] = useState('')
+  const [lastKeyTime, setLastKeyTime] = useState(0)
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -175,7 +177,36 @@ export default function POSPage() {
     fetchSettings()
     fetchCustomers()
     fetchEmployees()
-  }, [])
+    
+    // Listen for physical barcode scanner input
+    const handleKeyPress = (e: KeyboardEvent) => {
+      const currentTime = Date.now()
+      const timeDiff = currentTime - lastKeyTime
+      
+      // If time between keystrokes is very short (< 50ms), it's likely a barcode scanner
+      if (timeDiff < 50 && e.key !== 'Enter') {
+        setBarcodeBuffer(prev => prev + e.key)
+        setLastKeyTime(currentTime)
+        e.preventDefault()
+      } else if (e.key === 'Enter' && barcodeBuffer.length > 3) {
+        // Process the scanned barcode
+        handleBarcodeScan(barcodeBuffer)
+        setBarcodeBuffer('')
+        e.preventDefault()
+      } else if (timeDiff > 100) {
+        // Reset buffer if too much time has passed
+        setBarcodeBuffer(e.key === 'Enter' ? '' : e.key)
+        setLastKeyTime(currentTime)
+      }
+    }
+    
+    // Add event listener for barcode scanner
+    document.addEventListener('keypress', handleKeyPress)
+    
+    return () => {
+      document.removeEventListener('keypress', handleKeyPress)
+    }
+  }, [lastKeyTime, barcodeBuffer])
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -414,13 +445,20 @@ export default function POSPage() {
                   <CardTitle>Clothing Selection</CardTitle>
                   <CardDescription>Search and add clothing items to cart</CardDescription>
                 </div>
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsScannerOpen(true)}
-                >
-                  <Scan className="w-4 h-4 mr-2" />
-                  Scan Barcode
-                </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setIsScannerOpen(true)}
+                  >
+                    <Scan className="w-4 h-4 mr-2" />
+                    Scan Barcode
+                  </Button>
+                  {barcodeBuffer && (
+                    <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                      Scanning: {barcodeBuffer}
+                    </div>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>

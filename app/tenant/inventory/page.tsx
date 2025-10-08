@@ -41,6 +41,7 @@ import { UpgradePopup } from "@/components/upgrade-popup"
 import { generateBarcode, validateBarcode } from "@/lib/barcode-utils"
 import { BarcodeDisplay, PrintableBarcode } from "@/components/barcode-display"
 import { BulkBarcodePrint } from "@/components/bulk-barcode-print"
+import { QuantityBarcodePrint } from "@/components/quantity-barcode-print"
 
 interface InventoryItem {
   id: string
@@ -196,24 +197,6 @@ export default function InventoryPage() {
 
   // Create new inventory item
   const createItem = async () => {
-    // Validate required fields
-    if (!formData.name.trim()) {
-      showToast.error('Product name is required')
-      return
-    }
-    if (!formData.category) {
-      showToast.error('Category is required')
-      return
-    }
-    if (!formData.finalPrice || parseFloat(formData.finalPrice) <= 0) {
-      showToast.error('Valid selling price is required')
-      return
-    }
-    if (!formData.stock || parseInt(formData.stock) < 0) {
-      showToast.error('Valid stock quantity is required')
-      return
-    }
-
     try {
       const requestData = {
         name: formData.name.trim(),
@@ -1286,53 +1269,7 @@ export default function InventoryPage() {
                               <Edit className="w-4 h-4" />
                             </Button>
                             {(item as any).barcode && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                  const printWindow = window.open('', '_blank')
-                                  if (printWindow) {
-                                    printWindow.document.write(`
-                                      <html>
-                                        <head>
-                                          <title>Barcode - ${item.name}</title>
-                                          <style>
-                                            body { font-family: Arial, sans-serif; margin: 20px; }
-                                            .barcode-label { text-align: center; margin: 10px; padding: 10px; border: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; }
-                                            canvas { display: block; margin: 0 auto; }
-                                            @media print { body { margin: 0; } }
-                                          </style>
-                                        </head>
-                                        <body>
-                                          <div class="barcode-label">
-                                            <div style="font-weight: bold; margin-bottom: 5px;">${item.name}</div>
-                                            <div style="font-size: 12px; margin-bottom: 10px;">₹${item.price}</div>
-                                            <canvas id="barcode"></canvas>
-                                          </div>
-                                          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-                                          <script>
-                                            JsBarcode("#barcode", "${(item as any).barcode}", {
-                                              format: "CODE128",
-                                              width: 2,
-                                              height: 50,
-                                              displayValue: true,
-                                              fontSize: 14,
-                                              textAlign: "center",
-                                              textPosition: "bottom",
-                                              textMargin: 2
-                                            });
-                                            window.print();
-                                            window.close();
-                                          </script>
-                                        </body>
-                                      </html>
-                                    `)
-                                    printWindow.document.close()
-                                  }
-                                }}
-                              >
-                                <Printer className="w-4 h-4" />
-                              </Button>
+                              <QuantityBarcodePrint product={item} />
                             )}
                             <Button 
                               variant="ghost" 

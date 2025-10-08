@@ -51,26 +51,37 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
     
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
     
-    // Generate barcode if not provided
-    let barcode = body.barcode || ''
-    if (!barcode) {
-      barcode = generateBarcode('FS') // FS = Fashion Store
-      console.log('Generated barcode:', barcode)
+    // Generate barcodes based on stock quantity
+    const stockQuantity = parseInt(body.stock || 0)
+    let barcodes = []
+    
+    if (body.barcode) {
+      // If barcode provided, use it as base and generate variants for each item
+      for (let i = 1; i <= stockQuantity; i++) {
+        barcodes.push(`${body.barcode}-${i.toString().padStart(3, '0')}`)
+      }
     } else {
-      console.log('Using provided barcode:', barcode)
+      // Generate unique barcodes for each item
+      for (let i = 1; i <= stockQuantity; i++) {
+        barcodes.push(generateBarcode('FS'))
+      }
     }
     
-    // Check if barcode already exists
-    const existingProduct = await inventoryCollection.findOne({ barcode })
+    const mainBarcode = barcodes[0] || generateBarcode('FS')
+    console.log('Generated barcodes:', barcodes.length)
+    
+    // Check if main barcode already exists
+    const existingProduct = await inventoryCollection.findOne({ barcode: mainBarcode })
     if (existingProduct) {
-      console.log('Barcode already exists:', barcode)
+      console.log('Barcode already exists:', mainBarcode)
       return NextResponse.json({ error: 'Barcode already exists' }, { status: 400 })
     }
     
     const item = {
       name: body.name || 'Unnamed Product',
       sku: body.sku || `SKU-${Date.now()}`,
-      barcode,
+      barcode: mainBarcode,
+      barcodes: barcodes,
       category: body.category || 'General',
       price: parseFloat(body.finalPrice || body.price || 0),
       originalPrice: parseFloat(body.price || 0),

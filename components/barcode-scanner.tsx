@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Scan, X } from 'lucide-react'
+import { Scan, Keyboard } from 'lucide-react'
 import { showToast } from '@/lib/toast'
 
 interface BarcodeScannerProps {
@@ -15,41 +15,9 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScannerProps) {
   const [manualBarcode, setManualBarcode] = useState('')
-  const [isScanning, setIsScanning] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  // Start camera for scanning
-  const startCamera = async () => {
-    try {
-      setIsScanning(true)
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment', // Use back camera on mobile
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      })
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        streamRef.current = stream
-      }
-    } catch (error) {
-      console.error('Camera access error:', error)
-      showToast.error('Camera access denied. Please use manual entry.')
-      setIsScanning(false)
-    }
-  }
 
-  // Stop camera
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
-    }
-    setIsScanning(false)
-  }
 
   // Handle manual barcode entry
   const handleManualScan = () => {
@@ -60,17 +28,12 @@ export function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScannerProps)
     }
   }
 
-  // Cleanup on unmount
+  // Focus input when dialog opens
   useEffect(() => {
-    return () => {
-      stopCamera()
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
     }
-  }, [])
-
-  // Stop camera when dialog closes
-  useEffect(() => {
     if (!isOpen) {
-      stopCamera()
       setManualBarcode('')
     }
   }, [isOpen])
@@ -86,12 +49,16 @@ export function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScannerProps)
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Manual Entry */}
+          {/* Barcode Input */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Manual Entry</label>
+            <label className="text-sm font-medium flex items-center space-x-2">
+              <Keyboard className="w-4 h-4" />
+              <span>Barcode Scanner Input</span>
+            </label>
             <div className="flex space-x-2">
               <Input
-                placeholder="Enter or scan barcode"
+                ref={inputRef}
+                placeholder="Scan or type barcode here"
                 value={manualBarcode}
                 onChange={(e) => setManualBarcode(e.target.value)}
                 onKeyDown={(e) => {
@@ -99,57 +66,29 @@ export function BarcodeScanner({ onScan, isOpen, onClose }: BarcodeScannerProps)
                     handleManualScan()
                   }
                 }}
+                className="font-mono text-lg"
                 autoFocus
               />
               <Button onClick={handleManualScan} disabled={!manualBarcode.trim()}>
-                Add
+                Add to Cart
               </Button>
             </div>
           </div>
 
-          {/* Camera Scanner */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Camera Scanner</label>
-            
-            {!isScanning ? (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={startCamera}
-              >
-                <Scan className="w-4 h-4 mr-2" />
-                Start Camera Scanner
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-48 bg-black rounded border"
-                  />
-                  <div className="absolute inset-0 border-2 border-red-500 rounded pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-1 bg-red-500"></div>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={stopCamera}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Stop Camera
-                </Button>
-              </div>
-            )}
-          </div>
-
           {/* Instructions */}
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>• Type or paste barcode in manual entry field</p>
-            <p>• Use camera scanner to scan physical barcodes</p>
-            <p>• Point camera at barcode and align with red line</p>
+          <div className="text-xs text-gray-500 space-y-2 p-3 bg-gray-50 rounded">
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">🔍 How to use your barcode scanner:</p>
+              <p>• Click in the input field above</p>
+              <p>• Scan any product barcode with your scanner device</p>
+              <p>• Barcode will appear automatically</p>
+              <p>• Press Enter or click "Add to Cart" to add the product</p>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-700 mb-1">⌨️ Manual entry:</p>
+              <p>• Type the barcode numbers manually if needed</p>
+              <p>• Works with any barcode format (EAN, UPC, Code 128, etc.)</p>
+            </div>
           </div>
         </div>
       </DialogContent>
