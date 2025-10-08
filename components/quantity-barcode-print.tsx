@@ -14,11 +14,20 @@ interface QuantityBarcodePrintProps {
 
 export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [printQuantity, setPrintQuantity] = useState(product.stock || 1)
+  const [printQuantity, setPrintQuantity] = useState('')
 
   const printQuantityBarcodes = () => {
+    const qty = parseInt(printQuantity) || 1
     if (!product.barcode) {
       showToast.error('Product has no barcode')
+      return
+    }
+    if (qty < 1) {
+      showToast.error('Please enter a valid quantity')
+      return
+    }
+    if (qty > product.stock) {
+      showToast.error(`Cannot print ${qty} barcodes. Only ${product.stock} items in stock.`)
       return
     }
 
@@ -64,9 +73,7 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
             }
             .product-name { font-weight: bold; font-size: 8px; margin-bottom: 1mm; line-height: 1; }
             .product-price { font-size: 7px; margin-bottom: 1mm; color: #333; }
-            .item-number { font-size: 6px; margin-top: 1mm; color: #666; font-weight: bold; }
             canvas { display: block; margin: 0 auto; }
-            .cut-line { border-top: 1px dashed #ccc; margin: 2mm 0; }
             @media print { 
               body { margin: 0; padding: 3mm; }
               .barcode-grid { gap: 1mm; }
@@ -77,351 +84,15 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
           <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         </head>
         <body>
-          <div style="text-align: center; margin-b
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          3ottom: 5mm; padding: 2mm; border-bottom: 2px solid #000;">
+          <div style="text-align: center; margin-bottom: 5mm; padding: 2mm; border-bottom: 2px solid #000;">
             <h3 style="margin: 0; font-size: 12px;">${product.name}</h3>
-            <p style="margin: 2px 0 0 0; font-size: 10px; color: #666;">Quantity Barcodes: ${printQuantity} items | Single column layout | Cut along dashed lines</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: #666;">${qty} identical barcodes | Single column layout | Cut along dashed lines</p>
           </div>
           <div class="barcode-grid">
     `
 
-    // Generate barcodes for each quantity with page breaks
-    for (let i = 1; i <= printQuantity; i++) {
-      const itemBarcode = product.barcodes && product.barcodes[i-1] 
-        ? product.barcodes[i-1] 
-        : `${product.barcode}-${i.toString().padStart(3, '0')}`
-      
+    // Generate same barcode multiple times
+    for (let i = 1; i <= qty; i++) {
       // Add page break after every 15 items (single column)
       if (i > 1 && (i - 1) % 15 === 0) {
         printContent += `</div><div style="page-break-before: always;"></div><div class="barcode-grid">`
@@ -432,7 +103,6 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
           <div class="product-name">${product.name.length > 15 ? product.name.substring(0, 15) + '...' : product.name}</div>
           <div class="product-price">₹${product.price}</div>
           <canvas id="barcode-${i}"></canvas>
-          <div class="item-number">#${i.toString().padStart(3, '0')}</div>
         </div>
       `
     }
@@ -443,15 +113,11 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
             window.onload = function() {
     `
 
-    // Generate barcode for each item
-    for (let i = 1; i <= printQuantity; i++) {
-      const itemBarcode = product.barcodes && product.barcodes[i-1] 
-        ? product.barcodes[i-1] 
-        : `${product.barcode}-${i.toString().padStart(3, '0')}`
-      
+    // Generate same barcode for all labels
+    for (let i = 1; i <= qty; i++) {
       printContent += `
         try {
-          JsBarcode("#barcode-${i}", "${itemBarcode}", {
+          JsBarcode("#barcode-${i}", "${product.barcode}", {
             format: "CODE128",
             width: 1.5,
             height: 25,
@@ -508,12 +174,19 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
               min="1"
               max={product.stock || 100}
               value={printQuantity}
-              onChange={(e) => setPrintQuantity(parseInt(e.target.value) || 1)}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || ''
+                if (value === '' || (value >= 1 && value <= product.stock)) {
+                  setPrintQuantity(e.target.value)
+                }
+              }}
+              onFocus={(e) => e.target.select()}
+              placeholder={`Max: ${product.stock}`}
             />
             <div className="text-xs text-gray-500">
-              • Each barcode will be unique: {product.barcode}-001, {product.barcode}-002, etc.<br/>
-              • Labels are sized for easy cutting (80mm x 30mm)<br/>
-              • Single column layout, 15 labels per page
+              • All barcodes will be identical: {product.barcode}<br/>
+              • Maximum quantity: {product.stock} (current stock)<br/>
+              • Labels are sized for easy cutting (80mm x 30mm)
             </div>
           </div>
 
@@ -523,7 +196,7 @@ export function QuantityBarcodePrint({ product }: QuantityBarcodePrintProps) {
             </Button>
             <Button onClick={printQuantityBarcodes}>
               <Printer className="w-4 h-4 mr-2" />
-              Print {printQuantity} Barcodes
+              Print {printQuantity || 1} Barcodes
             </Button>
           </div>
         </div>

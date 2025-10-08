@@ -154,97 +154,108 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
           Print Barcodes
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Bulk Barcode Printing</DialogTitle>
+      <DialogContent className="max-w-3xl h-[600px] flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+            <Printer className="w-5 h-5" />
+            Bulk Barcode Printing
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          {productsWithBarcodes.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500">No products with barcodes found</p>
+        {productsWithBarcodes.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Package className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+              <p className="text-gray-500 text-lg">No products with barcodes found</p>
             </div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  Select products to print barcodes ({selectedProducts.length} selected)
-                </p>
-                <div className="space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedProducts(productsWithBarcodes.map(p => p.id))
-                      const newCopies: { [key: string]: number } = {}
-                      productsWithBarcodes.forEach(p => newCopies[p.id] = 1)
-                      setCopies(newCopies)
-                    }}
-                  >
-                    Select All
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedProducts([])
-                      setCopies({})
-                    }}
-                  >
-                    Clear All
-                  </Button>
-                </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-shrink-0 flex justify-between items-center py-3 bg-gray-100 px-4 rounded">
+              <div className="text-sm font-medium text-gray-700">
+                {selectedProducts.length} of {productsWithBarcodes.length} products selected
               </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProducts(productsWithBarcodes.map(p => p.id))
+                    const newCopies: { [key: string]: number } = {}
+                    productsWithBarcodes.forEach(p => newCopies[p.id] = 1)
+                    setCopies(newCopies)
+                  }}
+                >
+                  Select All
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProducts([])
+                    setCopies({})
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
 
-              <div className="grid gap-3 max-h-96 overflow-y-auto">
-                {productsWithBarcodes.map(product => (
-                  <div key={product.id} className="flex items-center space-x-3 p-3 border rounded">
-                    <Checkbox
-                      checked={selectedProducts.includes(product.id)}
-                      onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
-                    />
-                    
-                    <div className="flex-1">
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-gray-500">
-                        {product.category} • ₹{product.price} • {product.barcode}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor={`copies-${product.id}`} className="text-sm">Copies:</Label>
-                      <Input
-                        id={`copies-${product.id}`}
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={copies[product.id] || 1}
-                        onChange={(e) => handleCopiesChange(product.id, parseInt(e.target.value) || 1)}
-                        className="w-16 h-8"
-                        disabled={!selectedProducts.includes(product.id)}
-                      />
-                    </div>
-
-                    <div className="w-24">
-                      <BarcodeDisplay value={product.barcode} height={20} fontSize={6} />
+            <div className="flex-1 overflow-y-auto space-y-2 py-2 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300">
+              {productsWithBarcodes.map(product => (
+                <div key={product.id} className={`flex items-center gap-3 p-3 border rounded transition-colors ${
+                  selectedProducts.includes(product.id) ? 'bg-gray-100 border-gray-400' : 'hover:bg-gray-50'
+                }`}>
+                  <Checkbox
+                    checked={selectedProducts.includes(product.id)}
+                    onCheckedChange={(checked) => handleProductSelect(product.id, !!checked)}
+                    className="flex-shrink-0"
+                  />
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                    <div className="text-sm text-gray-500 flex items-center gap-2">
+                      <span className="font-mono text-xs">{product.barcode}</span>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              <div className="flex justify-end space-x-2 pt-4 border-t">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Label className="text-sm text-gray-600">Qty:</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={copies[product.id] || 1}
+                      onChange={(e) => handleCopiesChange(product.id, parseInt(e.target.value) || 1)}
+                      className="w-16 h-8 text-center"
+                      disabled={!selectedProducts.includes(product.id)}
+                    />
+                  </div>
+
+
+                </div>
+              ))}
+            </div>
+
+            <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
+              <div className="text-sm text-gray-600">
+                Total labels: {Object.values(copies).reduce((sum, count) => sum + count, 0)}
+              </div>
+              <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setIsOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={printBarcodes} disabled={selectedProducts.length === 0}>
+                <Button 
+                  onClick={printBarcodes} 
+                  disabled={selectedProducts.length === 0}
+                >
                   <Printer className="w-4 h-4 mr-2" />
-                  Print Selected ({selectedProducts.length})
+                  Print Labels
                 </Button>
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )
