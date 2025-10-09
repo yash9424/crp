@@ -111,7 +111,7 @@ const templates = [
   },
 ]
 
-export default function WhatsAppPage() {
+function WhatsAppPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
@@ -233,7 +233,7 @@ export default function WhatsAppPage() {
                         onChange={(e) => setMessageText(e.target.value)}
                       />
                       <div className="text-xs text-muted-foreground">
-                        Available variables: {customer_name}, {order_id}, {amount}, {store_name}, {phone}
+                        Available variables: {'{customer_name}'}, {'{order_id}'}, {'{amount}'}, {'{store_name}'}, {'{phone}'}
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -471,3 +471,5 @@ export default function WhatsAppPage() {
     </MainLayout>
   )
 }
+
+export default WhatsAppPage
