@@ -60,6 +60,8 @@ interface CartItem {
   total: number
 }
 
+
+
 export default function POSPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
@@ -98,6 +100,7 @@ export default function POSPage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false)
   const [barcodeBuffer, setBarcodeBuffer] = useState('')
   const [lastKeyTime, setLastKeyTime] = useState(0)
+  const [whatsappMessage, setWhatsappMessage] = useState('')
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -177,6 +180,11 @@ export default function POSPage() {
     fetchSettings()
     fetchCustomers()
     fetchEmployees()
+    
+    // Set default WhatsApp message from settings
+    if (settings.whatsappMessage) {
+      setWhatsappMessage(settings.whatsappMessage)
+    }
     
     // Listen for physical barcode scanner input
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -1044,10 +1052,9 @@ export default function POSPage() {
                     }
                     
                     try {
-                      // Create PDF download link
                       const pdfLink = `${window.location.origin}/api/bill-pdf/${completedSale._id || completedSale.id}`
                       
-                      const customMessage = settings.whatsappMessage || ''
+                      const customMessage = settings.whatsappMessage || 'Thank you for shopping with us! Visit us again soon.'
                       const billMessage = `*${(settings.storeName || 'STORE').toUpperCase()}*
 
 *Bill No:* ${completedSale.billNo}
@@ -1058,13 +1065,19 @@ export default function POSPage() {
 *ITEMS PURCHASED:*
 ${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = Rs${item.total.toFixed(2)}`).join('\n')}
 
+*Subtotal:* Rs${(completedSale.subtotal || 0).toFixed(2)}
+*Discount:* Rs${(completedSale.discountAmount || 0).toFixed(2)}
+*Tax:* Rs${(completedSale.tax || 0).toFixed(2)}
 *TOTAL AMOUNT: Rs${completedSale.total.toFixed(2)}*
 *Payment Method:* ${completedSale.paymentMethod || 'Cash'}
 
 *Download Your Bill:*
 ${pdfLink}
 
-${customMessage ? `\n*Note:* ${customMessage}\n` : ''}
+thanks for shopping
+
+come again
+
 ${settings.address || 'Store Address'}
 Contact: ${settings.phone || '9427300816'}`
 

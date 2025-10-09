@@ -82,20 +82,32 @@ const templates = [
   {
     id: 1,
     name: "Order Confirmation",
-    message: "Hi {customer_name}, your order #{order_id} has been confirmed. Total: ₹{amount}. Thank you!",
+    message: "🛍️ Hi {customer_name}! Your order #{order_id} has been confirmed.\n\n💰 Total Amount: ₹{amount}\n📅 Date: {date}\n\nThank you for choosing {store_name}! We'll process your order shortly.\n\n📞 Contact: {phone}",
     category: "Order Updates",
   },
   {
     id: 2,
-    name: "Shipping Notification",
-    message: "Your order #{order_id} has been shipped! Track: {tracking_url}. Expected delivery: {delivery_date}",
-    category: "Shipping",
+    name: "Order Ready",
+    message: "✅ Great news {customer_name}! Your order #{order_id} is ready for pickup.\n\n🕒 Store Hours: 10 AM - 8 PM\n📍 {store_name}\n📞 {phone}\n\nSee you soon!",
+    category: "Order Updates",
   },
   {
     id: 3,
     name: "Payment Reminder",
-    message: "Hi {customer_name}, your payment of ₹{amount} for order #{order_id} is pending. Please complete payment.",
+    message: "💳 Hi {customer_name}, friendly reminder about your pending payment of ₹{amount} for order #{order_id}.\n\nPlease complete payment at your earliest convenience.\n\nThank you!\n📞 {phone}",
     category: "Payment",
+  },
+  {
+    id: 4,
+    name: "Thank You Message",
+    message: "🙏 Thank you {customer_name} for shopping with {store_name}!\n\nWe hope you love your purchase. Your feedback means a lot to us.\n\n⭐ Rate us or share your experience!\n📞 {phone}",
+    category: "Support",
+  },
+  {
+    id: 5,
+    name: "New Arrival Alert",
+    message: "🆕 Hey {customer_name}! New arrivals just landed at {store_name}!\n\n✨ Fresh styles, latest trends\n🎯 Special prices for our valued customers\n\nVisit us today!\n📞 {phone}",
+    category: "Marketing",
   },
 ]
 
@@ -105,6 +117,8 @@ export default function WhatsAppPage() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false)
   const [isTemplateDialogOpen, setIsTemplateDialogOpen] = useState(false)
+  const [messageText, setMessageText] = useState("")
+  const [selectedTemplate, setSelectedTemplate] = useState("")
 
   const filteredMessages = mockMessages.filter((message) => {
     const matchesSearch =
@@ -210,15 +224,34 @@ export default function WhatsAppPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="messageText">Message</Label>
-                      <Textarea id="messageText" placeholder="Type your message..." rows={4} />
+                      <Textarea 
+                        id="messageText" 
+                        placeholder="Hi {customer_name}, your order #{order_id} has been confirmed. Total: ₹{amount}. Thank you for shopping with us!" 
+                        rows={6}
+                        className="resize-none"
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        Available variables: {customer_name}, {order_id}, {amount}, {store_name}, {phone}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="template">Use Template</Label>
-                      <Select>
+                      <Select value={selectedTemplate} onValueChange={(value) => {
+                        setSelectedTemplate(value)
+                        if (value) {
+                          const template = templates.find(t => t.id.toString() === value)
+                          if (template) {
+                            setMessageText(template.message)
+                          }
+                        }
+                      }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select template" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="">Select a template...</SelectItem>
                           {templates.map((template) => (
                             <SelectItem key={template.id} value={template.id.toString()}>
                               {template.name}
@@ -232,7 +265,13 @@ export default function WhatsAppPage() {
                     <Button variant="outline" onClick={() => setIsMessageDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={() => setIsMessageDialogOpen(false)}>
+                    <Button onClick={() => {
+                      // Here you would implement the actual WhatsApp sending logic
+                      console.log('Sending message:', messageText)
+                      setIsMessageDialogOpen(false)
+                      setMessageText("")
+                      setSelectedTemplate("")
+                    }}>
                       <Send className="w-4 h-4 mr-2" />
                       Send Message
                     </Button>

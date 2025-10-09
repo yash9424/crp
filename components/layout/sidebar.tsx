@@ -54,6 +54,8 @@ const tenantAdminNavItems = [
   { title: "Leaves", href: "/tenant/leaves", icon: Calendar, feature: "leaves" as FeatureKey },
   { title: "Salary", href: "/tenant/salary", icon: Calculator, feature: "salary" as FeatureKey },
   { title: "Bills", href: "/tenant/bills", icon: Receipt, feature: "bills" as FeatureKey },
+  { title: "Analytics & Reports", href: "/tenant/reports", icon: BarChart3, feature: "reports" as FeatureKey },
+  { title: "Expenses", href: "/tenant/expenses", icon: Receipt, feature: "expenses" as FeatureKey },
   { title: "Dropdown Settings", href: "/tenant/dropdown-settings", icon: Settings, feature: "dropdownSettings" as FeatureKey },
   { title: "Settings", href: "/tenant/settings", icon: Settings, feature: "settings" as FeatureKey },
   { title: "Upgrade Plan", href: "/tenant/upgrade-plan", icon: CreditCard, feature: "dashboard" as FeatureKey },

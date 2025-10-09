@@ -154,13 +154,7 @@ export default function TenantDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">₹ {dashboardData.todaySales.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  +15.2%
-                </span>
-                from yesterday
-              </p>
+
             </CardContent>
           </Card>
 
@@ -171,13 +165,7 @@ export default function TenantDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{dashboardData.todayOrders}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  +8.1%
-                </span>
-                from yesterday
-              </p>
+
             </CardContent>
           </Card>
 
@@ -204,13 +192,7 @@ export default function TenantDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{dashboardData.totalCustomers}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-500 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  +12.5%
-                </span>
-                this month
-              </p>
+
             </CardContent>
           </Card>
         </div>

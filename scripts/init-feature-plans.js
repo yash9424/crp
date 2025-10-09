@@ -22,7 +22,7 @@ const defaultPlans = [
     maxUsers: 5,
     maxProducts: 2000,
     description: 'Ideal for growing clothing businesses with multiple staff',
-    allowedFeatures: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'settings', 'dropdownSettings'],
+    allowedFeatures: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'reports', 'expenses', 'settings', 'dropdownSettings'],
     status: 'active',
     createdAt: new Date(),
     updatedAt: new Date()
