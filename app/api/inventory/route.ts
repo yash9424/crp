@@ -51,24 +51,9 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
     
     const inventoryCollection = await getTenantCollection(session.user.tenantId, 'inventory')
     
-    // Generate barcodes based on stock quantity
-    const stockQuantity = parseInt(body.stock || 0)
-    let barcodes = []
-    
-    if (body.barcode) {
-      // If barcode provided, use it as base and generate variants for each item
-      for (let i = 1; i <= stockQuantity; i++) {
-        barcodes.push(`${body.barcode}-${i.toString().padStart(3, '0')}`)
-      }
-    } else {
-      // Generate unique barcodes for each item
-      for (let i = 1; i <= stockQuantity; i++) {
-        barcodes.push(generateBarcode('FS'))
-      }
-    }
-    
-    const mainBarcode = barcodes[0] || generateBarcode('FS')
-    console.log('Generated barcodes:', barcodes.length)
+    // Use provided barcode or generate one
+    const mainBarcode = body.barcode || generateBarcode('FS')
+    console.log('Using barcode:', mainBarcode)
     
     // Check if main barcode already exists
     const existingProduct = await inventoryCollection.findOne({ barcode: mainBarcode })
@@ -81,7 +66,6 @@ export const POST = withFeatureAccess('inventory')(async function(request: NextR
       name: body.name || 'Unnamed Product',
       sku: body.sku || `SKU-${Date.now()}`,
       barcode: mainBarcode,
-      barcodes: barcodes,
       category: body.category || 'General',
       price: parseFloat(body.finalPrice || body.price || 0),
       originalPrice: parseFloat(body.price || 0),
