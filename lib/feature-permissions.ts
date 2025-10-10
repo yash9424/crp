@@ -21,7 +21,8 @@ export const AVAILABLE_FEATURES = {
   salary: { name: 'Salary Management', category: 'HR' },
   
   // Reports & Analytics
-  reports: { name: 'Reports & Analytics', category: 'Analytics' },
+  reports: { name: 'Analytics & Reports', category: 'Analytics', description: 'Daily sales, profit analysis, best sellers, business insights' },
+  expenses: { name: 'Expense Management', category: 'Analytics', description: 'Track business expenses, monthly analysis, category-wise breakdown' },
   
   // Settings & Configuration
   settings: { name: 'General Settings', category: 'Settings' },
@@ -51,6 +52,6 @@ export const FEATURE_CATEGORIES = [
 // Default feature sets for different plan tiers
 export const DEFAULT_FEATURE_SETS = {
   basic: ['dashboard', 'inventory', 'pos', 'customers', 'settings'],
-  standard: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'commission', 'settings', 'dropdownSettings'],
+  standard: ['dashboard', 'inventory', 'pos', 'customers', 'purchases', 'bills', 'hr', 'commission', 'reports', 'expenses', 'settings', 'dropdownSettings'],
   premium: Object.keys(AVAILABLE_FEATURES) as FeatureKey[]
 }

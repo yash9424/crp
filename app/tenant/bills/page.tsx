@@ -142,6 +142,8 @@ export default function BillsPage() {
       return
     }
 
+    const addedText = settings.whatsappText || ''
+    
     const storeName = settings.storeName || bill.storeName || 'Store'
     const storeAddress = settings.address || bill.address || 'Store Address'
     const storePhone = settings.phone || bill.phone || '9427300816'
@@ -151,20 +153,26 @@ export default function BillsPage() {
 
     const billMessage = `*${storeName.toUpperCase()}*
 
-Bill No: ${bill.billNo}
-Customer: ${bill.customerName}
-Date: ${new Date(bill.createdAt).toLocaleDateString('en-IN')}
+*Bill No:* ${bill.billNo}
+*Customer:* ${bill.customerName}
+*Date:* ${new Date(bill.createdAt).toLocaleDateString('en-IN')}
+*Time:* ${new Date(bill.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
 
-*ITEMS:*
-${bill.items.map(item => `• ${item.name} x${item.quantity} = ₹${(item.total || 0).toFixed(2)}`).join('\n')}
+*ITEMS PURCHASED:*
+${bill.items.map(item => `• ${item.name} x${item.quantity} = Rs${(item.total || 0).toFixed(2)}`).join('\n')}
 
-*TOTAL AMOUNT: ₹${(bill.total || 0).toFixed(2)}*
-Payment: ${bill.paymentMethod}
+*Subtotal:* Rs${(bill.subtotal || 0).toFixed(2)}
+*Discount:* Rs${(bill.discount || 0).toFixed(2)}
+*Tax:* Rs${(bill.tax || 0).toFixed(2)}
+*TOTAL AMOUNT: Rs${(bill.total || 0).toFixed(2)}*
+*Payment Method:* ${bill.paymentMethod}
 
-*Download Bill PDF:*
+*Download Your Bill:*
 ${pdfLink}
 
-Thank you for your business! 
+thanks for shopping
+
+come again
 
 ${storeAddress}
 Contact: ${storePhone}`
