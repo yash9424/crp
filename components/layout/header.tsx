@@ -16,6 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { signOut, useSession } from "next-auth/react"
 import { useStore } from "@/lib/store-context"
+import { LanguageSelector } from "@/components/language-selector"
+import { useLanguage } from "@/lib/language-context"
 
 interface HeaderProps {
   title?: string
@@ -25,6 +27,7 @@ interface HeaderProps {
 export function Header({ title = "Dashboard", userType = "retail" }: HeaderProps) {
   const { data: session } = useSession()
   const { storeName, tenantId } = useStore()
+  const { language } = useLanguage()
   const [mounted, setMounted] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -99,21 +102,21 @@ export function Header({ title = "Dashboard", userType = "retail" }: HeaderProps
           )}
         </div>
         <Badge variant="outline" className="text-xs">
-          {userType === "super-admin" ? "Super Admin" : "Store Admin"}
+          {userType === "super-admin" ? "Super Admin" : (language === 'en' ? 'Store Admin' : language === 'gu' ? 'સ્ટોર એડમિન' : 'स्टोर एडमिन')}
         </Badge>
       </div>
 
       <div className="flex items-center space-x-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search..." className="w-64 pl-10" />
+          <Input placeholder={language === 'en' ? 'Search...' : language === 'gu' ? 'શોધો...' : 'खोजें...'} className="w-64 pl-10" />
         </div>
 
-
+        <LanguageSelector />
 
         <Button variant="ghost" size="sm" onClick={handleLogout} className="text-red-600 hover:text-red-700">
           <LogOut className="h-4 w-4 mr-2" />
-          Logout
+          {language === 'en' ? 'Logout' : language === 'gu' ? 'લૉગઆઉટ' : 'लॉगआउट'}
         </Button>
 
         <div className="flex items-center space-x-2">
@@ -125,7 +128,7 @@ export function Header({ title = "Dashboard", userType = "retail" }: HeaderProps
           <div className="flex flex-col">
             <span className="text-sm font-medium">{session?.user?.name || "Admin"}</span>
             <span className="text-xs text-muted-foreground">
-              {userType === "super-admin" ? "Super Admin" : storeName || "Store Admin"}
+              {userType === "super-admin" ? "Super Admin" : storeName || (language === 'en' ? 'Store Admin' : language === 'gu' ? 'સ્ટોર એડમિન' : 'स्टोर एडमिन')}
             </span>
           </div>
         </div>

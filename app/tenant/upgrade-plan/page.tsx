@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Check, X, Crown, Zap, Star } from "lucide-react"
 import { AVAILABLE_FEATURES, FEATURE_CATEGORIES } from "@/lib/feature-permissions"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface Plan {
   id: string
@@ -23,6 +24,7 @@ export default function UpgradePlanPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null)
   const [loading, setLoading] = useState(true)
+  const { t } = useLanguage()
 
   const fetchPlans = async () => {
     try {
@@ -76,12 +78,12 @@ export default function UpgradePlanPage() {
       })
       
       if (response.ok) {
-        showToast.success('Plan upgrade request submitted! Admin will review shortly.')
+        showToast.success(t('planUpgradeRequestSubmitted'))
       } else {
-        showToast.error('Failed to submit request')
+        showToast.error(t('failedToSubmitRequest'))
       }
     } catch (error) {
-      showToast.error('Error submitting request')
+      showToast.error(t('errorSubmittingRequest'))
     }
   }
 
@@ -115,16 +117,16 @@ export default function UpgradePlanPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Upgrade Plan">
+      <MainLayout title={t('upgradePlan')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading plans...</div>
+          <div className="text-lg">{t('loadingPlans')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Upgrade Plan">
+    <MainLayout title={t('upgradePlan')}>
       <div className="space-y-8">
         {/* Current Plan */}
         {currentPlan && (
@@ -134,16 +136,16 @@ export default function UpgradePlanPage() {
                 <div className="flex items-center gap-3">
                   {getPlanIcon(currentPlan.name)}
                   <div>
-                    <CardTitle>Current Plan: {currentPlan.name}</CardTitle>
+                    <CardTitle>{t('currentPlan')}: {currentPlan.name}</CardTitle>
                     <CardDescription>₹{currentPlan.price}/year</CardDescription>
                   </div>
                 </div>
-                <Badge className="bg-primary">Active</Badge>
+                <Badge className="bg-primary">{t('active')}</Badge>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                {currentPlan.allowedFeatures?.length || 0} features • {currentPlan.maxUsers} users • {currentPlan.maxProducts} products
+                {currentPlan.allowedFeatures?.length || 0} {t('features')} • {currentPlan.maxUsers} {t('users')} • {currentPlan.maxProducts} {t('products')}
               </p>
             </CardContent>
           </Card>
@@ -162,12 +164,12 @@ export default function UpgradePlanPage() {
                   </div>
                   <CardTitle className="text-2xl">{plan.name}</CardTitle>
                   <div className="text-3xl font-bold">₹{plan.price}</div>
-                  <CardDescription>per year</CardDescription>
+                  <CardDescription>{t('perYear')}</CardDescription>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
                   <div className="text-center text-sm text-muted-foreground">
-                    {plan.allowedFeatures?.length || 0} features • {plan.maxUsers} users • {plan.maxProducts} products
+                    {plan.allowedFeatures?.length || 0} {t('features')} • {plan.maxUsers} {t('users')} • {plan.maxProducts} {t('products')}
                   </div>
                   
                   {/* Feature List */}
@@ -196,7 +198,7 @@ export default function UpgradePlanPage() {
                     
                     {Object.keys(AVAILABLE_FEATURES).length > 8 && (
                       <div className="text-xs text-muted-foreground text-center">
-                        +{Object.keys(AVAILABLE_FEATURES).length - 8} more features
+                        +{Object.keys(AVAILABLE_FEATURES).length - 8} {t('moreFeatures')}
                       </div>
                     )}
                   </div>
@@ -204,7 +206,7 @@ export default function UpgradePlanPage() {
                   <div className="pt-4">
                     {isCurrentPlan ? (
                       <Button disabled className="w-full">
-                        Current Plan
+                        {t('currentPlan')}
                       </Button>
                     ) : (
                       <Button 
@@ -212,7 +214,7 @@ export default function UpgradePlanPage() {
                         className="w-full"
                         variant={plan.name.toLowerCase() === 'premium' ? 'default' : 'outline'}
                       >
-                        Request {currentPlan && plan.price > currentPlan.price ? 'Upgrade' : 'Plan'}
+                        {currentPlan && plan.price > currentPlan.price ? t('requestUpgrade') : t('requestPlan')}
                       </Button>
                     )}
                   </div>
@@ -225,13 +227,13 @@ export default function UpgradePlanPage() {
         {/* Contact Support */}
         <Card>
           <CardHeader>
-            <CardTitle>Need Help Choosing?</CardTitle>
+            <CardTitle>{t('needHelpChoosing')}</CardTitle>
             <CardDescription>
-              Contact our support team to help you select the right plan for your business needs.
+              {t('contactSupportDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline">Contact Support</Button>
+            <Button variant="outline">{t('contactSupport')}</Button>
           </CardContent>
         </Card>
       </div>

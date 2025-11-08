@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useLanguage } from "@/lib/language-context"
 import {
   BarChart,
   Bar,
@@ -64,6 +65,7 @@ interface DashboardData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export function ChartDashboard() {
+  const { t, language } = useLanguage()
   const [data, setData] = useState<DashboardData>({
     todaySales: 0,
     topProducts: [],
@@ -150,7 +152,7 @@ export function ChartDashboard() {
     <div className="space-y-6">
       <div className="flex items-center space-x-2 mb-6">
         <BarChart3 className="h-6 w-6 text-primary" />
-        <h2 className="text-2xl font-bold">Smart Insights Dashboard</h2>
+        <h2 className="text-2xl font-bold">{t('dashboard')}</h2>
         <div className="ml-auto flex items-center space-x-2">
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -166,7 +168,7 @@ export function ChartDashboard() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-800">Today's Sales</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-800">{t('totalSales')}</CardTitle>
             <DollarSign className="h-5 w-5 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -177,30 +179,30 @@ export function ChartDashboard() {
               ) : (
                 <TrendingUp className="h-4 w-4 text-red-500 mr-1 rotate-180" />
               )}
-              {Math.abs(data.salesTrend).toFixed(1)}% from yesterday
+              {Math.abs(data.salesTrend).toFixed(1)}% {language === 'en' ? 'from yesterday' : language === 'gu' ? 'ગઈકાલથી' : 'कल से'}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800">Stock Value</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-800">{t('inventory')}</CardTitle>
             <Package className="h-5 w-5 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-700">{formatCurrency(data.stockValue)}</div>
-            <div className="text-xs text-blue-600 mt-2">Total inventory worth</div>
+            <div className="text-xs text-blue-600 mt-2">{language === 'en' ? 'Total inventory worth' : language === 'gu' ? 'કુલ ઇન્વેન્ટરી મૂલ્ય' : 'कुल इन्वेंटरी मूल्य'}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-800">Low Stock Alert</CardTitle>
+            <CardTitle className="text-sm font-medium text-red-800">{t('lowStock')}</CardTitle>
             <AlertTriangle className="h-5 w-5 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-700">{data.lowStockItems.length}</div>
-            <div className="text-xs text-red-600 mt-2">Items need restocking</div>
+            <div className="text-xs text-red-600 mt-2">{language === 'en' ? 'Items need restocking' : language === 'gu' ? 'આઇટમ્સને રિસ્ટોકિંગની જરૂર છે' : 'आइटम्स को पुनः स्टॉक करने की जरूरत'}</div>
           </CardContent>
         </Card>
       </div>
@@ -210,7 +212,7 @@ export function ChartDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="h-5 w-5 text-muted-foreground" />
-            <span>Top 3 Customers</span>
+            <span>{t('customers')}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -220,7 +222,7 @@ export function ChartDashboard() {
                 <div key={`customer-${index}-${customer.name}`} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <div className="font-medium">{customer.name}</div>
-                    <div className="text-sm text-muted-foreground">{customer.totalPurchases} purchases</div>
+                    <div className="text-sm text-muted-foreground">{customer.totalPurchases} {t('language') === 'en' ? 'purchases' : t('language') === 'gu' ? 'ખરીદી' : 'खरीदारीयां'}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold">{formatCurrency(customer.totalSpent)}</div>
@@ -235,7 +237,7 @@ export function ChartDashboard() {
               ))
             ) : (
               <div className="text-center text-muted-foreground py-4">
-                No customer purchase data available
+                {t('language') === 'en' ? 'No customer purchase data available' : t('language') === 'gu' ? 'કોઈ ગ્રાહક ખરીદી ડેટા ઉપલબ્ધ નથી' : 'कोई ग्राहक खरीदारी डेटा उपलब्ध नहीं'}
               </div>
             )}
           </div>
@@ -248,7 +250,7 @@ export function ChartDashboard() {
         {/* Weekly Sales Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Weekly Sales Trend</CardTitle>
+            <CardTitle>{t('recentSales')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -266,7 +268,7 @@ export function ChartDashboard() {
         {/* Top Products Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Top 5 Products</CardTitle>
+            <CardTitle>{t('topProducts')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -286,7 +288,7 @@ export function ChartDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Star className="h-5 w-5 text-yellow-500" />
-              <span>Product Performance</span>
+              <span>{t('topProducts')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -303,12 +305,12 @@ export function ChartDashboard() {
                     </div>
                     <div>
                       <div className="font-medium text-sm">{product.name}</div>
-                      <div className="text-xs text-muted-foreground">{product.quantity} units sold</div>
+                      <div className="text-xs text-muted-foreground">{product.quantity} {t('language') === 'en' ? 'units sold' : t('language') === 'gu' ? 'યુનિટ વેચાયા' : 'यूनिट बिके'}</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold">{formatCurrency(product.revenue)}</div>
-                    <div className="text-xs text-muted-foreground">Revenue</div>
+                    <div className="text-xs text-muted-foreground">{t('language') === 'en' ? 'Revenue' : t('language') === 'gu' ? 'આવક' : 'आमदनी'}</div>
                   </div>
                 </div>
               ))}
@@ -321,7 +323,7 @@ export function ChartDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              <span>Critical Stock Levels</span>
+              <span>{t('lowStock')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -330,16 +332,16 @@ export function ChartDashboard() {
                 <div key={`stock-${index}-${item.name}`} className="flex items-center justify-between p-2 bg-red-50 rounded-lg">
                   <div className="flex-1">
                     <div className="font-medium text-sm truncate">{item.name}</div>
-                    <div className="text-xs text-muted-foreground">Min: {item.minStock || 10}</div>
+                    <div className="text-xs text-muted-foreground">{t('language') === 'en' ? 'Min:' : t('language') === 'gu' ? 'ન્યૂનતમ:' : 'कम से कम:'} {item.minStock || 10}</div>
                   </div>
                   <Badge variant="destructive" className="text-xs">
-                    {item.stock} left
+                    {item.stock} {t('language') === 'en' ? 'left' : t('language') === 'gu' ? 'બાકી' : 'बचा'}
                   </Badge>
                 </div>
               ))}
               {data.lowStockItems.length === 0 && (
                 <div className="text-center text-muted-foreground py-4">
-                  All items are well stocked!
+                  {t('language') === 'en' ? 'All items are well stocked!' : t('language') === 'gu' ? 'બધી વસ્તુઓ સારી રીતે સ્ટોક છે!' : 'सभी आइटम अच्छे स्टॉक में हैं!'}
                 </div>
               )}
             </div>

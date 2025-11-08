@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Trash2, Save, Settings } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface DropdownData {
   categories: string[]
@@ -43,6 +44,7 @@ export default function DropdownSettingsPage() {
   const [assignedBusinessType, setAssignedBusinessType] = useState<BusinessType | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const { t } = useLanguage()
 
   const fetchDropdownData = async () => {
     try {
@@ -121,13 +123,13 @@ export default function DropdownSettingsPage() {
       })
       
       if (response.ok) {
-        showToast.success('Dropdown data saved successfully!')
+        showToast.success(t('dropdownDataSaved'))
       } else {
-        showToast.error('Failed to save dropdown data')
+        showToast.error(t('failedToSaveDropdownData'))
       }
     } catch (error) {
       console.error('Failed to save dropdown data:', error)
-      showToast.error('Error saving dropdown data')
+      showToast.error(t('errorSavingDropdownData'))
     } finally {
       setSaving(false)
     }
@@ -154,9 +156,9 @@ export default function DropdownSettingsPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Dropdown Settings">
+      <MainLayout title={t('dropdownSettings')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading dropdown settings...</div>
+          <div className="text-lg">{t('loadingDropdownSettings')}</div>
         </div>
       </MainLayout>
     )
@@ -172,14 +174,14 @@ export default function DropdownSettingsPage() {
             <Settings className="w-5 h-5" />
             <span>{title}</span>
           </CardTitle>
-          <CardDescription>Manage {title.toLowerCase()} options</CardDescription>
+          <CardDescription>{t('manageOptions').replace('{0}', title.toLowerCase())}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex space-x-2">
               <input
                 type="text"
-                placeholder={`Add new ${title.endsWith('s') ? title.slice(0, -1) : title}`}
+                placeholder={t('addNew').replace('{0}', title.endsWith('s') ? title.slice(0, -1) : title)}
                 value={newItem}
                 onChange={(e) => setNewItem(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
@@ -198,7 +200,7 @@ export default function DropdownSettingsPage() {
                   setNewItem('')
                 }}
               >
-                Add
+                {t('add')}
               </button>
             </div>
             
@@ -222,7 +224,7 @@ export default function DropdownSettingsPage() {
             </div>
             
             {items.length === 0 && (
-              <p className="text-sm text-gray-500">No {title.toLowerCase()} added yet</p>
+              <p className="text-sm text-gray-500">{t('noItemsAdded').replace('{0}', title.toLowerCase())}</p>
             )}
           </div>
         </CardContent>
@@ -231,25 +233,25 @@ export default function DropdownSettingsPage() {
   }
 
   return (
-    <MainLayout title="Dropdown Settings">
+    <MainLayout title={t('dropdownSettings')}>
       <FeatureGuard feature="dropdownSettings">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dropdown Settings</h1>
-            <p className="text-muted-foreground">Manage dropdown options used throughout the system</p>
+            <h1 className="text-3xl font-bold">{t('dropdownSettings')}</h1>
+            <p className="text-muted-foreground">{t('manageDropdownOptions')}</p>
           </div>
           <Button onClick={saveDropdownData} disabled={saving}>
             <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save All Changes'}
+            {saving ? t('saving') : t('saveAllChanges')}
           </Button>
         </div>
 
         {assignedBusinessType ? (
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-medium text-blue-900">Assigned Business Type: {assignedBusinessType.name}</h3>
-              <p className="text-sm text-blue-700 mt-1">Manage dropdown options for your business type fields</p>
+              <h3 className="font-medium text-blue-900">{t('assignedBusinessType')}: {assignedBusinessType.name}</h3>
+              <p className="text-sm text-blue-700 mt-1">{t('manageDropdownForBusinessType')}</p>
             </div>
             
             {assignedBusinessType.fields.map(field => {
@@ -270,8 +272,8 @@ export default function DropdownSettingsPage() {
         ) : (
           <div className="text-center py-12">
             <Settings className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2">No Business Type Assigned</h3>
-            <p className="text-muted-foreground">Contact your administrator to assign a business type</p>
+            <h3 className="text-lg font-medium mb-2">{t('noBusinessTypeAssigned')}</h3>
+            <p className="text-muted-foreground">{t('contactAdminForBusinessType')}</p>
           </div>
         )}
       </div>

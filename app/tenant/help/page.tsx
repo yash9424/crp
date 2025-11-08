@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Play, Clock, BookOpen, Video } from "lucide-react"
+import { useLanguage } from "@/lib/language-context"
 
 interface Tutorial {
   _id: string
@@ -18,6 +19,7 @@ interface Tutorial {
 export default function HelpPage() {
   const [selectedVideo, setSelectedVideo] = useState<Tutorial | null>(null)
   const [tutorials, setTutorials] = useState<Tutorial[]>([])
+  const { t } = useLanguage()
 
   const fetchTutorials = async () => {
     try {
@@ -36,13 +38,13 @@ export default function HelpPage() {
   }, [])
 
   return (
-    <MainLayout title="Help & Tutorials">
+    <MainLayout title={t('helpTutorials')}>
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
           <BookOpen className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Help & Video Tutorials</h1>
-            <p className="text-muted-foreground">Quick 1-minute tutorials to master your ERP system</p>
+            <h1 className="text-3xl font-bold">{t('helpVideoTutorials')}</h1>
+            <p className="text-muted-foreground">{t('quickTutorialsDescription')}</p>
           </div>
         </div>
 
@@ -52,7 +54,7 @@ export default function HelpPage() {
               <CardTitle className="flex items-center justify-between">
                 <span>{selectedVideo.title}</span>
                 <Button variant="outline" size="sm" onClick={() => setSelectedVideo(null)}>
-                  Close
+                  {t('close')}
                 </Button>
               </CardTitle>
             </CardHeader>

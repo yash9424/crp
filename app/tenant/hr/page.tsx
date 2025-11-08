@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface Employee {
   _id?: string
@@ -56,6 +57,7 @@ interface Employee {
 }
 
 export default function HRPage() {
+  const { t, language } = useLanguage()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -244,23 +246,23 @@ export default function HRPage() {
 
   if (loading) {
     return (
-      <MainLayout title="HR & Staff Management" userRole="tenant-admin">
+      <MainLayout title={t('hrStaffManagement')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading employees...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="HR & Staff Management" userRole="tenant-admin">
+    <MainLayout title={t('hrStaffManagement')}>
       <FeatureGuard feature="hr">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Total Employees</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('totalEmployees')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -270,7 +272,7 @@ export default function HRPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Active Staff</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('activeStaff')}</CardTitle>
               <UserCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -280,7 +282,7 @@ export default function HRPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">On Leave</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('onLeave')}</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -290,7 +292,7 @@ export default function HRPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Total Payroll</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('totalPayroll')}</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -304,35 +306,35 @@ export default function HRPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Employee Directory</CardTitle>
-                <CardDescription>Manage HR records and staff information</CardDescription>
+                <CardTitle>{t('employeeDirectory')}</CardTitle>
+                <CardDescription>{t('manageHRRecords')}</CardDescription>
               </div>
               <div className="flex space-x-2">              
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Employee
+                      {t('addEmployee')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Add New Employee</DialogTitle>
-                      <DialogDescription>Enter employee details for HR records</DialogDescription>
+                      <DialogTitle>{t('addNewEmployee')}</DialogTitle>
+                      <DialogDescription>{t('enterEmployeeDetails')}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="employeeName">Full Name</Label>
+                          <Label htmlFor="employeeName">{t('fullName')}</Label>
                           <Input 
                             id="employeeName" 
-                            placeholder="Enter full name" 
+                            placeholder={t('enterFullName')} 
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="employeeId">Employee ID</Label>
+                          <Label htmlFor="employeeId">{t('employeeId')}</Label>
                           <Input 
                             id="employeeId" 
                             placeholder="EMP001" 
@@ -344,20 +346,20 @@ export default function HRPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
+                          <Label htmlFor="email">{t('email')}</Label>
                           <Input 
                             id="email" 
                             type="email" 
-                            placeholder="employee@company.com" 
+                            placeholder={t('employeeEmailPlaceholder')} 
                             value={formData.email}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone</Label>
+                          <Label htmlFor="phone">{t('phone')}</Label>
                           <Input 
                             id="phone" 
-                            placeholder="+91 9876543210" 
+                            placeholder={t('phoneNumberPlaceholder')} 
                             value={formData.phone}
                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
                           />
@@ -366,7 +368,7 @@ export default function HRPage() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="salary">Salary</Label>
+                          <Label htmlFor="salary">{t('salary')}</Label>
                           <Input 
                             id="salary" 
                             type="number" 
@@ -376,7 +378,7 @@ export default function HRPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="joinDate">Join Date</Label>
+                          <Label htmlFor="joinDate">{t('joinDate')}</Label>
                           <Input 
                             id="joinDate" 
                             type="date" 
@@ -386,19 +388,19 @@ export default function HRPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address">Address</Label>
+                        <Label htmlFor="address">{t('address')}</Label>
                         <Textarea 
                           id="address" 
-                          placeholder="Employee address" 
+                          placeholder={t('employeeAddressPlaceholder')} 
                           value={formData.address}
                           onChange={(e) => setFormData({...formData, address: e.target.value})}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                        <Label htmlFor="emergencyContact">{t('emergencyContact')}</Label>
                         <Input 
                           id="emergencyContact" 
-                          placeholder="+91 9876543210" 
+                          placeholder={t('phoneNumberPlaceholder')} 
                           value={formData.emergencyContact}
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
@@ -406,22 +408,22 @@ export default function HRPage() {
                       
                       {/* Commission Settings */}
                       <div className="space-y-4 border-t pt-4">
-                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <h3 className="text-sm font-medium">{t('commissionSettings')}</h3>
                         <div className="grid grid-cols-2 gap-8">
                           <div className="space-y-2">
-                            <Label htmlFor="commissionType">Commission Type</Label>
+                            <Label htmlFor="commissionType">{t('commissionType')}</Label>
                             <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
+                                <SelectValue placeholder={t('selectType')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="none">No Commission</SelectItem>
-                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                                <SelectItem value="none">{t('noCommission')}</SelectItem>
+                                <SelectItem value="percentage">{t('percentageOfSales')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="commissionRate">Commission Rate</Label>
+                            <Label htmlFor="commissionRate">{t('commissionRate')}</Label>
                             <Input 
                               id="commissionRate" 
                               type="number" 
@@ -431,7 +433,7 @@ export default function HRPage() {
                               disabled={formData.commissionType === 'none'}
                             />
                             <div className="text-xs text-muted-foreground">
-                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                              {formData.commissionType === 'percentage' ? t('percentOfSales') : formData.commissionType === 'fixed' ? t('perSale') : formData.commissionType === 'target' ? t('bonus') : ''}
                             </div>
                           </div>
 
@@ -440,9 +442,9 @@ export default function HRPage() {
                     </div>
                     <div className="flex justify-end space-x-2">
                       <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                        Cancel
+                        {t('cancel')}
                       </Button>
-                      <Button onClick={createEmployee}>Add Employee</Button>
+                      <Button onClick={createEmployee}>{t('addEmployee')}</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -451,22 +453,22 @@ export default function HRPage() {
                 <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                      <DialogTitle>Edit Employee</DialogTitle>
-                      <DialogDescription>Update employee details</DialogDescription>
+                      <DialogTitle>{t('editEmployee')}</DialogTitle>
+                      <DialogDescription>{t('updateEmployeeDetails')}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="editEmployeeName">Full Name</Label>
+                          <Label htmlFor="editEmployeeName">{t('fullName')}</Label>
                           <Input 
                             id="editEmployeeName" 
-                            placeholder="Enter full name" 
+                            placeholder={t('enterFullName')} 
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="editEmployeeId">Employee ID</Label>
+                          <Label htmlFor="editEmployeeId">{t('employeeId')}</Label>
                           <Input 
                             id="editEmployeeId" 
                             placeholder="EMP001" 
@@ -477,20 +479,20 @@ export default function HRPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="editEmail">Email</Label>
+                          <Label htmlFor="editEmail">{t('email')}</Label>
                           <Input 
                             id="editEmail" 
                             type="email" 
-                            placeholder="employee@company.com" 
+                            placeholder={t('employeeEmailPlaceholder')} 
                             value={formData.email}
                             onChange={(e) => setFormData({...formData, email: e.target.value})}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="editPhone">Phone</Label>
+                          <Label htmlFor="editPhone">{t('phone')}</Label>
                           <Input 
                             id="editPhone" 
-                            placeholder="+91 9876543210" 
+                            placeholder={t('phoneNumberPlaceholder')} 
                             value={formData.phone}
                             onChange={(e) => setFormData({...formData, phone: e.target.value})}
                           />
@@ -498,7 +500,7 @@ export default function HRPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="editSalary">Salary</Label>
+                          <Label htmlFor="editSalary">{t('salary')}</Label>
                           <Input 
                             id="editSalary" 
                             type="number" 
@@ -508,7 +510,7 @@ export default function HRPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="editJoinDate">Join Date</Label>
+                          <Label htmlFor="editJoinDate">{t('joinDate')}</Label>
                           <Input 
                             id="editJoinDate" 
                             type="date" 
@@ -518,19 +520,19 @@ export default function HRPage() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="editAddress">Address</Label>
+                        <Label htmlFor="editAddress">{t('address')}</Label>
                         <Textarea 
                           id="editAddress" 
-                          placeholder="Employee address" 
+                          placeholder={t('employeeAddressPlaceholder')} 
                           value={formData.address}
                           onChange={(e) => setFormData({...formData, address: e.target.value})}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="editEmergencyContact">Emergency Contact</Label>
+                        <Label htmlFor="editEmergencyContact">{t('emergencyContact')}</Label>
                         <Input 
                           id="editEmergencyContact" 
-                          placeholder="+91 9876543210" 
+                          placeholder={t('phoneNumberPlaceholder')} 
                           value={formData.emergencyContact}
                           onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
                         />
@@ -538,22 +540,22 @@ export default function HRPage() {
                       
                       {/* Commission Settings */}
                       <div className="space-y-4 border-t pt-4">
-                        <h3 className="text-sm font-medium">Commission Settings</h3>
+                        <h3 className="text-sm font-medium">{t('commissionSettings')}</h3>
                         <div className="grid grid-cols-2 gap-8">
                           <div className="space-y-2">
-                            <Label htmlFor="editCommissionType">Commission Type</Label>
+                            <Label htmlFor="editCommissionType">{t('commissionType')}</Label>
                             <Select value={formData.commissionType} onValueChange={(value) => setFormData({...formData, commissionType: value})}>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
+                                <SelectValue placeholder={t('selectType')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="none">No Commission</SelectItem>
-                                <SelectItem value="percentage">Percentage of Sales</SelectItem>
+                                <SelectItem value="none">{t('noCommission')}</SelectItem>
+                                <SelectItem value="percentage">{t('percentageOfSales')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="editCommissionRate">Commission Rate</Label>
+                            <Label htmlFor="editCommissionRate">{t('commissionRate')}</Label>
                             <Input 
                               id="editCommissionRate" 
                               type="number" 
@@ -563,7 +565,7 @@ export default function HRPage() {
                               disabled={formData.commissionType === 'none'}
                             />
                             <div className="text-xs text-muted-foreground">
-                              {formData.commissionType === 'percentage' ? '% of sales' : formData.commissionType === 'fixed' ? '₹ per sale' : formData.commissionType === 'target' ? '₹ bonus' : ''}
+                              {formData.commissionType === 'percentage' ? t('percentOfSales') : formData.commissionType === 'fixed' ? t('perSale') : formData.commissionType === 'target' ? t('bonus') : ''}
                             </div>
                           </div>
 
@@ -575,9 +577,9 @@ export default function HRPage() {
                         setIsEditDialogOpen(false)
                         resetForm()
                       }}>
-                        Cancel
+                        {t('cancel')}
                       </Button>
-                      <Button onClick={updateEmployee}>Update Employee</Button>
+                      <Button onClick={updateEmployee}>{t('updateEmployee')}</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -586,9 +588,9 @@ export default function HRPage() {
                 <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Delete Employee</DialogTitle>
+                      <DialogTitle>{t('deleteEmployee')}</DialogTitle>
                       <DialogDescription>
-                        Are you sure you want to delete {employeeToDelete?.name}? This action cannot be undone.
+                        {t('confirmDeleteEmployee')} {employeeToDelete?.name}? {t('actionCannotBeUndone')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2">
@@ -596,10 +598,10 @@ export default function HRPage() {
                         setIsDeleteDialogOpen(false)
                         setEmployeeToDelete(null)
                       }}>
-                        Cancel
+                        {t('cancel')}
                       </Button>
                       <Button variant="destructive" onClick={deleteEmployee}>
-                        Delete Employee
+                        {t('deleteEmployee')}
                       </Button>
                     </div>
                   </DialogContent>
@@ -612,7 +614,7 @@ export default function HRPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search employees..."
+                  placeholder={t('searchEmployees')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -649,13 +651,13 @@ export default function HRPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-center">Employee</TableHead>
-                      <TableHead className="text-center">ID</TableHead>
-                      <TableHead className="text-center">Contact</TableHead>
-                      <TableHead className="text-center">Salary</TableHead>
-                      <TableHead className="text-center">Join Date</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
+                      <TableHead className="text-center">{t('employee')}</TableHead>
+                      <TableHead className="text-center">{t('id')}</TableHead>
+                      <TableHead className="text-center">{t('contact')}</TableHead>
+                      <TableHead className="text-center">{t('salary')}</TableHead>
+                      <TableHead className="text-center">{t('joinDate')}</TableHead>
+                      <TableHead className="text-center">{t('status')}</TableHead>
+                      <TableHead className="text-center">{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

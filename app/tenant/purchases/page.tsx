@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Edit, Trash2, Package, Truck, DollarSign, Clock, Check } from "lucide-react"
 import { showToast, confirmDelete } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 
 interface Purchase {
@@ -32,6 +33,7 @@ interface Purchase {
 }
 
 export default function PurchasesPage() {
+  const { t, language } = useLanguage()
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -328,23 +330,23 @@ export default function PurchasesPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Purchase Management" userRole="tenant-admin">
+      <MainLayout title={t('purchaseManagement')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading purchases...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Purchase Management" userRole="tenant-admin">
+    <MainLayout title={t('purchaseManagement')}>
       <FeatureGuard feature="purchases">
         <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalPurchases')}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -354,7 +356,7 @@ export default function PurchasesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('pendingOrders')}</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -364,7 +366,7 @@ export default function PurchasesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalSpent')}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -374,7 +376,7 @@ export default function PurchasesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Suppliers</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('activeSuppliers')}</CardTitle>
               <Truck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -388,8 +390,8 @@ export default function PurchasesPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Purchase Orders</CardTitle>
-                <CardDescription>Manage inventory purchases and supplier orders</CardDescription>
+                <CardTitle>{t('purchaseOrders')}</CardTitle>
+                <CardDescription>{t('managePurchaseOrders')}</CardDescription>
               </div>
               <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
                 setIsCreateDialogOpen(open)
@@ -400,22 +402,22 @@ export default function PurchasesPage() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    New Purchase Order
+                    {t('newPurchaseOrder')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create New Purchase Order</DialogTitle>
-                    <DialogDescription>Add new inventory purchase order</DialogDescription>
+                    <DialogTitle>{t('createNewPurchaseOrder')}</DialogTitle>
+                    <DialogDescription>{t('addNewInventoryPurchaseOrder')}</DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-6 py-4">
                     {/* Supplier Information */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Supplier Name</Label>
+                        <Label>{t('supplierName')}</Label>
                         <Select value={formData.supplierName} onValueChange={(value) => setFormData(prev => ({...prev, supplierName: value}))}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select supplier" />
+                            <SelectValue placeholder={t('selectSupplier')} />
                           </SelectTrigger>
                           <SelectContent>
                             {dropdownData.suppliers.map((supplier) => (
@@ -425,26 +427,26 @@ export default function PurchasesPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Contact Person</Label>
+                        <Label>{t('contactPerson')}</Label>
                         <Input 
                           value={formData.supplierContact}
                           onChange={(e) => setFormData(prev => ({...prev, supplierContact: e.target.value}))}
-                          placeholder="Contact person name" 
+                          placeholder={t('contactPersonName')} 
                         />
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Contact Number</Label>
+                        <Label>{t('contactNumber')}</Label>
                         <Input 
                           value={formData.supplierContactNo}
                           onChange={(e) => setFormData(prev => ({...prev, supplierContactNo: e.target.value}))}
-                          placeholder="Supplier contact number" 
+                          placeholder={t('supplierContactNumber')} 
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Order Date</Label>
+                        <Label>{t('orderDate')}</Label>
                         <Input 
                           type="date" 
                           value={formData.orderDate}
@@ -456,21 +458,21 @@ export default function PurchasesPage() {
                     {/* Items Section */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Label className="text-base font-medium">Order Items</Label>
+                        <Label className="text-base font-medium">{t('orderItems')}</Label>
                         <Button variant="outline" size="sm" onClick={addItem}>
                           <Plus className="w-4 h-4 mr-2" />
-                          Add Product
+                          {t('addProduct')}
                         </Button>
                       </div>
                       
                       {formData.items.map((item, index) => (
                         <div key={index} className="border rounded-lg p-4 space-y-4">
                           <div className="mb-4">
-                            <h4 className="font-medium">Item {index + 1}</h4>
+                            <h4 className="font-medium">{t('item')} {index + 1}</h4>
                           </div>
                           
                           <div className="space-y-2 mb-4">
-                            <Label>Select from Inventory</Label>
+                            <Label>{t('selectFromInventory')}</Label>
                             <Select 
                               value={item.selectedProductId || ''} 
                               onValueChange={(value) => {
@@ -479,14 +481,14 @@ export default function PurchasesPage() {
                               }}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Choose product" />
+                                <SelectValue placeholder={t('chooseProduct')} />
                               </SelectTrigger>
                               <SelectContent>
                                 {inventoryItems.map((invItem) => {
                                   const displayName = getProductDisplayName(invItem)
                                   return (
                                     <SelectItem key={invItem.id} value={invItem.id}>
-                                      {displayName} - Stock: {invItem.stock}
+                                      {displayName} - {t('stock')}: {invItem.stock}
                                     </SelectItem>
                                   )
                                 })}
@@ -494,36 +496,36 @@ export default function PurchasesPage() {
                             </Select>
                           </div>
                           
-                          <div className="text-center text-sm text-muted-foreground mb-4">OR enter manually</div>
+                          <div className="text-center text-sm text-muted-foreground mb-4">{t('orEnterManually')}</div>
                           
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>Product Name</Label>
+                              <Label>{t('productName')}</Label>
                               <Input 
                                 value={item.name}
                                 onChange={(e) => {
                                   updateItem(index, 'name', e.target.value)
                                   updateItem(index, 'selectedProductId', '')
                                 }}
-                                placeholder="Enter product name" 
+                                placeholder={t('enterProductName')} 
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>SKU</Label>
+                              <Label>{t('sku')}</Label>
                               <Input 
                                 value={item.sku}
                                 onChange={(e) => {
                                   updateItem(index, 'sku', e.target.value)
                                   updateItem(index, 'selectedProductId', '')
                                 }}
-                                placeholder="Enter SKU" 
+                                placeholder={t('enterSKU')} 
                               />
                             </div>
                           </div>
                           
                           <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                              <Label>Quantity</Label>
+                              <Label>{t('quantity')}</Label>
                               <Input 
                                 type="number" 
                                 value={item.quantity === 0 ? '' : item.quantity}
@@ -532,7 +534,7 @@ export default function PurchasesPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Unit Price (₹)</Label>
+                              <Label>{t('unitPrice')} (₹)</Label>
                               <Input 
                                 type="number" 
                                 step="0.01"
@@ -542,7 +544,7 @@ export default function PurchasesPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label>Total (₹)</Label>
+                              <Label>{t('total')} (₹)</Label>
                               <Input 
                                 type="number" 
                                 value={item.total.toFixed(2)}
@@ -556,11 +558,11 @@ export default function PurchasesPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Notes</Label>
+                      <Label>{t('notes')}</Label>
                       <Textarea 
                         value={formData.notes}
                         onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
-                        placeholder="Additional notes" 
+                        placeholder={t('additionalNotes')} 
                       />
                     </div>
                     
@@ -568,7 +570,7 @@ export default function PurchasesPage() {
                       <div className="flex justify-end">
                         <div className="w-64 space-y-2">
                           <div className="flex justify-between text-lg font-bold">
-                            <span>Total Amount:</span>
+                            <span>{t('totalAmount')}:</span>
                             <span>₹{formData.items.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2)}</span>
                           </div>
                         </div>
@@ -576,8 +578,8 @@ export default function PurchasesPage() {
                     </div>
                   </div>
                   <div className="flex justify-end space-x-2">
-                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={createPurchase}>Create Purchase Order</Button>
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t('cancel')}</Button>
+                    <Button onClick={createPurchase}>{t('createPurchaseOrder')}</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -773,7 +775,7 @@ export default function PurchasesPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input 
-                  placeholder="Search purchase orders..." 
+                  placeholder={t('searchPurchaseOrders')} 
                   className="pl-10" 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -785,13 +787,13 @@ export default function PurchasesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center">Order ID</TableHead>
-                    <TableHead className="text-center">Supplier</TableHead>
-                    <TableHead className="text-center">Items</TableHead>
-                    <TableHead className="text-center">Order Date</TableHead>
-                    <TableHead className="text-center">Total Amount</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center">{t('orderId')}</TableHead>
+                    <TableHead className="text-center">{t('supplier')}</TableHead>
+                    <TableHead className="text-center">{t('items')}</TableHead>
+                    <TableHead className="text-center">{t('orderDate')}</TableHead>
+                    <TableHead className="text-center">{t('totalAmount')}</TableHead>
+                    <TableHead className="text-center">{t('status')}</TableHead>
+                    <TableHead className="text-center">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -806,7 +808,7 @@ export default function PurchasesPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="space-y-1">
-                          <div>{purchase.items?.length || 0} items</div>
+                          <div>{purchase.items?.length || 0} {t('items')}</div>
                           {purchase.items && purchase.items.length > 0 && (
                             <div className="text-xs text-muted-foreground">
                               {purchase.items.slice(0, 2).map((item, idx) => (

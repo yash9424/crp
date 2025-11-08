@@ -89,6 +89,20 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     }
 
+    // Add all form data fields dynamically
+    Object.keys(body).forEach(key => {
+      if (!['name', 'sku', 'barcode', 'category', 'price', 'finalPrice', 'costPrice', 'stock', 'minStock'].includes(key)) {
+        const value = body[key]
+        if (value !== undefined && value !== '') {
+          // Store with original key
+          item[key] = value
+          // Also store with underscore version
+          const underscoreKey = key.toLowerCase().replace(/\s+/g, '_')
+          item[underscoreKey] = value
+        }
+      }
+    })
+    
     // Add dynamic fields based on tenant configuration
     if (tenantConfig?.fields) {
       tenantConfig.fields.forEach((field: any) => {
@@ -112,6 +126,8 @@ export async function POST(request: NextRequest) {
             } else {
               item[fieldKey] = fieldValue
             }
+            // Also store with original field name
+            item[fieldName] = item[fieldKey]
           }
         }
       })

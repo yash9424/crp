@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Receipt, Search, Eye, Printer, MessageCircle, Download, X } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface Bill {
   id: string
@@ -36,6 +37,7 @@ interface Bill {
 }
 
 export default function BillsPage() {
+  const { t, language } = useLanguage()
   const [bills, setBills] = useState<Bill[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -261,16 +263,16 @@ Contact: ${storePhone}`
 
   if (loading) {
     return (
-      <MainLayout title="Bill History" userRole="tenant-admin">
+      <MainLayout title={t('billHistory')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading bills...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Bill History" userRole="tenant-admin">
+    <MainLayout title={t('billHistory')}>
       <FeatureGuard feature="bills">
       <div className="space-y-8">
         <Card>
@@ -278,12 +280,12 @@ Contact: ${storePhone}`
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center space-x-2">
                 <Receipt className="w-5 h-5" />
-                <span>All Bills ({bills.length})</span>
+                <span>{t('allBills')} ({bills.length})</span>
               </CardTitle>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by bill no, customer, phone..."
+                  placeholder={t('searchBillsPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-64"
@@ -296,13 +298,13 @@ Contact: ${storePhone}`
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-center">Bill No</TableHead>
-                  <TableHead className="text-center">Customer</TableHead>
-                  <TableHead className="text-center">Items</TableHead>
-                  <TableHead className="text-center">Total</TableHead>
-                  <TableHead className="text-center">Payment</TableHead>
-                  <TableHead className="text-center">Date</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center">{t('billNo')}</TableHead>
+                  <TableHead className="text-center">{t('customer')}</TableHead>
+                  <TableHead className="text-center">{t('items')}</TableHead>
+                  <TableHead className="text-center">{t('total')}</TableHead>
+                  <TableHead className="text-center">{t('payment')}</TableHead>
+                  <TableHead className="text-center">{t('date')}</TableHead>
+                  <TableHead className="text-center">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -317,7 +319,7 @@ Contact: ${storePhone}`
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{bill.items.length} items</TableCell>
+                    <TableCell className="text-center">{bill.items.length} {t('items')}</TableCell>
                     <TableCell className="text-center">₹  {(bill.total || 0).toFixed(2)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline">{bill.paymentMethod}</Badge>
@@ -502,21 +504,21 @@ startxref
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <X className="w-5 h-5 text-red-500" />
-                <span>Delete Bill</span>
+                <span>{t('deleteBill')}</span>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Enter admin password to delete bill: <strong>{billToDelete?.billNo}</strong>
+                {t('enterPasswordToDelete')} <strong>{billToDelete?.billNo}</strong>
               </p>
               <div className="space-y-2">
-                <Label htmlFor="deletePassword">Password</Label>
+                <Label htmlFor="deletePassword">{t('password')}</Label>
                 <Input
                   id="deletePassword"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
+                  placeholder={t('enterPassword')}
                   autoComplete="new-password"
                   autoFocus={false}
                   onKeyPress={(e) => {
@@ -538,14 +540,14 @@ startxref
                     setBillToDelete(null)
                   }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button 
                   variant="destructive" 
                   className="flex-1"
                   onClick={handleDeleteBill}
                 >
-                  Delete
+                  {t('delete')}
                 </Button>
               </div>
             </div>
@@ -556,33 +558,33 @@ startxref
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Bill Details - {selectedBill?.billNo}</DialogTitle>
+              <DialogTitle>{t('billDetails')} - {selectedBill?.billNo}</DialogTitle>
             </DialogHeader>
             {selectedBill && (
               <div className="py-4">
                 <div className="text-center mb-4">
                   <h3 className="font-bold text-lg">{selectedBill.storeName}</h3>
                   <p className="text-sm text-muted-foreground">{selectedBill.address}</p>
-                  <p className="text-sm">Phone: {selectedBill.phone}</p>
+                  <p className="text-sm">{t('phone')}: {selectedBill.phone}</p>
                 </div>
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between">
-                    <span>Bill No:</span>
+                    <span>{t('billNo')}:</span>
                     <span className="font-medium">{selectedBill.billNo}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Customer:</span>
+                    <span>{t('customer')}:</span>
                     <span>{selectedBill.customerName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Date:</span>
+                    <span>{t('date')}:</span>
                     <span>{new Date(selectedBill.createdAt).toLocaleDateString('en-IN')}</span>
                   </div>
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-2">Items:</h4>
+                  <h4 className="font-medium mb-2">{t('items')}:</h4>
                   {selectedBill.items.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm mb-1">
                       <span>{item.name} x{item.quantity}</span>
@@ -593,19 +595,19 @@ startxref
 
                 <div className="border-t pt-4 space-y-1">
                   <div className="flex justify-between">
-                    <span>Subtotal:</span>
+                    <span>{t('subtotal')}:</span>
                     <span>₹ {(selectedBill.subtotal || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Discount:</span>
+                    <span>{t('discount')}:</span>
                     <span>₹ {(selectedBill.discountAmount || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Tax:</span>
+                    <span>{t('tax')}:</span>
                     <span>₹ {(selectedBill.tax || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg">
-                    <span>Total:</span>
+                    <span>{t('total')}:</span>
                     <span>₹ {(selectedBill.total || 0).toFixed(2)}</span>
                   </div>
                 </div>
@@ -742,7 +744,7 @@ startxref
                     className="w-full"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download PDF
+                    {t('downloadPDF')}
                   </Button>
                 </div>
               </div>

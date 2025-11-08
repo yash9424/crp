@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Search, Plus, Calendar, Clock, Users, Filter, Trash2 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface Employee {
   _id: string
@@ -36,6 +37,7 @@ interface Leave {
 }
 
 export default function LeavesPage() {
+  const { t } = useLanguage()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [leaves, setLeaves] = useState<Leave[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,11 +161,11 @@ export default function LeavesPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Approved":
-        return <Badge variant="default">Approved</Badge>
+        return <Badge variant="default">{t('approved')}</Badge>
       case "Pending":
-        return <Badge variant="secondary">Pending</Badge>
+        return <Badge variant="secondary">{t('pending')}</Badge>
       case "Rejected":
-        return <Badge variant="destructive">Rejected</Badge>
+        return <Badge variant="destructive">{t('rejected')}</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -188,23 +190,23 @@ export default function LeavesPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Leave Management" userRole="tenant-admin">
+      <MainLayout title={t('leaveManagement')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading leaves...</div>
+          <div className="text-lg">{t('loadingLeaves')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Leave Management" userRole="tenant-admin">
+    <MainLayout title={t('leaveManagement')}>
       <FeatureGuard feature="leaves">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-2xl font-medium">Total Leaves</CardTitle>
+              <CardTitle className="text-2xl font-medium">{t('totalLeaves')}</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -214,7 +216,7 @@ export default function LeavesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-2xl font-medium">Approved</CardTitle>
+              <CardTitle className="text-2xl font-medium">{t('approved')}</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -224,7 +226,7 @@ export default function LeavesPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-2xl font-medium">Pending</CardTitle>
+              <CardTitle className="text-2xl font-medium">{t('pending')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -238,31 +240,31 @@ export default function LeavesPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Leave Records</CardTitle>
-                <CardDescription>Employee leave history and management</CardDescription>
+                <CardTitle>{t('leaveRecords')}</CardTitle>
+                <CardDescription>{t('employeeLeaveHistory')}</CardDescription>
               </div>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Leave
+                    {t('addLeave')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle>Add Leave</DialogTitle>
-                    <DialogDescription>Create new leave for employee</DialogDescription>
+                    <DialogTitle>{t('addLeave')}</DialogTitle>
+                    <DialogDescription>{t('createNewLeave')}</DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Employee</Label>
+                        <Label>{t('employee')}</Label>
                         <Select value={formData.employeeId} onValueChange={(value) => {
                           const employee = employees.find(e => e._id === value)
                           setFormData({...formData, employeeId: value, employeeName: employee?.name || ''})
                         }}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select employee" />
+                            <SelectValue placeholder={t('selectEmployee')} />
                           </SelectTrigger>
                           <SelectContent>
                             {employees.map((employee) => (
@@ -274,25 +276,25 @@ export default function LeavesPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Leave Type</Label>
+                        <Label>{t('leaveType')}</Label>
                         <Select value={formData.leaveType} onValueChange={(value) => setFormData({...formData, leaveType: value})}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select leave type" />
+                            <SelectValue placeholder={t('selectLeaveType')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Sick Leave">Sick Leave</SelectItem>
-                            <SelectItem value="Casual Leave">Casual Leave</SelectItem>
-                            <SelectItem value="Annual Leave">Annual Leave</SelectItem>
-                            <SelectItem value="Emergency Leave">Emergency Leave</SelectItem>
-                            <SelectItem value="Maternity Leave">Maternity Leave</SelectItem>
-                            <SelectItem value="Paternity Leave">Paternity Leave</SelectItem>
+                            <SelectItem value="Sick Leave">{t('sickLeave')}</SelectItem>
+                            <SelectItem value="Casual Leave">{t('casualLeave')}</SelectItem>
+                            <SelectItem value="Annual Leave">{t('annualLeave')}</SelectItem>
+                            <SelectItem value="Emergency Leave">{t('emergencyLeave')}</SelectItem>
+                            <SelectItem value="Maternity Leave">{t('maternityLeave')}</SelectItem>
+                            <SelectItem value="Paternity Leave">{t('paternityLeave')}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Start Date</Label>
+                        <Label>{t('startDate')}</Label>
                         <Input 
                           type="date" 
                           value={formData.startDate}
@@ -300,7 +302,7 @@ export default function LeavesPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>End Date</Label>
+                        <Label>{t('endDate')}</Label>
                         <Input 
                           type="date" 
                           value={formData.endDate}
@@ -309,11 +311,11 @@ export default function LeavesPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>Reason</Label>
+                      <Label>{t('reason')}</Label>
                       <Textarea 
                         value={formData.reason}
                         onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                        placeholder="Reason for leave"
+                        placeholder={t('reasonForLeave')}
                       />
                     </div>
                   </div>
@@ -322,9 +324,9 @@ export default function LeavesPage() {
                       setIsAddDialogOpen(false)
                       resetForm()
                     }}>
-                      Cancel
+                      {t('cancel')}
                     </Button>
-                    <Button onClick={createLeave}>Add Leave</Button>
+                    <Button onClick={createLeave}>{t('addLeave')}</Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -333,9 +335,9 @@ export default function LeavesPage() {
               <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Delete Leave Record</DialogTitle>
+                    <DialogTitle>{t('deleteLeaveRecord')}</DialogTitle>
                     <DialogDescription>
-                      Are you sure you want to delete this leave record for {leaveToDelete?.employeeName}? This action cannot be undone.
+                      {t('confirmDeleteLeave')} {leaveToDelete?.employeeName}? {t('actionCannotBeUndone')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex justify-end space-x-2">
@@ -343,10 +345,10 @@ export default function LeavesPage() {
                       setIsDeleteDialogOpen(false)
                       setLeaveToDelete(null)
                     }}>
-                      Cancel
+                      {t('cancel')}
                     </Button>
                     <Button variant="destructive" onClick={deleteLeave}>
-                      Delete Leave
+                      {t('deleteLeave')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -358,7 +360,7 @@ export default function LeavesPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search leaves..."
+                  placeholder={t('searchLeaves')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -370,7 +372,7 @@ export default function LeavesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
+                  <SelectItem value="all">{t('allEmployees')}</SelectItem>
                   {employees.map((employee) => (
                     <SelectItem key={employee._id} value={employee._id}>
                       {employee.name}
@@ -407,13 +409,13 @@ export default function LeavesPage() {
             {filteredLeaves.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">No leave records found</h3>
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">{t('noLeaveRecordsFound')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  No leave requests for the selected period
+                  {t('noLeaveRequestsForPeriod')}
                 </p>
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add First Leave Request
+                  {t('addFirstLeaveRequest')}
                 </Button>
               </div>
             ) : (
@@ -421,14 +423,14 @@ export default function LeavesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-center">Employee</TableHead>
-                      <TableHead className="text-center">Leave Type</TableHead>
-                      <TableHead className="text-center">Start Date</TableHead>
-                      <TableHead className="text-center">End Date</TableHead>
-                      <TableHead className="text-center">Days</TableHead>
-                      <TableHead className="text-center">Reason</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
+                      <TableHead className="text-center">{t('employee')}</TableHead>
+                      <TableHead className="text-center">{t('leaveType')}</TableHead>
+                      <TableHead className="text-center">{t('startDate')}</TableHead>
+                      <TableHead className="text-center">{t('endDate')}</TableHead>
+                      <TableHead className="text-center">{t('days')}</TableHead>
+                      <TableHead className="text-center">{t('reason')}</TableHead>
+                      <TableHead className="text-center">{t('status')}</TableHead>
+                      <TableHead className="text-center">{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

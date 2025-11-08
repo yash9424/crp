@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useStore } from "@/lib/store-context"
 import { MainLayout } from "@/components/layout/main-layout"
 import { FeatureGuard } from "@/components/feature-guard"
+import { useLanguage } from "@/lib/language-context"
+import { useDynamicTranslation } from "@/hooks/use-dynamic-translation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,6 +67,8 @@ interface InventoryItem {
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const { t, language } = useLanguage()
+  const { translateText } = useDynamicTranslation()
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [stockFilter, setStockFilter] = useState("all")
@@ -120,28 +124,17 @@ export default function InventoryPage() {
   const [showUpgradePopup, setShowUpgradePopup] = useState(false)
   const { storeName, tenantId } = useStore()
 
-  // Fetch inventory from API
   const fetchInventory = async () => {
     try {
-      console.log('Fetching inventory...')
       const response = await fetch('/api/inventory')
-      console.log('Response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('Inventory data received:', data)
-        console.log('Number of items:', data.length)
-        console.log('First item:', data[0])
-        setInventory(data)
-      } else {
-        console.error('Failed to fetch inventory, status:', response.status)
-        const errorText = await response.text()
-        console.error('Error response:', errorText)
+        return data
       }
     } catch (error) {
-      console.error('Failed to fetch inventory:', error)
-    } finally {
-      setLoading(false)
+      console.warn('Inventory API unavailable:', error)
     }
+    return []
   }
 
   const fetchDropdownData = async () => {
@@ -149,16 +142,23 @@ export default function InventoryPage() {
       const response = await fetch('/api/dropdown-data')
       if (response.ok) {
         const data = await response.json()
-        setDropdownData({
+        return {
           categories: data.categories || [],
           sizes: data.sizes || [],
           colors: data.colors || [],
           materials: data.materials || [],
           brands: data.brands || []
-        })
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch dropdown data:', error)
+      console.warn('Dropdown data API unavailable:', error)
+    }
+    return {
+      categories: [],
+      sizes: [],
+      colors: [],
+      materials: [],
+      brands: []
     }
   }
 
@@ -167,11 +167,12 @@ export default function InventoryPage() {
       const response = await fetch('/api/settings')
       if (response.ok) {
         const data = await response.json()
-        setSettings({ taxRate: data.taxRate ?? 0, discountMode: data.discountMode || false })
+        return { taxRate: data.taxRate ?? 0, discountMode: data.discountMode || false }
       }
     } catch (error) {
-      console.error('Failed to fetch settings:', error)
+      console.warn('Settings API unavailable:', error)
     }
+    return { taxRate: 0, discountMode: false }
   }
 
   const fetchPlanLimits = async () => {
@@ -179,11 +180,12 @@ export default function InventoryPage() {
       const response = await fetch('/api/plan-limits')
       if (response.ok) {
         const data = await response.json()
-        setPlanLimits(data)
+        return data
       }
     } catch (error) {
-      console.error('Failed to fetch plan limits:', error)
+      console.warn('Plan limits API unavailable:', error)
     }
+    return null
   }
 
   const fetchTenantFields = async () => {
@@ -191,17 +193,15 @@ export default function InventoryPage() {
       const response = await fetch('/api/tenant-fields')
       if (response.ok) {
         const data = await response.json()
-        setTenantFields(data.fields?.filter((f: any) => f.enabled) || [])
+        return data.fields?.filter((f: any) => f.enabled) || []
       }
     } catch (error) {
-      console.error('Failed to fetch tenant fields:', error)
+      console.warn('Tenant fields API unavailable:', error)
     }
+    return []
   }
 
-
-
   const filterDropdownsByCategory = (category: string) => {
-    // Always show all dropdown options
     setFilteredDropdownData({
       sizes: dropdownData.sizes || [],
       colors: dropdownData.colors || [],
@@ -218,13 +218,10 @@ export default function InventoryPage() {
     }))
   }
 
-  // Create new inventory item
   const createItem = async () => {
     try {
-      // Send all form data to API - let the API handle field mapping
       const requestData = { ...formData }
       
-      // Validate required fields - check multiple possible name fields
       const requestDataAny = requestData as any
       const productName = requestDataAny.name || requestDataAny.productname || requestDataAny['Product Name'] || requestDataAny.medicine || requestDataAny.ProductName
       if (!productName || !productName.toString().trim()) {
@@ -232,7 +229,6 @@ export default function InventoryPage() {
         return
       }
       
-      // Ensure name field is set for consistency
       if (!requestDataAny.name) {
         requestDataAny.name = productName
       }
@@ -241,9 +237,6 @@ export default function InventoryPage() {
         requestData.sku = `SKU-${Date.now()}`
       }
 
-      console.log('Sending product data:', requestData)
-      console.log('Form data keys:', Object.keys(formData))
-
       const response = await fetch('/api/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -251,14 +244,17 @@ export default function InventoryPage() {
       })
       
       if (response.ok) {
-        fetchInventory()
-        fetchPlanLimits() // Refresh limits
+        const [inventoryData, planLimitsData] = await Promise.all([
+          fetchInventory(),
+          fetchPlanLimits()
+        ])
+        setInventory(inventoryData)
+        setPlanLimits(planLimitsData)
         setIsAddDialogOpen(false)
         resetForm()
-        showToast.success('✅ Product added to inventory successfully!')
+        showToast.success(language === 'en' ? '✅ Product added to inventory successfully!' : language === 'gu' ? '✅ પ્રોડક્ટ સફળતાપૂર્વક ઇન્વેન્ટરીમાં ઉમેરાયું!' : '✅ उत्पाद सफलतापूर्वक इन्वेंटरी में जोड़ा गया!')
       } else {
         const errorData = await response.json()
-        console.error('API Error Response:', errorData)
         
         if (response.status === 403 && errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
           setPlanLimits(errorData.limits)
@@ -275,14 +271,10 @@ export default function InventoryPage() {
     }
   }
 
-  // Update inventory item
   const updateItem = async () => {
     if (!selectedItem) return
     try {
-      // Send all form data to API - let the API handle field mapping
       const requestData = { ...formData }
-      
-      console.log('Updating product with data:', requestData)
       
       const response = await fetch(`/api/inventory/${selectedItem.id}`, {
         method: 'PUT',
@@ -290,10 +282,11 @@ export default function InventoryPage() {
         body: JSON.stringify(requestData)
       })
       if (response.ok) {
-        fetchInventory()
+        const inventoryData = await fetchInventory()
+        setInventory(inventoryData)
         setIsEditDialogOpen(false)
         resetForm()
-        showToast.success('✅ Product updated successfully!')
+        showToast.success(language === 'en' ? '✅ Product updated successfully!' : language === 'gu' ? '✅ પ્રોડક્ટ સફળતાપૂર્વક અપડેટ થયું!' : '✅ उत्पाद सफलतापूर्वक अपडेट हुआ!')
       } else {
         showToast.error('❌ Failed to update product. Please try again.')
       }
@@ -315,10 +308,11 @@ export default function InventoryPage() {
         method: 'DELETE'
       })
       if (response.ok) {
-        fetchInventory()
+        const inventoryData = await fetchInventory()
+        setInventory(inventoryData)
         setIsDeleteDialogOpen(false)
         setItemToDelete(null)
-        showToast.success('Product deleted successfully!')
+        showToast.success(language === 'en' ? 'Product deleted successfully!' : language === 'gu' ? 'પ્રોડક્ટ સફળતાપૂર્વક ડિલીટ થયું!' : 'उत्पाद सफलतापूर्वक हटाया गया!')
       } else {
         showToast.error('Failed to delete product')
       }
@@ -329,27 +323,31 @@ export default function InventoryPage() {
   }
 
   const resetForm = () => {
-    // Create empty form data based on tenant fields
-    const emptyFormData: any = {}
+    const emptyFormData: any = {
+      name: '',
+      sku: '',
+      barcode: '',
+      category: '',
+      price: '',
+      finalPrice: '',
+      costPrice: '',
+      stock: '',
+      minStock: '',
+      sizes: '',
+      colors: '',
+      description: '',
+      material: '',
+      brand: ''
+    }
     
-    // Initialize all tenant fields with empty values
     tenantFields.forEach(field => {
       const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_')
       emptyFormData[fieldKey] = ''
-      emptyFormData[field.name] = '' // Also store with original name
-      emptyFormData[field.name.toLowerCase()] = '' // Store lowercase version
+      emptyFormData[field.name] = ''
+      emptyFormData[field.name.toLowerCase()] = ''
     })
-    
-    console.log('Resetting form with tenant fields:', tenantFields.map(f => f.name))
-    console.log('Empty form data:', emptyFormData)
     
     setFormData(emptyFormData)
-    setFilteredDropdownData({
-      sizes: dropdownData.sizes || [],
-      colors: dropdownData.colors || [],
-      materials: dropdownData.materials || [],
-      brands: dropdownData.brands || []
-    })
     setSelectedItem(null)
   }
 
@@ -357,7 +355,6 @@ export default function InventoryPage() {
     setSelectedItem(item)
     const currentPrice = (item.price ?? 0).toString()
     
-    // Create form data with all fields properly mapped
     const editFormData: any = {
       name: item.name || '',
       sku: item.sku || '',
@@ -375,82 +372,59 @@ export default function InventoryPage() {
       brand: (item as any).brand || ''
     }
     
-    // Map tenant fields to form data
     tenantFields.forEach(field => {
       const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_')
       let value = (item as any)[fieldKey] || (item as any)[field.name] || (item as any)[field.name.toLowerCase()] || ''
       
-      // Special handling for ProductName field
       if (field.name.toLowerCase().includes('productname') || field.name.toLowerCase().includes('product_name')) {
         value = item.name || value
       }
       
       editFormData[fieldKey] = Array.isArray(value) ? value.join(', ') : value.toString()
-      editFormData[field.name] = editFormData[fieldKey] // Store with both keys
-      editFormData[field.name.toLowerCase()] = editFormData[fieldKey] // Store lowercase version
-      // Always set ProductName field regardless of tenant fields
+      editFormData[field.name] = editFormData[fieldKey]
+      editFormData[field.name.toLowerCase()] = editFormData[fieldKey]
       editFormData['ProductName'] = item.name || ''
       editFormData['productname'] = item.name || ''
       editFormData['product_name'] = item.name || ''
     })
     
-    // Always ensure ProductName is set even if no tenant fields
     editFormData['ProductName'] = item.name || ''
     editFormData['productname'] = item.name || ''
     editFormData['product_name'] = item.name || ''
     
     setFormData(editFormData)
-    setFilteredDropdownData({
-      sizes: dropdownData.sizes || [],
-      colors: dropdownData.colors || [],
-      materials: dropdownData.materials || [],
-      brands: dropdownData.brands || []
-    })
     setIsEditDialogOpen(true)
   }
 
   useEffect(() => {
-    fetchInventory()
-    fetchDropdownData()
-    fetchSettings()
-    fetchPlanLimits()
-    fetchTenantFields()
-
-    // Refresh data when window gains focus or page becomes visible
-    const handleFocus = () => {
-      fetchInventory()
-    }
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchInventory()
-      }
-    }
-
-    window.addEventListener('focus', handleFocus)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [tenantId])
-
-  // Refresh data when component mounts and on route changes
-  useEffect(() => {
-    const refreshData = async () => {
+    const initializeData = async () => {
       try {
-        await Promise.all([
+        const [inventoryData, dropdownDataResult, settingsData, planLimitsData, tenantFieldsData] = await Promise.all([
           fetchInventory(),
-          fetchSettings(),
           fetchDropdownData(),
+          fetchSettings(),
+          fetchPlanLimits(),
           fetchTenantFields()
         ])
+        
+        setInventory(inventoryData)
+        setDropdownData(dropdownDataResult)
+        setSettings(settingsData)
+        setPlanLimits(planLimitsData)
+        setTenantFields(tenantFieldsData)
+        setFilteredDropdownData({
+          sizes: dropdownDataResult.sizes || [],
+          colors: dropdownDataResult.colors || [],
+          materials: dropdownDataResult.materials || [],
+          brands: dropdownDataResult.brands || []
+        })
       } catch (error) {
-        console.error('Failed to refresh data:', error)
+        console.error('Error initializing data:', error)
+      } finally {
+        setLoading(false)
       }
     }
-    refreshData()
+    initializeData()
   }, [])
 
   const filteredInventory = inventory.filter((item) => {
@@ -468,60 +442,72 @@ export default function InventoryPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Inventory Management">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading inventory for {storeName || 'your store'}...</div>
+      <MainLayout title={t('inventory')}>
+        <div className="space-y-8">
+          <div className="grid gap-6 md:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                  <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+                </div>
+                <div className="flex space-x-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="h-10 bg-gray-200 rounded flex-1 max-w-sm animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded w-40 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+                </div>
+                <div className="space-y-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </MainLayout>
     )
   }
 
-  const getStockStatus = (item: any) => {
-    const stock = item.stock || 0
-    const minStock = item.minStock || 0
-    
-    if (stock === 0) {
-      return (
-        <Badge variant="destructive" className="flex items-center space-x-1">
-          <AlertTriangle className="w-3 h-3" />
-          <span>Out of Stock</span>
-        </Badge>
-      )
-    } else if (stock <= minStock) {
-      return (
-        <Badge variant="outline" className="flex items-center space-x-1 text-orange-600 border-orange-600">
-          <AlertTriangle className="w-3 h-3" />
-          <span>Low Stock</span>
-        </Badge>
-      )
-    } else {
-      return (
-        <Badge variant="outline" className="flex items-center space-x-1">
-          <Package className="w-3 h-3" />
-          <span>In Stock</span>
-        </Badge>
-      )
-    }
-  }
-
   const totalProducts = inventory.length
   const lowStockItems = inventory.filter((item) => item.stock <= item.minStock).length
   const totalValue = inventory.reduce((sum, item) => {
-    // Use selling price if available, otherwise use cost price, default to 0
     const unitPrice = Number(item.price) || Number(item.costPrice) || 0;
     const stockQuantity = Number(item.stock) || 0;
     return sum + (stockQuantity * unitPrice);
   }, 0)
 
   return (
-    <MainLayout title="Inventory Management">
+    <MainLayout title={t('inventory')}>
       <FeatureGuard feature="inventory">
         <div className="space-y-8">
-        {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-4">
           <Card className={planLimits && totalProducts >= planLimits.maxProducts * 0.9 ? 'border-orange-200 bg-orange-50' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Total Products</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('totalProducts')}</CardTitle>
               <div className="flex items-center gap-2">
                 {planLimits && totalProducts >= planLimits.maxProducts && (
                   <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -565,7 +551,7 @@ export default function InventoryPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Low Stock Items</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('lowStock')}</CardTitle>
               <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -575,7 +561,7 @@ export default function InventoryPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Inventory Value</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('inventoryValue')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -585,7 +571,7 @@ export default function InventoryPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-medium">Categories</CardTitle>
+              <CardTitle className="text-xl font-medium">{t('categories')}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -594,19 +580,16 @@ export default function InventoryPage() {
           </Card>
         </div>
 
-
-        
-        {/* Inventory Management */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle> Product Inventory</CardTitle>
-                <CardDescription>Manage your Product stock and details</CardDescription>
+                <CardTitle>{t('inventory')}</CardTitle>
+                <CardDescription>{t('manageProductStock')}</CardDescription>
                 {planLimits && totalProducts >= planLimits.maxProducts && (
                   <div className="mt-2">
                     <Badge variant="destructive" className="text-xs">
-                      Product limit reached ({totalProducts}/{planLimits.maxProducts})
+                      {t('productLimitReached')} ({totalProducts}/{planLimits.maxProducts})
                     </Badge>
                   </div>
                 )}
@@ -619,7 +602,7 @@ export default function InventoryPage() {
                     onClick={() => setShowUpgradePopup(true)}
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    Upgrade Plan
+                    {t('upgradePlan')}
                   </Button>
                 )}
                 <input
@@ -642,8 +625,12 @@ export default function InventoryPage() {
                       if (response.ok) {
                         const result = await response.json()
                         showToast.success(`✅ Successfully imported ${result.count} products!`)
-                        fetchInventory()
-                        fetchPlanLimits() // Refresh limits
+                        const [inventoryData, planLimitsData] = await Promise.all([
+                          fetchInventory(),
+                          fetchPlanLimits()
+                        ])
+                        setInventory(inventoryData)
+                        setPlanLimits(planLimitsData)
                       } else if (response.status === 403) {
                         const errorData = await response.json()
                         if (errorData.error === 'PRODUCT_LIMIT_EXCEEDED') {
@@ -671,18 +658,17 @@ export default function InventoryPage() {
                   disabled={importing}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  {importing ? 'Importing...' : 'Import CSV'}
+                  {importing ? t('importing') : t('importCSV')}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => window.open('/api/inventory/export', '_blank')}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export CSV
+                  {t('exportCSV')}
                 </Button>
                 
                 <BulkBarcodePrint products={inventory} />
-
 
                 <Button 
                   variant="destructive"
@@ -696,7 +682,8 @@ export default function InventoryPage() {
                         if (response.ok) {
                           const result = await response.json()
                           showToast.success(`🗑️ Successfully cleared ${result.count} products from inventory!`)
-                          fetchInventory()
+                          const inventoryData = await fetchInventory()
+                          setInventory(inventoryData)
                         } else {
                           showToast.error('❌ Failed to clear inventory. Please try again.')
                         }
@@ -706,227 +693,87 @@ export default function InventoryPage() {
                     }
                   }}
                 >
-                  Clear All
+                  {t('clearAll')}
                 </Button>
-                <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-                  if (open) {
-                    // Check if at product limit before opening dialog
-                    if (planLimits && totalProducts >= planLimits.maxProducts) {
-                      setShowUpgradePopup(true)
-                      return
-                    }
-                    resetForm()
-                    fetchSettings() // Refresh settings to get latest tax rate
-                  }
-                  setIsAddDialogOpen(open)
-                }}>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button>
+                    <Button onClick={() => {
+                      if (planLimits && totalProducts >= planLimits.maxProducts) {
+                        setShowUpgradePopup(true)
+                        return
+                      }
+                      resetForm()
+                      setIsAddDialogOpen(true)
+                    }}>
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Product
+                      {t('addProduct')}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
                     <DialogHeader className="flex-shrink-0 pb-4 border-b">
-                      <DialogTitle className="text-xl font-semibold">Add New Product</DialogTitle>
-                      <DialogDescription className="text-sm text-muted-foreground">Enter  Product details for inventory</DialogDescription>
+                      <DialogTitle className="text-xl font-semibold">{language === 'en' ? 'Add New Product' : language === 'gu' ? 'નવું પ્રોડક્ટ ઉમેરો' : 'नया उत्पाद जोड़ें'}</DialogTitle>
+                      <DialogDescription className="text-sm text-muted-foreground">{t('enterProductDetails')}</DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto px-1 py-4">
                       <div className="space-y-6">
-                        {/* Dynamic Fields or Basic Fields */}
                         <div className="p-4 rounded-lg border">
-                          <h3 className="text-sm font-medium mb-3">Product Information</h3>
-                          {tenantFields.length > 0 ? (
-                            <DynamicInventoryForm formData={formData} setFormData={(data) => setFormData(prev => ({...prev, ...data}))} />
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label>Product Name *</Label>
-                                <Input 
-                                  value={formData.name}
-                                  onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
-                                  placeholder="Enter product name" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>SKU</Label>
-                                <Input 
-                                  value={formData.sku}
-                                  onChange={(e) => setFormData(prev => ({...prev, sku: e.target.value}))}
-                                  placeholder="Enter SKU" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Category</Label>
-                                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({...prev, category: value}))}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select category" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {dropdownData.categories.map((category) => (
-                                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Price (₹)</Label>
-                                <Input 
-                                  type="number"
-                                  step="0.01"
-                                  value={formData.price}
-                                  onChange={(e) => setFormData(prev => ({...prev, price: e.target.value}))}
-                                  placeholder="0.00" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Stock Quantity</Label>
-                                <Input 
-                                  type="number"
-                                  value={formData.stock}
-                                  onChange={(e) => setFormData(prev => ({...prev, stock: e.target.value}))}
-                                  placeholder="0" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Minimum Stock</Label>
-                                <Input 
-                                  type="number"
-                                  value={formData.minStock}
-                                  onChange={(e) => setFormData(prev => ({...prev, minStock: e.target.value}))}
-                                  placeholder="0" 
-                                />
-                              </div>
-                            </div>
-                          )}
+                          <h3 className="text-sm font-medium mb-3">{t('productInformation')}</h3>
+                          <DynamicInventoryForm formData={formData} setFormData={(data) => setFormData(prev => ({...prev, ...data}))} />
                         </div>
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex justify-end space-x-3 pt-4 border-t bg-white">
                       <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="px-6">
-                        Cancel
+                        {t('cancel')}
                       </Button>
                       <Button onClick={createItem} className="px-6 bg-red-600 hover:bg-red-700">
-                        Add Product
+                        {t('addProduct')}
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
 
-                {/* Edit Dialog */}
-                <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
-                  setIsEditDialogOpen(open)
-                  if (open) {
-                    fetchSettings() // Refresh settings to get latest tax rate
-                  } else {
-                    resetForm()
-                  }
-                }}>
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                   <DialogContent className="max-w-4xl max-h-[95vh] flex flex-col">
                     <DialogHeader className="flex-shrink-0 pb-4 border-b">
-                      <DialogTitle className="text-xl font-semibold">Edit Product</DialogTitle>
-                      <DialogDescription className="text-sm text-muted-foreground">Update Product details</DialogDescription>
+                      <DialogTitle className="text-xl font-semibold">{language === 'en' ? 'Edit Product' : language === 'gu' ? 'પ્રોડક્ટ એડિટ કરો' : 'उत्पाद संपादित करें'}</DialogTitle>
+                      <DialogDescription className="text-sm text-muted-foreground">{t('updateProductDetails')}</DialogDescription>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto px-1 py-4">
                       <div className="space-y-6">
-                        {/* Dynamic Fields or Basic Fields */}
                         <div className="p-4 rounded-lg border">
-                          <h3 className="text-sm font-medium mb-3">Product Information</h3>
-                          {tenantFields.length > 0 ? (
-                            <DynamicInventoryForm formData={formData} setFormData={(data) => setFormData(prev => ({...prev, ...data}))} />
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label>Product Name *</Label>
-                                <Input 
-                                  value={formData.name}
-                                  onChange={(e) => setFormData(prev => ({...prev, name: e.target.value}))}
-                                  placeholder="Enter product name" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>SKU</Label>
-                                <Input 
-                                  value={formData.sku}
-                                  onChange={(e) => setFormData(prev => ({...prev, sku: e.target.value}))}
-                                  placeholder="Enter SKU" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Category</Label>
-                                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({...prev, category: value}))}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select category" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {dropdownData.categories.map((category) => (
-                                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Price (₹)</Label>
-                                <Input 
-                                  type="number"
-                                  step="0.01"
-                                  value={formData.price}
-                                  onChange={(e) => setFormData(prev => ({...prev, price: e.target.value}))}
-                                  placeholder="0.00" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Stock Quantity</Label>
-                                <Input 
-                                  type="number"
-                                  value={formData.stock}
-                                  onChange={(e) => setFormData(prev => ({...prev, stock: e.target.value}))}
-                                  placeholder="0" 
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Minimum Stock</Label>
-                                <Input 
-                                  type="number"
-                                  value={formData.minStock}
-                                  onChange={(e) => setFormData(prev => ({...prev, minStock: e.target.value}))}
-                                  placeholder="0" 
-                                />
-                              </div>
-                            </div>
-                          )}
+                          <h3 className="text-sm font-medium mb-3">{t('productInformation')}</h3>
+                          <DynamicInventoryForm formData={formData} setFormData={(data) => setFormData(prev => ({...prev, ...data}))} />
                         </div>
                       </div>
                     </div>
                     <div className="flex-shrink-0 flex justify-end space-x-3 pt-4 border-t bg-white">
                       <Button variant="outline" onClick={() => {
                         setIsEditDialogOpen(false)
-                        resetForm()
                       }} className="px-6">
-                        Cancel
+                        {t('cancel')}
                       </Button>
                       <Button onClick={updateItem} className="px-6 bg-red-600 hover:bg-red-700">
-                        Update Product
+                        {t('updateProduct')}
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
 
-                {/* Delete Confirmation Dialog */}
                 <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Delete Product</DialogTitle>
+                      <DialogTitle>{language === 'en' ? 'Delete Product' : language === 'gu' ? 'પ્રોડક્ટ ડિલીટ કરો' : 'उत्पाद हटाएं'}</DialogTitle>
                       <DialogDescription>
-                        Are you sure you want to delete {itemToDelete?.name}? This action cannot be undone.
+                        {t('confirmDeleteProduct')} {itemToDelete?.name}? {t('actionCannotBeUndone')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end space-x-2 pt-4">
                       <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                        Cancel
+                        {t('cancel')}
                       </Button>
                       <Button variant="destructive" onClick={deleteItem}>
-                        Delete
+                        {t('delete')}
                       </Button>
                     </div>
                   </DialogContent>
@@ -939,7 +786,7 @@ export default function InventoryPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search  Product..."
+                  placeholder={language === 'en' ? 'Search Product...' : language === 'gu' ? 'પ્રોડક્ટ શોધો...' : 'उत्पाद खोजें...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -951,8 +798,8 @@ export default function InventoryPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {dropdownData.categories.map((category) => (
+                  <SelectItem value="all">{t('allCategories')}</SelectItem>
+                  {(dropdownData.categories || []).map((category) => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
                 </SelectContent>
@@ -962,10 +809,10 @@ export default function InventoryPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Stock</SelectItem>
-                  <SelectItem value="low">Low Stock</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="high">Overstock</SelectItem>
+                  <SelectItem value="all">{t('allStock')}</SelectItem>
+                  <SelectItem value="low">{t('lowStock')}</SelectItem>
+                  <SelectItem value="normal">{t('normal')}</SelectItem>
+                  <SelectItem value="high">{t('overstock')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -973,9 +820,9 @@ export default function InventoryPage() {
             {filteredInventory.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-muted-foreground mb-2">No products found</h3>
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">{t('noProductsFound')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {inventory.length === 0 ? 'Start by adding your first product to inventory' : 'Try adjusting your search or filters'}
+                  {inventory.length === 0 ? t('startByAddingFirstProduct') : t('tryAdjustingSearchFilters')}
                 </p>
                 <Button onClick={() => {
                   if (planLimits && totalProducts >= planLimits.maxProducts) {
@@ -985,7 +832,7 @@ export default function InventoryPage() {
                   setIsAddDialogOpen(true)
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add First Product
+                  {t('addFirstProduct')}
                 </Button>
               </div>
             ) : (
@@ -998,19 +845,19 @@ export default function InventoryPage() {
                           {tenantFields.map((field) => (
                             <TableHead key={field.name} className="text-center">{field.name}</TableHead>
                           ))}
-                          <TableHead className="text-center">Stock</TableHead>
+                          <TableHead className="text-center">{t('stock')}</TableHead>
 
                         </>
                       ) : (
                         <>
-                          <TableHead className="text-center">Name</TableHead>
-                          <TableHead className="text-center">SKU</TableHead>
-                          <TableHead className="text-center">Category</TableHead>
-                          <TableHead className="text-center">Stock</TableHead>
-                          <TableHead className="text-center">Price</TableHead>
+                          <TableHead className="text-center">{t('name')}</TableHead>
+                          <TableHead className="text-center">{t('sku')}</TableHead>
+                          <TableHead className="text-center">{t('category')}</TableHead>
+                          <TableHead className="text-center">{t('stock')}</TableHead>
+                          <TableHead className="text-center">{t('price')}</TableHead>
                         </>
                       )}
-                      <TableHead className="text-center">Actions</TableHead>
+                      <TableHead className="text-center">{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1022,7 +869,6 @@ export default function InventoryPage() {
                               const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_')
                               let value = (item as any)[fieldKey] || (item as any)[field.name] || (item as any)[field.name.toLowerCase()]
                               
-                              // Special handling for name field
                               if (field.name.toLowerCase().includes('name') && !value) {
                                 value = item.name
                               }
@@ -1052,9 +898,9 @@ export default function InventoryPage() {
                           </>
                         ) : (
                           <>
-                            <TableCell className="text-center">{item.name || 'Unnamed Product'}</TableCell>
-                            <TableCell className="text-center">{item.sku || 'No SKU'}</TableCell>
-                            <TableCell className="text-center">{item.category || 'No Category'}</TableCell>
+                            <TableCell className="text-center">{item.name || t('unnamedProduct')}</TableCell>
+                            <TableCell className="text-center">{item.sku || t('noSKU')}</TableCell>
+                            <TableCell className="text-center">{item.category || t('noCategory')}</TableCell>
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center">
                                 {(() => {
@@ -1106,7 +952,6 @@ export default function InventoryPage() {
         </Card>
         </div>
         
-        {/* Upgrade Popup */}
         {planLimits && (
           <UpgradePopup 
             isOpen={showUpgradePopup}

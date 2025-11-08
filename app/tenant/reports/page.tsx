@@ -13,6 +13,7 @@ import { Receipt, Search, Download, Eye, TrendingUp, DollarSign, Package, Calend
 import { FeatureGuard } from "@/components/feature-guard"
 import { AnalyticsDashboard } from "@/components/analytics-dashboard"
 import { SimpleChart } from "@/components/simple-chart"
+import { useLanguage } from "@/lib/language-context"
 
 interface Sale {
   id: string
@@ -64,6 +65,7 @@ interface MonthlyNetProfit {
 }
 
 export default function ReportsPage() {
+  const { t } = useLanguage()
   const [sales, setSales] = useState<Sale[]>([])
   const [dailySales, setDailySales] = useState<DailySales[]>([])
   const [dailyProfit, setDailyProfit] = useState<DailyProfit[]>([])
@@ -167,40 +169,40 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Sales Reports" userRole="tenant-admin">
+      <MainLayout title={t('salesReports')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading sales data...</div>
+          <div className="text-lg">{t('loadingSalesData')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Analytics & Reports" userRole="tenant-admin">
+    <MainLayout title={t('analyticsReports')}>
       <FeatureGuard feature="reports">
       <div className="space-y-8">
         {/* Date Range Selector */}
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Analytics & Reports</h1>
+          <h1 className="text-2xl font-bold">{t('analyticsReports')}</h1>
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="7">{t('last7Days')}</SelectItem>
+              <SelectItem value="30">{t('last30Days')}</SelectItem>
+              <SelectItem value="90">{t('last90Days')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Today's Performance */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Today's Performance</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('todaysPerformance')}</h2>
           <div className="grid gap-6 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('todaysSales')}</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -212,7 +214,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Profit</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('todaysProfit')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -224,7 +226,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('todaysOrders')}</CardTitle>
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -236,7 +238,7 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Yesterday's Sales</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('yesterdaysSales')}</CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -247,7 +249,7 @@ export default function ReportsPage() {
                     return dailySales.find(d => d._id === yesterday.toISOString().split('T')[0])?.totalSales.toLocaleString() || '0'
                   })()}
                 </div>
-                <p className="text-xs text-muted-foreground">Previous day comparison</p>
+                <p className="text-xs text-muted-foreground">{t('previousDayComparison')}</p>
               </CardContent>
             </Card>
           </div>
@@ -255,7 +257,7 @@ export default function ReportsPage() {
 
         {/* Monthly Net Profit */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Monthly Net Profit</h2>
+          <h2 className="text-lg font-semibold mb-4">{t('monthlyNetProfit')}</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {analyticsLoading ? (
               [...Array(2)].map((_, i) => (
@@ -282,10 +284,10 @@ export default function ReportsPage() {
                       ₹{month.netProfit.toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      Revenue: ₹{month.revenue.toLocaleString()} | Cost: ₹{(month.cost || 0).toLocaleString()} | Gross: ₹{month.grossProfit.toLocaleString()} | Expenses: ₹{month.expenses.toLocaleString()}
+                      {t('revenue')}: ₹{month.revenue.toLocaleString()} | {t('cost')}: ₹{(month.cost || 0).toLocaleString()} | {t('grossProfit')}: ₹{month.grossProfit.toLocaleString()} | {t('expenses')}: ₹{month.expenses.toLocaleString()}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Margin: {month.profitMargin.toFixed(1)}%
+                      {t('marginPercent')}: {month.profitMargin.toFixed(1)}%
                     </div>
                   </CardContent>
                 </Card>
@@ -293,7 +295,7 @@ export default function ReportsPage() {
             ) : (
               <Card>
                 <CardContent className="text-center py-8">
-                  <div className="text-muted-foreground">No monthly profit data available</div>
+                  <div className="text-muted-foreground">{t('noMonthlyProfitData')}</div>
                 </CardContent>
               </Card>
             )}
@@ -303,7 +305,7 @@ export default function ReportsPage() {
         {/* Advanced Analytics - With Trends & Comparisons */}
         {summaryData && (
           <div>
-            <h2 className="text-lg font-semibold mb-4">Advanced Analytics (With Growth Trends)</h2>
+            <h2 className="text-lg font-semibold mb-4">{t('advancedAnalytics')}</h2>
             <AnalyticsDashboard data={summaryData} loading={summaryLoading} />
           </div>
         )}
@@ -313,11 +315,11 @@ export default function ReportsPage() {
 
         <Tabs defaultValue="monthly-profit" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="monthly-profit">Monthly Net Profit</TabsTrigger>
-            <TabsTrigger value="daily-sales">Daily Sales</TabsTrigger>
-            <TabsTrigger value="daily-profit">Daily Profit</TabsTrigger>
-            <TabsTrigger value="best-sellers">Best Sellers</TabsTrigger>
-            <TabsTrigger value="sales-history">Sales History</TabsTrigger>
+            <TabsTrigger value="monthly-profit">{t('monthlyNetProfit')}</TabsTrigger>
+            <TabsTrigger value="daily-sales">{t('dailySalesReport')}</TabsTrigger>
+            <TabsTrigger value="daily-profit">{t('dailyProfitReport')}</TabsTrigger>
+            <TabsTrigger value="best-sellers">{t('bestSellingProducts')}</TabsTrigger>
+            <TabsTrigger value="sales-history">{t('salesHistory')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="monthly-profit">
@@ -325,23 +327,23 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Calendar className="w-5 h-5" />
-                  <span>All Monthly Net Profit Data</span>
+                  <span>{t('allMonthlyNetProfitData')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {analyticsLoading ? (
-                  <div className="text-center py-8">Loading monthly profit data...</div>
+                  <div className="text-center py-8">{t('loadingMonthlyProfitData')}</div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Month</TableHead>
-                        <TableHead>Revenue</TableHead>
-                        <TableHead>Product Cost</TableHead>
-                        <TableHead>Gross Profit</TableHead>
-                        <TableHead>Expenses</TableHead>
-                        <TableHead>Net Profit</TableHead>
-                        <TableHead>Margin %</TableHead>
+                        <TableHead>{t('month')}</TableHead>
+                        <TableHead>{t('revenue')}</TableHead>
+                        <TableHead>{t('productCost')}</TableHead>
+                        <TableHead>{t('grossProfit')}</TableHead>
+                        <TableHead>{t('expenses')}</TableHead>
+                        <TableHead>{t('netProfit')}</TableHead>
+                        <TableHead>{t('marginPercent')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -374,7 +376,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Calendar className="w-5 h-5" />
-                  <span>Daily Sales Report</span>
+                  <span>{t('dailySalesReport')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -392,16 +394,16 @@ export default function ReportsPage() {
                       />
                     ) : (
                       <div className="h-48 flex items-center justify-center border rounded-lg bg-muted/20">
-                        <div className="text-muted-foreground">No sales data available for chart</div>
+                        <div className="text-muted-foreground">{t('noSalesDataForChart')}</div>
                       </div>
                     )}
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Total Sales</TableHead>
-                          <TableHead>Transactions</TableHead>
-                          <TableHead>Average Sale</TableHead>
+                          <TableHead>{t('date')}</TableHead>
+                          <TableHead>{t('totalSales')}</TableHead>
+                          <TableHead>{t('transactions')}</TableHead>
+                          <TableHead>{t('averageSale')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -426,7 +428,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <TrendingUp className="w-5 h-5" />
-                  <span>Daily Profit Report</span>
+                  <span>{t('dailyProfitReport')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -445,17 +447,17 @@ export default function ReportsPage() {
                       />
                     ) : (
                       <div className="h-48 flex items-center justify-center border rounded-lg bg-muted/20">
-                        <div className="text-muted-foreground">No profit data available for chart</div>
+                        <div className="text-muted-foreground">{t('noProfitDataForChart')}</div>
                       </div>
                     )}
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Revenue</TableHead>
-                          <TableHead>Cost</TableHead>
-                          <TableHead>Profit</TableHead>
-                          <TableHead>Margin %</TableHead>
+                          <TableHead>{t('date')}</TableHead>
+                          <TableHead>{t('revenue')}</TableHead>
+                          <TableHead>{t('cost')}</TableHead>
+                          <TableHead>{t('profit')}</TableHead>
+                          <TableHead>{t('marginPercent')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -483,7 +485,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Package className="w-5 h-5" />
-                  <span>Best Selling Products</span>
+                  <span>{t('bestSellingProducts')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -493,11 +495,11 @@ export default function ReportsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Quantity Sold</TableHead>
-                        <TableHead>Revenue</TableHead>
-                        <TableHead>Profit</TableHead>
-                        <TableHead>Transactions</TableHead>
+                        <TableHead>{t('product')}</TableHead>
+                        <TableHead>{t('quantitySold')}</TableHead>
+                        <TableHead>{t('revenue')}</TableHead>
+                        <TableHead>{t('profit')}</TableHead>
+                        <TableHead>{t('transactions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -507,7 +509,7 @@ export default function ReportsPage() {
                             <div>
                               <div className="font-medium">{product.productName}</div>
                               <div className="text-sm text-muted-foreground">
-                                #{index + 1} Best Seller
+                                #{index + 1} {t('bestSeller')}
                               </div>
                             </div>
                           </TableCell>
@@ -531,13 +533,13 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center space-x-2">
                     <Receipt className="w-5 h-5" />
-                    <span>Sales History</span>
+                    <span>{t('salesHistory')}</span>
                   </CardTitle>
                   <div className="flex space-x-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Search bills..."
+                        placeholder={t('searchBills')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10 w-64"
@@ -545,7 +547,7 @@ export default function ReportsPage() {
                     </div>
                     <Button variant="outline">
                       <Download className="w-4 h-4 mr-2" />
-                      Export
+                      {t('export')}
                     </Button>
                   </div>
                 </div>
@@ -554,13 +556,13 @@ export default function ReportsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Bill No</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead>{t('billNo')}</TableHead>
+                      <TableHead>{t('customer')}</TableHead>
+                      <TableHead>{t('items')}</TableHead>
+                      <TableHead>{t('total')}</TableHead>
+                      <TableHead>{t('paymentMethod')}</TableHead>
+                      <TableHead>{t('date')}</TableHead>
+                      <TableHead>{t('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -575,7 +577,7 @@ export default function ReportsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{sale.items.length} items</TableCell>
+                        <TableCell>{sale.items.length} {t('itemsCount')}</TableCell>
                         <TableCell>₹{(sale.total || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge variant="outline">{sale.paymentMethod}</Badge>

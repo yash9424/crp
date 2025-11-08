@@ -38,6 +38,8 @@ import {
 import { showToast } from "@/lib/toast"
 import { FeatureGuard } from "@/components/feature-guard"
 import { BarcodeScanner } from "@/components/barcode-scanner"
+import { useLanguage } from "@/lib/language-context"
+import { translateName } from "@/lib/name-translator"
 
 interface Product {
   id: string
@@ -63,6 +65,7 @@ interface CartItem {
 
 
 export default function POSPage() {
+  const { t, language } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -291,7 +294,7 @@ export default function POSPage() {
       
       if (product) {
         addToCart(product)
-        showToast.success(`Added ${product.name} to cart`)
+        showToast.success(`${t('added')} ${product.name} ${t('toCart')}`)
       } else {
         // Try to fetch from API if not in current products list
         const response = await fetch(`/api/pos/search?q=${encodeURIComponent(barcode)}`)
@@ -301,17 +304,17 @@ export default function POSPage() {
           
           if (foundProduct) {
             addToCart(foundProduct)
-            showToast.success(`Added ${foundProduct.name} to cart`)
+            showToast.success(`${t('added')} ${foundProduct.name} ${t('toCart')}`)
           } else {
-            showToast.error(`Product not found for barcode: ${barcode}`)
+            showToast.error(`${t('productNotFound')}: ${barcode}`)
           }
         } else {
-          showToast.error(`Product not found for barcode: ${barcode}`)
+          showToast.error(`${t('productNotFound')}: ${barcode}`)
         }
       }
     } catch (error) {
       console.error('Barcode scan error:', error)
-      showToast.error('Error processing barcode scan')
+      showToast.error(t('errorProcessingBarcode'))
     }
   }
 
@@ -367,7 +370,7 @@ export default function POSPage() {
   }
 
   return (
-    <MainLayout title="Fashion Point of Sale">
+    <MainLayout title={t('pos')}>
       <FeatureGuard feature="pos">
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Product Selection */}
@@ -376,7 +379,7 @@ export default function POSPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Customer Information</CardTitle>
+                <CardTitle>{t('customerInformation')}</CardTitle>
                 {/* <Button variant="outline" size="sm" onClick={() => {
                   setEditingCustomer(null)
                   setCustomerFormData({ name: '', phone: '', email: '', address: '' })
@@ -390,10 +393,10 @@ export default function POSPage() {
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="staffSelect">Staff Member</Label>
+                  <Label htmlFor="staffSelect">{t('staffMember')}</Label>
                   <Select value={selectedStaff} onValueChange={setSelectedStaff}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select staff" />
+                      <SelectValue placeholder={t('selectStaff')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
@@ -406,19 +409,19 @@ export default function POSPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Customer Name</Label>
+                  <Label htmlFor="customerName">{t('customerName')}</Label>
                   <Input 
                     id="customerName" 
-                    placeholder="Enter customer name" 
+                    placeholder={t('enterCustomerName')} 
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerPhone">Phone Number</Label>
+                  <Label htmlFor="customerPhone">{t('phoneNumber')}</Label>
                   <Input 
                     id="customerPhone" 
-                    placeholder="Enter phone number" 
+                    placeholder={t('enterPhoneNumber')} 
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                   />
@@ -431,8 +434,8 @@ export default function POSPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Product Selection</CardTitle>
-                  <CardDescription>Search and add product items to cart</CardDescription>
+                  <CardTitle>{t('productSelection')}</CardTitle>
+                  <CardDescription>{t('searchAndAddProducts')}</CardDescription>
                 </div>
                 <div className="flex space-x-2">
                   <Button 
@@ -440,11 +443,11 @@ export default function POSPage() {
                     onClick={() => setIsScannerOpen(true)}
                   >
                     <Scan className="w-4 h-4 mr-2" />
-                    Scan Barcode
+                    {t('scanBarcode')}
                   </Button>
                   {barcodeBuffer && (
                     <div className="flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                      Scanning: {barcodeBuffer}
+                      {t('scanning')}: {barcodeBuffer}
                     </div>
                   )}
                 </div>
@@ -454,7 +457,7 @@ export default function POSPage() {
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, SKU, barcode, or category..."
+                  placeholder={t('searchByNameSKU')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => {
@@ -475,7 +478,7 @@ export default function POSPage() {
               </div>
 
               {loading ? (
-                <div className="text-center py-8">Loading products...</div>
+                <div className="text-center py-8">{t('loadingProducts')}</div>
               ) : (
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {filteredProducts.map((product) => {
@@ -513,13 +516,13 @@ export default function POSPage() {
                                 </span>
                               )
                             }).filter(Boolean)}
-                            {` • Stock: ${product.stock || 0}`}
+                            {` • ${t('stock')}: ${product.stock || 0}`}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold">₹ {((product as any).Price || (product as any).price || product.price || 0).toFixed(2)}</p>
                           <Badge variant="outline" className="text-xs">
-                            {(product as any).Barcode || (product as any).barcode || product.barcode || 'No Barcode'}
+                            {(product as any).Barcode || (product as any).barcode || product.barcode || t('noBarcode')}
                           </Badge>
                         </div>
                       </div>
@@ -534,7 +537,7 @@ export default function POSPage() {
           {heldBills.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Held Bills ({heldBills.length})</CardTitle>
+                <CardTitle>{t('heldBills')} ({heldBills.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -568,21 +571,21 @@ export default function POSPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <ShoppingCart className="w-5 h-5" />
-                  <span>Cart ({cart.length})</span>
+                  <span>{t('cart')} ({cart.length})</span>
                 </CardTitle>
                 <div className="flex space-x-2">
                   <Button variant="outline" size="sm" onClick={holdBill}>
                     <Pause className="w-4 h-4" />
                   </Button>
                   <Button variant="outline" size="sm" onClick={clearCart}>
-                    Clear Cart
+                    {t('clearCart')}
                   </Button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {cart.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Cart is empty</p>
+                <p className="text-center text-muted-foreground py-8">{t('cartIsEmpty')}</p>
               ) : (
                 <div className="space-y-3 max-h-40 overflow-y-auto">
                   {cart.map((item) => (
@@ -623,7 +626,7 @@ export default function POSPage() {
                                 setEditPrice(item.price.toString())
                               }}
                             >
-                              ₹ {item.price.toFixed(2)} each
+                              ₹ {item.price.toFixed(2)} {t('each')}
                             </p>
                           )}
                         </div>
@@ -661,13 +664,13 @@ export default function POSPage() {
           {/* Customer & Billing */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer & Billing</CardTitle>
+              <CardTitle>{t('customerAndBilling')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
 
 
               <div className="space-y-2">
-                <Label htmlFor="discount">Discount (%)</Label>
+                <Label htmlFor="discount">{t('discount')} (%)</Label>
                 <Input
                   id="discount"
                   type="number"
@@ -681,24 +684,24 @@ export default function POSPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
+                  <span>{t('subtotal')}:</span>
                   <span>₹ {subtotal.toFixed(2)}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount ({discount}%):</span>
+                    <span>{t('discount')} ({discount}%):</span>
                     <span>-₹ {discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {settings.taxRate > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span>Tax:</span>
+                    <span>{t('tax')}:</span>
                     <span>₹ {tax.toFixed(2)}</span>
                   </div>
                 )}
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
-                  <span>Total:</span>
+                  <span>{t('total')}:</span>
                   <span>₹ {total.toFixed(2)}</span>
                 </div>
               </div>
@@ -707,18 +710,18 @@ export default function POSPage() {
                 <DialogTrigger asChild>
                   <Button className="w-full" disabled={cart.length === 0}>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Process Payment
+                    {t('processPayment')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Payment Processing</DialogTitle>
-                    <DialogDescription>Complete the transaction</DialogDescription>
+                    <DialogTitle>{t('paymentProcessing')}</DialogTitle>
+                    <DialogDescription>{t('completeTransaction')}</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="text-center">
                       <p className="text-2xl font-bold">₹ {total.toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">Total Amount</p>
+                      <p className="text-sm text-muted-foreground">{t('totalAmount')}</p>
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
@@ -728,7 +731,7 @@ export default function POSPage() {
                         onClick={() => setSelectedPaymentMethod('cash')}
                       >
                         <Banknote className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">Cash</span>
+                        <span className="text-sm font-medium">{t('cash')}</span>
                       </Button>
                       <Button 
                         variant={selectedPaymentMethod === 'card' ? 'default' : 'outline'} 
@@ -736,7 +739,7 @@ export default function POSPage() {
                         onClick={() => setSelectedPaymentMethod('card')}
                       >
                         <CreditCard className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">Card</span>
+                        <span className="text-sm font-medium">{t('card')}</span>
                       </Button>
                       <Button 
                         variant={selectedPaymentMethod === 'upi' ? 'default' : 'outline'} 
@@ -744,12 +747,12 @@ export default function POSPage() {
                         onClick={() => setSelectedPaymentMethod('upi')}
                       >
                         <Smartphone className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">UPI</span>
+                        <span className="text-sm font-medium">{t('upi')}</span>
                       </Button>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="amountReceived">Amount Received</Label>
+                      <Label htmlFor="amountReceived">{t('amountReceived')}</Label>
                       <Input id="amountReceived" type="number" placeholder={total.toFixed(2)} />
                     </div>
 
@@ -814,19 +817,19 @@ export default function POSPage() {
                               setIsPaymentDialogOpen(false)
                               setIsBillModalOpen(true)
                               fetchProducts()
-                              showToast.success('Sale completed successfully!')
+                              showToast.success(language === 'en' ? 'Sale completed successfully!' : language === 'gu' ? 'વેચાણ સફળતાપૂર્વક પૂર્ણ થયું!' : 'बिक्री सफलतापूर्वक पूर्ण हुई!')
                             } else {
                               const errorData = await response.json()
-                              showToast.error(`Failed to process sale: ${errorData.error || 'Unknown error'}`)
+                              showToast.error(`${t('failedToProcessSale')}: ${errorData.error || t('unknownError')}`)
                               console.error('Sale error:', errorData)
                             }
                           } catch (error) {
                             console.error('Failed to process sale:', error)
-                            showToast.error('Network error: Failed to process sale')
+                            showToast.error(`${t('networkError')}: ${t('failedToProcessSale')}`)
                           }
                         }}
                       >
-                        Complete Sale
+                        {t('completeSale')}
                       </Button>
                       
                     </div>
@@ -842,8 +845,8 @@ export default function POSPage() {
       <Dialog open={isBillModalOpen} onOpenChange={setIsBillModalOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sale Complete</DialogTitle>
-            <DialogDescription>Transaction completed successfully</DialogDescription>
+            <DialogTitle>{t('saleComplete')}</DialogTitle>
+            <DialogDescription>{t('transactionCompleted')}</DialogDescription>
           </DialogHeader>
           {completedSale && completedSale.billNo && (
             <div className="py-4 max-h-[70vh] overflow-y-auto">
@@ -852,28 +855,28 @@ export default function POSPage() {
                 {/* Store Header */}
                 <div className="text-center pb-3 mb-3" style={{borderBottom: '2px dashed #000'}}>
                   <div style={{fontSize: '16px', fontWeight: 'bold', marginBottom: '4px'}}>{(completedSale.storeName || settings.storeName).toUpperCase()}</div>
-                  <div style={{fontSize: '10px', marginBottom: '2px'}}>{completedSale.address || settings.address || 'Store Address'}</div>
-                  <div style={{fontSize: '10px', marginBottom: '2px'}}>Phone: {completedSale.phone || settings.phone || '+91-9876543210'}</div>
-                  <div style={{fontSize: '10px', marginBottom: '2px'}}>GST: {completedSale.gst || settings.gst || 'GST Number'}</div>
-                  <div style={{fontSize: '10px'}}>Email: {completedSale.email || settings.email || 'store@email.com'}</div>
+                  <div style={{fontSize: '10px', marginBottom: '2px'}}>{completedSale.address || settings.address || t('storeAddress')}</div>
+                  <div style={{fontSize: '10px', marginBottom: '2px'}}>{t('phone')}: {completedSale.phone || settings.phone || '+91-9876543210'}</div>
+                  <div style={{fontSize: '10px', marginBottom: '2px'}}>GST: {completedSale.gst || settings.gst || t('gstNumber')}</div>
+                  <div style={{fontSize: '10px'}}>{t('email')}: {completedSale.email || settings.email || 'store@email.com'}</div>
                 </div>
                 
                 {/* Bill Details */}
                 <div className="mb-3">
                   <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px'}}>
-                    <span>Bill No: {completedSale.billNo}</span>
+                    <span>{t('billNo')}: {completedSale.billNo}</span>
                     <span>{completedSale.date.toLocaleDateString('en-IN')}</span>
                   </div>
                   <div style={{fontSize: '10px', marginBottom: '2px'}}>
-                    Time: {completedSale.date.toLocaleTimeString('en-IN', {hour12: true})}
+                    {t('time')}: {completedSale.date.toLocaleTimeString('en-IN', {hour12: true})}
                   </div>
                   <div style={{fontSize: '10px', marginBottom: '2px'}}>
-                    Cashier: Admin
+                    {t('cashier')}: Admin
                   </div>
                   {completedSale.customerName && (
                     <div style={{marginTop: '8px', paddingTop: '4px', borderTop: '1px solid #ccc'}}>
-                      <div style={{fontSize: '10px', marginBottom: '2px'}}>Customer: {completedSale.customerName}</div>
-                      {completedSale.customerPhone && <div style={{fontSize: '10px'}}>Phone: {completedSale.customerPhone}</div>}
+                      <div style={{fontSize: '10px', marginBottom: '2px'}}>{t('customer')}: {completedSale.customerName}</div>
+                      {completedSale.customerPhone && <div style={{fontSize: '10px'}}>{t('phone')}: {completedSale.customerPhone}</div>}
                     </div>
                   )}
                 </div>
@@ -881,10 +884,10 @@ export default function POSPage() {
                 {/* Items Header */}
                 <div style={{borderBottom: '1px dashed #000', paddingBottom: '4px', marginBottom: '4px'}}>
                   <div style={{display: 'flex', fontSize: '8px', fontWeight: 'bold'}}>
-                    <span style={{width: '35%'}}>ITEM</span>
-                    <span style={{width: '15%', textAlign: 'center'}}>QTY</span>
-                    <span style={{width: '25%', textAlign: 'right'}}>RATE</span>
-                    <span style={{width: '25%', textAlign: 'right'}}>AMOUNT</span>
+                    <span style={{width: '35%'}}>{t('item').toUpperCase()}</span>
+                    <span style={{width: '15%', textAlign: 'center'}}>{t('qty').toUpperCase()}</span>
+                    <span style={{width: '25%', textAlign: 'right'}}>{t('rate').toUpperCase()}</span>
+                    <span style={{width: '25%', textAlign: 'right'}}>{t('amount').toUpperCase()}</span>
                   </div>
                 </div>
 
@@ -908,38 +911,38 @@ export default function POSPage() {
                 {/* Totals Section */}
                 <div style={{borderTop: '1px dashed #000', paddingTop: '4px'}}>
                   <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px'}}>
-                    <span>Subtotal:</span>
+                    <span>{t('subtotal')}:</span>
                     <span>₹{(completedSale.subtotal || 0).toFixed(2)}</span>
                   </div>
                   {completedSale.discount > 0 && (
                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '2px', color: '#059669'}}>
-                      <span>Discount ({completedSale.discount}%):</span>
+                      <span>{t('discount')} ({completedSale.discount}%):</span>
                       <span>-₹{(completedSale.discountAmount || 0).toFixed(2)}</span>
                     </div>
                   )}
                   {(completedSale.taxRate || settings.taxRate) > 0 && (
                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginBottom: '4px'}}>
-                      <span>Tax:</span>
+                      <span>{t('tax')}:</span>
                       <span>₹{(completedSale.tax || 0).toFixed(2)}</span>
                     </div>
                   )}
 
                   <div style={{borderTop: '1px solid #000', paddingTop: '4px', marginTop: '4px'}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold'}}>
-                      <span>TOTAL:</span>
+                      <span>{t('total').toUpperCase()}:</span>
                       <span>₹{(completedSale.total || 0).toFixed(2)}</span>
                     </div>
                   </div>
                   <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '10px', marginTop: '4px'}}>
-                    <span>Payment Mode:</span>
-                    <span>Cash</span>
+                    <span>{t('paymentMode')}:</span>
+                    <span>{t('cash')}</span>
                   </div>
                 </div>
 
                 {/* Terms & Conditions */}
                 {(completedSale.terms || settings.terms) && (
                   <div className="mt-3 pt-2" style={{borderTop: '1px dashed #000'}}>
-                    <div style={{fontSize: '8px', fontWeight: '500', marginBottom: '2px'}}>Terms & Conditions:</div>
+                    <div style={{fontSize: '8px', fontWeight: '500', marginBottom: '2px'}}>{t('termsConditions')}:</div>
                     <div style={{fontSize: '7px', lineHeight: '1.3'}}>
                       {completedSale.terms || settings.terms}
                     </div>
@@ -948,10 +951,10 @@ export default function POSPage() {
 
                 {/* Footer */}
                 <div className="text-center mt-4 pt-3" style={{borderTop: '2px dashed #000'}}>
-                  <div style={{fontSize: '10px', marginBottom: '2px', fontWeight: '500'}}>Thank you for shopping with us!</div>
-                  <div style={{fontSize: '9px', marginBottom: '2px'}}>Visit again soon</div>
-                  <div style={{fontSize: '9px'}}>For support: {completedSale.phone || settings.phone || '+91-9876543210'}</div>
-                  <div style={{marginTop: '8px', fontSize: '8px'}}>Powered by Fashion POS System</div>
+                  <div style={{fontSize: '10px', marginBottom: '2px', fontWeight: '500'}}>{t('thankYouShopping')}</div>
+                  <div style={{fontSize: '9px', marginBottom: '2px'}}>{t('visitAgain')}</div>
+                  <div style={{fontSize: '9px'}}>{t('forSupport')}: {completedSale.phone || settings.phone || '+91-9876543210'}</div>
+                  <div style={{marginTop: '8px', fontSize: '8px'}}>{t('poweredBy')}</div>
                 </div>
               </div>
 
@@ -1050,14 +1053,14 @@ export default function POSPage() {
                   }}
                 >
                   <Printer className="w-4 h-4 mr-2" />
-                  Print Bill
+                  {t('printBill')}
                 </Button>
                 <Button 
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
                     if (!completedSale.customerPhone) {
-                      showToast.error('Customer phone number required for WhatsApp')
+                      showToast.error(t('customerPhoneRequired'))
                       return
                     }
                     
@@ -1101,15 +1104,15 @@ Contact: ${settings.phone || '9427300816'}`
 
                       const whatsappUrl = `https://wa.me/${completedSale.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
                       window.open(whatsappUrl, '_blank')
-                      showToast.success('WhatsApp message opened successfully!')
+                      showToast.success(language === 'en' ? 'WhatsApp message opened successfully!' : language === 'gu' ? 'વ્હોટ્સએપ મેસેજ સફળતાપૂર્વક ખોલાયો!' : 'व्हाट्सएप संदेश सफलतापूर्वक खोला गया!')
                     } catch (error) {
-                      showToast.error('Failed to open WhatsApp')
+                      showToast.error(t('failedToOpenWhatsApp'))
                       console.error('WhatsApp error:', error)
                     }
                   }}
                 >
                   <Smartphone className="w-4 h-4 mr-2" />
-                  Send WhatsApp
+                  {t('sendWhatsApp')}
                 </Button>
                 <Button 
                   className="flex-1"
@@ -1118,7 +1121,7 @@ Contact: ${settings.phone || '9427300816'}`
                     clearCart()
                   }}
                 >
-                  New Sale
+                  {t('newSale')}
                 </Button>
               </div>
             </div>

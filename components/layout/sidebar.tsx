@@ -9,6 +9,7 @@ import { FeatureKey } from "@/lib/feature-permissions"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useLanguage } from "@/lib/language-context"
 import {
   LayoutDashboard,
   Users,
@@ -52,35 +53,35 @@ const superAdminNavItems = [
   { title: "Settings", href: "/super-admin/settings", icon: Cog, group: "core" },
 ]
 
-const retailNavItems = [
+const getRetailNavItems = (t: (key: any) => string) => [
   // Core Operations
-  { title: "Dashboard", href: "/tenant", icon: LayoutDashboard, feature: "dashboard" as FeatureKey, group: "core" },
+  { title: t("dashboard"), href: "/tenant", icon: LayoutDashboard, feature: "dashboard" as FeatureKey, group: "core" },
   
   // Sales
-  { title: "Inventory", href: "/tenant/inventory", icon: Package, feature: "inventory" as FeatureKey, group: "sales" },
-  { title: "Point of Sale", href: "/tenant/pos", icon: ShoppingCart, feature: "pos" as FeatureKey, group: "sales" },
-  { title: "Customers", href: "/tenant/customers", icon: UserCheck, feature: "customers" as FeatureKey, group: "sales" },
-  { title: "Bills & Receipts", href: "/tenant/bills", icon: Receipt, feature: "bills" as FeatureKey, group: "sales" },
-  { title: "Purchases", href: "/tenant/purchases", icon: Package, feature: "purchases" as FeatureKey, group: "sales" },
+  { title: t("inventory"), href: "/tenant/inventory", icon: Package, feature: "inventory" as FeatureKey, group: "sales" },
+  { title: t("pos"), href: "/tenant/pos", icon: ShoppingCart, feature: "pos" as FeatureKey, group: "sales" },
+  { title: t("customers"), href: "/tenant/customers", icon: UserCheck, feature: "customers" as FeatureKey, group: "sales" },
+  { title: t("bills"), href: "/tenant/bills", icon: Receipt, feature: "bills" as FeatureKey, group: "sales" },
+  { title: t("purchases"), href: "/tenant/purchases", icon: Package, feature: "purchases" as FeatureKey, group: "sales" },
   
   // Human Resources
-  { title: "HR & Staff", href: "/tenant/hr", icon: Users, feature: "hr" as FeatureKey, group: "hr" },
-  { title: "Commission", href: "/tenant/commission", icon: Calculator, feature: "hr" as FeatureKey, group: "hr" },
-  { title: "Leaves", href: "/tenant/leaves", icon: Calendar, feature: "leaves" as FeatureKey, group: "hr" },
-  { title: "Salary", href: "/tenant/salary", icon: Calculator, feature: "salary" as FeatureKey, group: "hr" },
+  { title: t("hr"), href: "/tenant/hr", icon: Users, feature: "hr" as FeatureKey, group: "hr" },
+  { title: t("commission"), href: "/tenant/commission", icon: Calculator, feature: "hr" as FeatureKey, group: "hr" },
+  { title: t("leaves"), href: "/tenant/leaves", icon: Calendar, feature: "leaves" as FeatureKey, group: "hr" },
+  { title: t("salary"), href: "/tenant/salary", icon: Calculator, feature: "salary" as FeatureKey, group: "hr" },
   
   // Analytics & Finance
-  { title: "Reports & Analytics", href: "/tenant/reports", icon: BarChart3, feature: "reports" as FeatureKey, group: "analytics" },
-  { title: "Expenses", href: "/tenant/expenses", icon: Receipt, feature: "expenses" as FeatureKey, group: "analytics" },
+  { title: t("reports"), href: "/tenant/reports", icon: BarChart3, feature: "reports" as FeatureKey, group: "analytics" },
+  { title: t("expenses"), href: "/tenant/expenses", icon: Receipt, feature: "expenses" as FeatureKey, group: "analytics" },
   
   // Configuration
-  { title: "Store Settings", href: "/tenant/settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
-  { title: "Field Settings", href: "/tenant/field-settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
-  { title: "Dropdown Settings", href: "/tenant/dropdown-settings", icon: Settings, feature: "dropdownSettings" as FeatureKey, group: "config" },
+  { title: t("settings"), href: "/tenant/settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
+  { title: t("fieldSettings"), href: "/tenant/field-settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
+  { title: t("dropdownSettings"), href: "/tenant/dropdown-settings", icon: Settings, feature: "dropdownSettings" as FeatureKey, group: "config" },
   
   // Support & Upgrade
-  { title: "Help & Support", href: "/tenant/help", icon: HelpCircle, feature: "dashboard" as FeatureKey, group: "support" },
-  { title: "Upgrade Plan", href: "/tenant/upgrade-plan", icon: CreditCard, feature: "dashboard" as FeatureKey, group: "support" },
+  { title: t("help"), href: "/tenant/help", icon: HelpCircle, feature: "dashboard" as FeatureKey, group: "support" },
+  { title: t("upgradePlan"), href: "/tenant/upgrade-plan", icon: CreditCard, feature: "dashboard" as FeatureKey, group: "support" },
 ]
 
 
@@ -89,6 +90,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
   const { hasFeature, loading, allowedFeatures } = useFeatureAccess()
+  const { t } = useLanguage()
   
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     core: false,
@@ -113,7 +115,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
         return superAdminNavItems
       case "retail":
       default:
-        return retailNavItems.filter(item => {
+        return getRetailNavItems(t).filter(item => {
           if (loading) return true
           if (item.feature === 'dashboard') return true
           return hasFeature(item.feature)
@@ -121,7 +123,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
     }
   }
 
-  const navItems = useMemo(() => getNavItems(), [userType, hasFeature, loading])
+  const navItems = useMemo(() => getNavItems(), [userType, hasFeature, loading, t])
 
   // Update open section when pathname changes
   useEffect(() => {
@@ -181,7 +183,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                 <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                   <div className="flex items-center">
                     <Home className="w-4 h-4 mr-2" />
-                    {!collapsed && "Core"}
+                    {!collapsed && t('core')}
                   </div>
                   {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.core && "rotate-180")} />}
                 </Button>
@@ -215,7 +217,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                     <div className="flex items-center">
                       <ShoppingCart className="w-4 h-4 mr-2" />
-                      {!collapsed && "Sales"}
+                      {!collapsed && t('sales')}
                     </div>
                     {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.sales && "rotate-180")} />}
                   </Button>
@@ -250,7 +252,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                     <div className="flex items-center">
                       <Users className="w-4 h-4 mr-2" />
-                      {!collapsed && "Human Resources"}
+                      {!collapsed && t('hrSection')}
                     </div>
                     {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.hr && "rotate-180")} />}
                   </Button>
@@ -285,7 +287,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                     <div className="flex items-center">
                       <TrendingUp className="w-4 h-4 mr-2" />
-                      {!collapsed && "Analytics & Finance"}
+                      {!collapsed && t('analytics')}
                     </div>
                     {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.analytics && "rotate-180")} />}
                   </Button>
@@ -320,7 +322,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                     <div className="flex items-center">
                       <Cog className="w-4 h-4 mr-2" />
-                      {!collapsed && "Configuration"}
+                      {!collapsed && t('configuration')}
                     </div>
                     {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.config && "rotate-180")} />}
                   </Button>
@@ -355,7 +357,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
                     <div className="flex items-center">
                       <LifeBuoy className="w-4 h-4 mr-2" />
-                      {!collapsed && "Support & Upgrade"}
+                      {!collapsed && t('support')}
                     </div>
                     {!collapsed && <ChevronDown className={cn("w-4 h-4 transition-transform", openSections.support && "rotate-180")} />}
                   </Button>

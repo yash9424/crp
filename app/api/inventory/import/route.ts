@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const text = await file.text()
     const lines = text.split('\n')
-    const headers = lines[0].split(',')
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
     
     // Check current product count and limits
     const limits = await getTenantPlanLimits(session.user.tenantId)
@@ -35,23 +35,53 @@ export async function POST(request: NextRequest) {
       const line = lines[i].trim()
       if (!line) continue
       
-      const values = line.split(',').map(v => v.replace(/"/g, ''))
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
       
-      const item = {
-        name: values[0] || '',
-        sku: values[1] || '',
-        category: values[2] || '',
-        price: parseFloat(values[3]) || 0,
-        costPrice: parseFloat(values[4]) || 0,
-        stock: parseInt(values[5]) || 0,
-        minStock: parseInt(values[6]) || 0,
-        sizes: [],
-        colors: [],
-        description: '',
+      const item: any = {
         tenantId: session.user.tenantId,
         status: 'active',
         createdAt: new Date(),
         updatedAt: new Date()
+      }
+      
+      // Map ALL CSV columns to item properties
+      headers.forEach((header, index) => {
+        const value = values[index] || ''
+        if (value) {
+          const fieldKey = header.toLowerCase().replace(/\s+/g, '_')
+          
+          // Store with original header name
+          item[header] = value
+          // Store with field key version
+          item[fieldKey] = value
+          // Store with lowercase version
+          item[header.toLowerCase()] = value
+          
+          // Handle numeric fields
+          if (['price', 'costprice', 'cost_price', 'stock', 'minstock', 'min_stock'].includes(fieldKey)) {
+            item[header] = parseFloat(value) || 0
+            item[fieldKey] = parseFloat(value) || 0
+          }
+          // Handle array fields
+          else if (['sizes', 'colors'].includes(fieldKey)) {
+            const arrayValue = value.split(',').map(v => v.trim()).filter(v => v)
+            item[header] = arrayValue
+            item[fieldKey] = arrayValue
+          }
+        }
+      })
+      
+      // Ensure required fields exist
+      if (!item.name && !item.productname && !item['Product Name']) {
+        continue // Skip items without name
+      }
+      
+      // Set name field for consistency
+      item.name = item.name || item.productname || item['Product Name'] || item.ProductName || ''
+      
+      // Generate SKU if not provided
+      if (!item.sku) {
+        item.sku = `SKU-${Date.now()}-${i}`
       }
       
       items.push(item)

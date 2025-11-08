@@ -9,12 +9,14 @@ import { Label } from '@/components/ui/label'
 import { Printer, Package } from 'lucide-react'
 import { BarcodeDisplay } from './barcode-display'
 import { showToast } from '@/lib/toast'
+import { useLanguage } from '@/lib/language-context'
 
 interface BulkBarcodePrintProps {
   products: any[]
 }
 
 export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
+  const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [copies, setCopies] = useState<{ [key: string]: number }>({})
@@ -37,7 +39,7 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
 
   const printBarcodes = () => {
     if (selectedProducts.length === 0) {
-      showToast.error('Please select at least one product')
+      showToast.error(t('selectAtLeastOneProduct'))
       return
     }
 
@@ -151,14 +153,14 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <Printer className="w-4 h-4 mr-2" />
-          Print Barcodes
+          {t('printBarcodes')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl h-[600px] flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4 border-b">
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
             <Printer className="w-5 h-5" />
-            Bulk Barcode Printing
+            {t('bulkBarcodePrinting')}
           </DialogTitle>
         </DialogHeader>
         
@@ -166,14 +168,14 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <Package className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg">No products with barcodes found</p>
+              <p className="text-gray-500 text-lg">{t('noProductsWithBarcodes')}</p>
             </div>
           </div>
         ) : (
           <>
             <div className="flex-shrink-0 flex justify-between items-center py-3 bg-gray-100 px-4 rounded">
               <div className="text-sm font-medium text-gray-700">
-                {selectedProducts.length} of {productsWithBarcodes.length} products selected
+                {selectedProducts.length} {t('of')} {productsWithBarcodes.length} {t('productsSelected')}
               </div>
               <div className="flex gap-2">
                 <Button 
@@ -186,7 +188,7 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
                     setCopies(newCopies)
                   }}
                 >
-                  Select All
+                  {t('selectAll')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -196,7 +198,7 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
                     setCopies({})
                   }}
                 >
-                  Clear
+                  {t('clear')}
                 </Button>
               </div>
             </div>
@@ -220,7 +222,7 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <Label className="text-sm text-gray-600">Qty:</Label>
+                    <Label className="text-sm text-gray-600">{t('qty')}:</Label>
                     <Input
                       type="number"
                       min="1"
@@ -239,18 +241,18 @@ export function BulkBarcodePrint({ products }: BulkBarcodePrintProps) {
 
             <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
               <div className="text-sm text-gray-600">
-                Total labels: {Object.values(copies).reduce((sum, count) => sum + count, 0)}
+                {t('totalLabels')}: {Object.values(copies).reduce((sum, count) => sum + count, 0)}
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setIsOpen(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button 
                   onClick={printBarcodes} 
                   disabled={selectedProducts.length === 0}
                 >
                   <Printer className="w-4 h-4 mr-2" />
-                  Print Labels
+                  {t('printLabels')}
                 </Button>
               </div>
             </div>

@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Receipt, Calendar, TrendingDown, BarChart3 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { useLanguage } from "@/lib/language-context"
 
 interface Expense {
   id: string
@@ -32,6 +33,7 @@ const expenseCategories = [
 ]
 
 export default function ExpensesPage() {
+  const { t } = useLanguage()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -124,49 +126,49 @@ export default function ExpensesPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Expenses" userRole="tenant-admin">
+      <MainLayout title={t('expenses')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading expenses...</div>
+          <div className="text-lg">{t('loadingExpenses')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Expense Management" userRole="tenant-admin">
+    <MainLayout title={t('expenseManagement')}>
       <FeatureGuard feature="expenses">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">Expense Management</h1>
-              <p className="text-muted-foreground">Track and manage business expenses</p>
+              <h1 className="text-2xl font-bold">{t('expenseManagement')}</h1>
+              <p className="text-muted-foreground">{t('trackManageExpenses')}</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="lg">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Expense
+                  {t('addExpense')}
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Add New Expense</DialogTitle>
+                  <DialogTitle>{t('addNewExpense')}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <Label htmlFor="title">Expense Title *</Label>
+                      <Label className = "pb-2" htmlFor="title">{t('expenseTitle')} *</Label>
                       <Input
                         id="title"
-                        placeholder="e.g., Office Rent"
+                        placeholder={t('expenseTitlePlaceholder')}
                         value={formData.title}
                         onChange={(e) => setFormData({...formData, title: e.target.value})}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="amount">Amount *</Label>
+                      <Label className = "pb-2" htmlFor="amount">{t('amount')} *</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -178,7 +180,7 @@ export default function ExpensesPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="date">Date *</Label>
+                      <Label className = "pb-2" htmlFor="date">{t('date')} *</Label>
                       <Input
                         id="date"
                         type="date"
@@ -188,10 +190,10 @@ export default function ExpensesPage() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="category">Category *</Label>
+                      <Label className = "pb-2" htmlFor="category">{t('category')} *</Label>
                       <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})} required>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder={t('selectCategory')} />
                         </SelectTrigger>
                         <SelectContent>
                           {expenseCategories.map(cat => (
@@ -201,10 +203,10 @@ export default function ExpensesPage() {
                       </Select>
                     </div>
                     <div className="col-span-2">
-                      <Label htmlFor="description">Description</Label>
+                      <Label className = "pb-2" htmlFor="description">{t('description')}</Label>
                       <Textarea
                         id="description"
-                        placeholder="Optional details about this expense"
+                        placeholder={t('optionalExpenseDetails')}
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
                         rows={3}
@@ -213,9 +215,9 @@ export default function ExpensesPage() {
                   </div>
                   <div className="flex gap-2 pt-4">
                     <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
-                      Cancel
+                      {t('cancel')}
                     </Button>
-                    <Button type="submit" className="flex-1">Add Expense</Button>
+                    <Button type="submit" className="flex-1">{t('addExpense')}</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -226,17 +228,17 @@ export default function ExpensesPage() {
           <div className="grid gap-6 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('totalExpenses')}</CardTitle>
                 <TrendingDown className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">₹{totalExpenses.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">All time expenses</p>
+                <p className="text-xs text-muted-foreground">{t('allTimeExpenses')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('thisMonth')}</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -246,22 +248,22 @@ export default function ExpensesPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average/Month</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('averageMonth')}</CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">₹{monthlyData.length > 0 ? Math.round(totalExpenses / monthlyData.length).toLocaleString() : '0'}</div>
-                <p className="text-xs text-muted-foreground">Monthly average</p>
+                <p className="text-xs text-muted-foreground">{t('monthlyAverage')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Records</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('totalRecords')}</CardTitle>
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{expenses.length}</div>
-                <p className="text-xs text-muted-foreground">Expense entries</p>
+                <p className="text-xs text-muted-foreground">{t('expenseEntries')}</p>
               </CardContent>
             </Card>
           </div>
@@ -269,9 +271,9 @@ export default function ExpensesPage() {
           {/* Expense Analysis Tabs */}
           <Tabs defaultValue="monthly" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="monthly">Monthly Analysis</TabsTrigger>
-              <TabsTrigger value="categories">By Category</TabsTrigger>
-              <TabsTrigger value="all">All Expenses</TabsTrigger>
+              <TabsTrigger value="monthly">{t('monthlyAnalysis')}</TabsTrigger>
+              <TabsTrigger value="categories">{t('byCategory')}</TabsTrigger>
+              <TabsTrigger value="all">{t('allExpenses')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="monthly">
@@ -279,7 +281,7 @@ export default function ExpensesPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Calendar className="w-5 h-5" />
-                    <span>Month-wise Expense Analysis</span>
+                    <span>{t('monthWiseExpenseAnalysis')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -289,11 +291,11 @@ export default function ExpensesPage() {
                         <div className="flex justify-between items-center mb-3">
                           <div>
                             <h3 className="font-semibold">{month.month}</h3>
-                            <p className="text-sm text-muted-foreground">{month.count} expenses</p>
+                            <p className="text-sm text-muted-foreground">{month.count} {t('expenses')}</p>
                           </div>
                           <div className="text-right">
                             <div className="text-2xl font-bold text-red-600">₹{month.total.toLocaleString()}</div>
-                            <div className="text-sm text-muted-foreground">Avg: ₹{Math.round(month.total / month.count).toLocaleString()}</div>
+                            <div className="text-sm text-muted-foreground">{t('avg')}: ₹{Math.round(month.total / month.count).toLocaleString()}</div>
                           </div>
                         </div>
                         <div className="grid gap-2">
@@ -307,7 +309,7 @@ export default function ExpensesPage() {
                             </div>
                           ))}
                           {month.expenses.length > 3 && (
-                            <div className="text-xs text-muted-foreground">+{month.expenses.length - 3} more expenses</div>
+                            <div className="text-xs text-muted-foreground">+{month.expenses.length - 3} {t('moreExpenses')}</div>
                           )}
                         </div>
                       </div>
@@ -322,7 +324,7 @@ export default function ExpensesPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <BarChart3 className="w-5 h-5" />
-                    <span>Category-wise Expenses</span>
+                    <span>{t('categoryWiseExpenses')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -332,13 +334,13 @@ export default function ExpensesPage() {
                         <div>
                           <div className="font-medium">{category}</div>
                           <div className="text-sm text-muted-foreground">
-                            {expenses.filter(e => e.category === category).length} expenses
+                            {expenses.filter(e => e.category === category).length} {t('expenses')}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold text-red-600">₹{amount.toLocaleString()}</div>
                           <div className="text-xs text-muted-foreground">
-                            {((amount / totalExpenses) * 100).toFixed(1)}% of total
+                            {((amount / totalExpenses) * 100).toFixed(1)}% {t('ofTotal')}
                           </div>
                         </div>
                       </div>
@@ -353,18 +355,18 @@ export default function ExpensesPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <Receipt className="w-5 h-5" />
-                    <span>All Expense Records</span>
+                    <span>{t('allExpenseRecords')}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
+                        <TableHead>{t('title')}</TableHead>
+                        <TableHead>{t('category')}</TableHead>
+                        <TableHead>{t('amount')}</TableHead>
+                        <TableHead>{t('date')}</TableHead>
+                        <TableHead>{t('description')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -39,6 +39,8 @@ import {
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
+import { translateName, getAvailableNames } from "@/lib/name-translator"
 
 interface Customer {
   id: string
@@ -53,6 +55,7 @@ interface Customer {
 
 
 export default function CustomersPage() {
+  const { t, language } = useLanguage()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -96,9 +99,9 @@ export default function CustomersPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Customer Management" userRole="tenant-admin">
+      <MainLayout title={t('customers')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading customers for {storeName || 'your store'}...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </MainLayout>
     )
@@ -112,14 +115,14 @@ export default function CustomersPage() {
   const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0
 
   return (
-    <MainLayout title="Customer Management" userRole="tenant-admin">
+    <MainLayout title={t('customers')}>
       <FeatureGuard feature="customers">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalCustomers')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -129,7 +132,7 @@ export default function CustomersPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('activeCustomers')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -139,7 +142,7 @@ export default function CustomersPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalRevenue')}</CardTitle>
               <span className="h-4 w-4 text-muted-foreground text-xl">₹ </span>
             </CardHeader>
             <CardContent>
@@ -149,7 +152,7 @@ export default function CustomersPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('avgOrderValue')}</CardTitle>
               <ShoppingBag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -163,17 +166,19 @@ export default function CustomersPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Customer Database</CardTitle>
-                <CardDescription>Manage your customer database</CardDescription>
+                <CardTitle>{t('customerDatabase')}</CardTitle>
+                <CardDescription>{t('manageCustomerDatabase')}</CardDescription>
               </div>
-              <Button onClick={() => {
-                setEditingCustomer(null)
-                setCustomerFormData({ name: '', phone: '', email: '', address: '' })
-                setIsCustomerDialogOpen(true)
-              }}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Customer
-              </Button>
+              <div className="flex space-x-2">
+                <Button onClick={() => {
+                  setEditingCustomer(null)
+                  setCustomerFormData({ name: '', phone: '', email: '', address: '' })
+                  setIsCustomerDialogOpen(true)
+                }}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {t('addCustomer')}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -181,7 +186,7 @@ export default function CustomersPage() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search customers..."
+                  placeholder={t('searchCustomers')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -193,13 +198,13 @@ export default function CustomersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center">Customer</TableHead>
-                    <TableHead className="text-center">Contact</TableHead>
-                    <TableHead className="text-center">Orders</TableHead>
-                    <TableHead className="text-center">Total Spent</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Last Purchase</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center">{t('customer')}</TableHead>
+                    <TableHead className="text-center">{t('contact')}</TableHead>
+                    <TableHead className="text-center">{t('orders')}</TableHead>
+                    <TableHead className="text-center">{t('totalSpent')}</TableHead>
+                    <TableHead className="text-center">{t('status')}</TableHead>
+                    <TableHead className="text-center">{t('lastPurchase')}</TableHead>
+                    <TableHead className="text-center">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -209,7 +214,7 @@ export default function CustomersPage() {
                         <div className="font-medium">{customer.name}</div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <div className="text-sm">{customer.phone || 'No phone'}</div>
+                        <div className="text-sm">{customer.phone || t('noPhone')}</div>
                       </TableCell>
                       <TableCell className="text-center">{customer.orderCount || 0}</TableCell>
                       <TableCell className="text-center">₹  {(customer.totalSpent || 0).toLocaleString()}</TableCell>
@@ -218,12 +223,12 @@ export default function CustomersPage() {
                           (customer.orderCount || 0) >= 10 ? "default" : 
                           (customer.orderCount || 0) >= 5 ? "secondary" : "outline"
                         }>
-                          {(customer.orderCount || 0) >= 10 ? "VIP" : 
-                           (customer.orderCount || 0) >= 5 ? "Regular" : "New"}
+                          {(customer.orderCount || 0) >= 10 ? t('vip') : 
+                           (customer.orderCount || 0) >= 5 ? t('regular') : t('new')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
-                        {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString('en-IN') : 'No orders'}
+                        {customer.lastOrderDate ? new Date(customer.lastOrderDate).toLocaleDateString('en-IN') : t('noOrders')}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
@@ -277,8 +282,8 @@ export default function CustomersPage() {
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Customer Details</DialogTitle>
-              <DialogDescription>View customer information and purchase history</DialogDescription>
+              <DialogTitle>{t('customerDetails')}</DialogTitle>
+              <DialogDescription>{t('viewCustomerInfo')}</DialogDescription>
             </DialogHeader>
             {selectedCustomer && (
               <div className="space-y-6 py-4">
@@ -288,14 +293,14 @@ export default function CustomersPage() {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold">{selectedCustomer.name}</h2>
-                    <p className="text-muted-foreground">{selectedCustomer.phone || 'No phone number'}</p>
+                    <p className="text-muted-foreground">{selectedCustomer.phone || t('noPhoneNumber')}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant={
                         (selectedCustomer.orderCount || 0) >= 10 ? "default" : 
                         (selectedCustomer.orderCount || 0) >= 5 ? "secondary" : "outline"
                       }>
-                        {(selectedCustomer.orderCount || 0) >= 10 ? "VIP Customer" : 
-                         (selectedCustomer.orderCount || 0) >= 5 ? "Regular Customer" : "New Customer"}
+                        {(selectedCustomer.orderCount || 0) >= 10 ? t('vipCustomer') : 
+                         (selectedCustomer.orderCount || 0) >= 5 ? t('regularCustomer') : t('newCustomer')}
                       </Badge>
                     </div>
                   </div>
@@ -303,18 +308,18 @@ export default function CustomersPage() {
 
                 <div className="grid grid-cols-2 gap-8">
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Customer Information</h3>
+                    <h3 className="font-semibold text-lg">{t('customerInformation')}</h3>
                     <div className="space-y-2">
                       <div>
-                        <span className="text-sm font-medium">Customer ID:</span>
+                        <span className="text-sm font-medium">{t('customerId')}:</span>
                         <p className="text-sm text-muted-foreground">{selectedCustomer.id}</p>
                       </div>
                       <div>
-                        <span className="text-sm font-medium">Phone:</span>
-                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone || 'Not provided'}</p>
+                        <span className="text-sm font-medium">{t('phone')}:</span>
+                        <p className="text-sm text-muted-foreground">{selectedCustomer.phone || t('notProvided')}</p>
                       </div>
                       <div>
-                        <span className="text-sm font-medium">Customer Since:</span>
+                        <span className="text-sm font-medium">{t('customerSince')}:</span>
                         <p className="text-sm text-muted-foreground">
                           {new Date(selectedCustomer.createdAt).toLocaleDateString('en-IN')}
                         </p>
@@ -323,24 +328,24 @@ export default function CustomersPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Purchase Summary</h3>
+                    <h3 className="font-semibold text-lg">{t('purchaseSummary')}</h3>
                     <div className="space-y-2">
                       <div>
-                        <span className="text-sm font-medium">Total Orders:</span>
+                        <span className="text-sm font-medium">{t('totalOrders')}:</span>
                         <span className="text-sm text-muted-foreground ml-2">{selectedCustomer.orderCount || 0}</span>
                       </div>
                       <div>
-                        <span className="text-sm font-medium">Total Spent:</span>
+                        <span className="text-sm font-medium">{t('totalSpent')}:</span>
                         <span className="text-sm text-muted-foreground ml-2">₹{(selectedCustomer.totalSpent || 0).toLocaleString()}</span>
                       </div>
                       <div>
-                        <span className="text-sm font-medium">Last Purchase:</span>
+                        <span className="text-sm font-medium">{t('lastPurchase')}:</span>
                         <span className="text-sm text-muted-foreground ml-2">
-                          {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-IN') : 'No purchases yet'}
+                          {selectedCustomer.lastOrderDate ? new Date(selectedCustomer.lastOrderDate).toLocaleDateString('en-IN') : t('noPurchasesYet')}
                         </span>
                       </div>
                       <div>
-                        <span className="text-sm font-medium">Average Order Value:</span>
+                        <span className="text-sm font-medium">{t('avgOrderValue')}:</span>
                         <span className="text-sm text-muted-foreground ml-2">
                           ₹{selectedCustomer.orderCount > 0 ? Math.round((selectedCustomer.totalSpent || 0) / selectedCustomer.orderCount) : 0}
                         </span>
@@ -357,58 +362,58 @@ export default function CustomersPage() {
         <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+              <DialogTitle>{editingCustomer ? t('editCustomer') : t('addNewCustomer')}</DialogTitle>
               <DialogDescription>
-                {editingCustomer ? 'Update customer information' : 'Create a new customer profile'}
+                {editingCustomer ? t('updateCustomerInfo') : t('createNewCustomerProfile')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="customerFormName">Name *</Label>
+                <Label htmlFor="customerFormName">{t('name')} *</Label>
                 <Input
                   id="customerFormName"
                   value={customerFormData.name}
                   onChange={(e) => setCustomerFormData({...customerFormData, name: e.target.value})}
-                  placeholder="Enter customer name"
+                  placeholder={t('enterCustomerName')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerFormPhone">Phone</Label>
+                <Label htmlFor="customerFormPhone">{t('phone')}</Label>
                 <Input
                   id="customerFormPhone"
                   value={customerFormData.phone}
                   onChange={(e) => setCustomerFormData({...customerFormData, phone: e.target.value})}
-                  placeholder="Enter phone number"
+                  placeholder={t('enterPhoneNumber')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerFormEmail">Email</Label>
+                <Label htmlFor="customerFormEmail">{t('email')}</Label>
                 <Input
                   id="customerFormEmail"
                   type="email"
                   value={customerFormData.email}
                   onChange={(e) => setCustomerFormData({...customerFormData, email: e.target.value})}
-                  placeholder="Enter email address"
+                  placeholder={t('enterEmailAddress')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customerFormAddress">Address</Label>
+                <Label htmlFor="customerFormAddress">{t('address')}</Label>
                 <Input
                   id="customerFormAddress"
                   value={customerFormData.address}
                   onChange={(e) => setCustomerFormData({...customerFormData, address: e.target.value})}
-                  placeholder="Enter address"
+                  placeholder={t('enterAddress')}
                 />
               </div>
             </div>
             <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsCustomerDialogOpen(false)}>
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   onClick={async () => {
                     if (!customerFormData.name.trim()) {
-                      showToast.error('Customer name is required')
+                      showToast.error(t('customerNameRequired'))
                       return
                     }
                     try {
@@ -420,18 +425,18 @@ export default function CustomersPage() {
                         body: JSON.stringify(customerFormData)
                       })
                       if (response.ok) {
-                        showToast.success(`Customer ${editingCustomer ? 'updated' : 'created'} successfully!`)
+                        showToast.success(editingCustomer ? t('customerUpdatedSuccess') : t('customerCreatedSuccess'))
                         fetchCustomers()
                         setIsCustomerDialogOpen(false)
                       } else {
-                        showToast.error(`Failed to ${editingCustomer ? 'update' : 'create'} customer`)
+                        showToast.error(editingCustomer ? t('failedToUpdateCustomer') : t('failedToCreateCustomer'))
                       }
                     } catch (error) {
                       console.error('Error saving customer:', error)
                     }
                   }}
                 >
-                  {editingCustomer ? 'Update' : 'Create'}
+                  {editingCustomer ? t('update') : t('create')}
                 </Button>
             </div>
           </DialogContent>
@@ -441,14 +446,14 @@ export default function CustomersPage() {
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete Customer</DialogTitle>
+              <DialogTitle>{t('deleteCustomer')}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete {customerToDelete?.name}? This action cannot be undone.
+                {t('confirmDeleteCustomer')} {customerToDelete?.name}? {t('actionCannotBeUndone')}
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end space-x-2 pt-4">
               <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -459,20 +464,20 @@ export default function CustomersPage() {
                         method: 'DELETE'
                       })
                       if (response.ok) {
-                        showToast.success('Customer deleted successfully!')
+                        showToast.success(t('customerDeletedSuccess'))
                         fetchCustomers()
                       } else {
-                        showToast.error('Failed to delete customer')
+                        showToast.error(t('failedToDeleteCustomer'))
                       }
                     } catch (error) {
-                      showToast.error('Error deleting customer')
+                      showToast.error(t('errorDeletingCustomer'))
                     }
                     setIsDeleteDialogOpen(false)
                     setCustomerToDelete(null)
                   }
                 }}
               >
-                Delete
+                {t('delete')}
               </Button>
             </div>
           </DialogContent>

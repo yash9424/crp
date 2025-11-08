@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calculator, TrendingUp, Users, DollarSign, Target } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { useLanguage } from "@/lib/language-context"
 
 interface Employee {
   _id: string
@@ -30,6 +31,7 @@ interface CommissionData {
 }
 
 export default function CommissionPage() {
+  const { t, language } = useLanguage()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [commissionData, setCommissionData] = useState<CommissionData[]>([])
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
@@ -73,9 +75,9 @@ export default function CommissionPage() {
 
   const getCommissionBadge = (type: string) => {
     if (type === 'percentage') {
-      return <Badge variant="default">% of Sales</Badge>
+      return <Badge variant="default">{t('percentOfSales')}</Badge>
     }
-    return <Badge variant="outline">None</Badge>
+    return <Badge variant="outline">{t('none')}</Badge>
   }
 
   const totalCommissions = commissionData.reduce((sum, emp) => sum + emp.commissionEarned, 0)
@@ -84,23 +86,23 @@ export default function CommissionPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Commission Management">
+      <MainLayout title={t('commissionManagement')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Calculating commissions...</div>
+          <div className="text-lg">{t('calculatingCommissions')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Commission Management">
+    <MainLayout title={t('commissionManagement')}>
       <FeatureGuard feature="hr">
         <div className="space-y-8">
           {/* Stats Cards */}
           <div className="grid gap-6 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl font-medium">Total Commissions</CardTitle>
+                <CardTitle className="text-xl font-medium">{t('totalCommissions')}</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -110,7 +112,7 @@ export default function CommissionPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl font-medium">Total Sales</CardTitle>
+                <CardTitle className="text-xl font-medium">{t('totalSales')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -120,7 +122,7 @@ export default function CommissionPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl font-medium">Eligible Staff</CardTitle>
+                <CardTitle className="text-xl font-medium">{t('eligibleStaff')}</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -130,7 +132,7 @@ export default function CommissionPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl font-medium">Avg Commission</CardTitle>
+                <CardTitle className="text-xl font-medium">{t('avgCommission')}</CardTitle>
                 <Calculator className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -144,8 +146,8 @@ export default function CommissionPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Commission Calculation</CardTitle>
-                  <CardDescription>Calculate staff commissions based on sales performance</CardDescription>
+                  <CardTitle>{t('commissionCalculation')}</CardTitle>
+                  <CardDescription>{t('calculateStaffCommissions')}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -168,7 +170,7 @@ export default function CommissionPage() {
                   </Select>
                   <Button onClick={calculateCommissions}>
                     <Calculator className="w-4 h-4 mr-2" />
-                    Recalculate
+                    {t('recalculate')}
                   </Button>
                 </div>
               </div>
@@ -177,9 +179,9 @@ export default function CommissionPage() {
               {commissionData.length === 0 ? (
                 <div className="text-center py-12">
                   <Calculator className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">No commission data</h3>
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">{t('noCommissionData')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    No sales data found for the selected month or no employees with commission setup.
+                    {t('noSalesDataFound')}
                   </p>
                 </div>
               ) : (
@@ -187,12 +189,12 @@ export default function CommissionPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-center">Employee</TableHead>
-                        <TableHead className="text-center">Commission Type</TableHead>
-                        <TableHead className="text-center">Sales Made</TableHead>
-                        <TableHead className="text-center">Total Sales Value</TableHead>
-                        <TableHead className="text-center">Target Progress</TableHead>
-                        <TableHead className="text-center">Commission Earned</TableHead>
+                        <TableHead className="text-center">{t('employee')}</TableHead>
+                        <TableHead className="text-center">{t('commissionType')}</TableHead>
+                        <TableHead className="text-center">{t('salesMade')}</TableHead>
+                        <TableHead className="text-center">{t('totalSalesValue')}</TableHead>
+                        <TableHead className="text-center">{t('targetProgress')}</TableHead>
+                        <TableHead className="text-center">{t('commissionEarned')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -209,7 +211,7 @@ export default function CommissionPage() {
                               {getCommissionBadge(emp.commissionType)}
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">{emp.salesCount} sales</TableCell>
+                          <TableCell className="text-center">{emp.salesCount} {t('sales')}</TableCell>
                           <TableCell className="text-center">₹ {emp.totalSales.toLocaleString()}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center space-x-2">

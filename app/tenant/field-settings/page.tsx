@@ -12,6 +12,7 @@ import { Plus, Trash2, Save, RefreshCw, Package, Lock } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { showToast } from "@/lib/toast"
 import { BusinessTypeInitializer } from "@/components/business-type-initializer"
+import { useLanguage } from "@/lib/language-context"
 
 interface Field {
   name: string
@@ -38,6 +39,7 @@ export default function FieldSettingsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  const { t } = useLanguage()
 
   const fetchBusinessTypes = async () => {
     try {
@@ -63,9 +65,9 @@ export default function FieldSettingsPage() {
       
       try {
         await saveFieldsToDatabase(businessTypeId, newFields)
-        showToast.success('Business type fields loaded and saved!')
+        showToast.success(t('businessTypeFieldsLoaded'))
       } catch (error) {
-        showToast.error('Failed to save business type fields')
+        showToast.error(t('failedToSaveBusinessTypeFields'))
       }
     }
   }
@@ -124,9 +126,9 @@ export default function FieldSettingsPage() {
       
       try {
         await saveFieldsToDatabase(selectedBusinessType, updatedFields)
-        showToast.success('Template refreshed and saved! New fields added.')
+        showToast.success(t('templateRefreshed'))
       } catch (error) {
-        showToast.error('Template refreshed but failed to save')
+        showToast.error(t('templateRefreshedFailedSave'))
       }
     }
   }
@@ -159,9 +161,9 @@ export default function FieldSettingsPage() {
     
     try {
       await saveFieldsToDatabase(selectedBusinessType || 'default', defaultFields as Field[])
-      showToast.success('Default fields added and saved!')
+      showToast.success(t('defaultFieldsAdded'))
     } catch (error) {
-      showToast.error('Default fields added but failed to save')
+      showToast.error(t('defaultFieldsAddedFailedSave'))
     }
   }
 
@@ -193,12 +195,12 @@ export default function FieldSettingsPage() {
       const success = await saveFieldsToDatabase(selectedBusinessType, customFields)
       
       if (success) {
-        showToast.success('Field configuration saved successfully!')
+        showToast.success(t('fieldConfigurationSaved'))
       } else {
-        showToast.error('Failed to save configuration')
+        showToast.error(t('failedToSaveConfiguration'))
       }
     } catch (error) {
-      showToast.error('Error saving configuration')
+      showToast.error(t('errorSavingConfiguration'))
     } finally {
       setLoading(false)
     }
@@ -231,12 +233,12 @@ export default function FieldSettingsPage() {
       
       if (response.ok) {
         setIsAuthenticated(true)
-        showToast.success('Access granted')
+        showToast.success(t('accessGranted'))
       } else {
-        showToast.error('Invalid password')
+        showToast.error(t('invalidPassword'))
       }
     } catch (error) {
-      showToast.error('Authentication failed')
+      showToast.error(t('error'))
     } finally {
       setAuthLoading(false)
     }
@@ -254,24 +256,24 @@ export default function FieldSettingsPage() {
 
   if (!isAuthenticated) {
     return (
-      <MainLayout title="Field Configuration">
+      <MainLayout title={t('fieldConfiguration')}>
         <div className="flex items-center justify-center min-h-[60vh]">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                 <Lock className="w-6 h-6 text-blue-600" />
               </div>
-              <CardTitle>Protected Settings</CardTitle>
-              <p className="text-sm text-gray-600">Enter password to access field configuration</p>
+              <CardTitle>{t('protectedSettings')}</CardTitle>
+              <p className="text-sm text-gray-600">{t('passwordRequired')}</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Password</Label>
+                <Label className = "pb-2">{t('enterPassword')}</Label>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
+                  placeholder={t('enterPassword')}
                   onKeyPress={(e) => e.key === 'Enter' && verifyPassword()}
                 />
               </div>
@@ -280,7 +282,7 @@ export default function FieldSettingsPage() {
                 disabled={authLoading || !password}
                 className="w-full"
               >
-                {authLoading ? 'Verifying...' : 'Access Settings'}
+                {authLoading ? t('loading') : t('accessSettings')}
               </Button>
             </CardContent>
           </Card>
@@ -291,7 +293,7 @@ export default function FieldSettingsPage() {
 
   if (businessTypes.length === 0) {
     return (
-      <MainLayout title="Field Configuration">
+      <MainLayout title={t('fieldConfiguration')}>
         <div className="space-y-6">
           <BusinessTypeInitializer />
         </div>
@@ -300,17 +302,17 @@ export default function FieldSettingsPage() {
   }
 
   return (
-    <MainLayout title="Field Configuration">
+    <MainLayout title={t('fieldConfiguration')}>
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Configure Your Inventory Fields</CardTitle>
+            <CardTitle>{t('configureInventoryFields')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {selectedBusinessType && selectedBusinessType !== 'none' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
                 <h3 className="font-medium text-blue-900">
-                  Currently Assigned Business Type: {businessTypes.find(bt => bt.id === selectedBusinessType)?.name || 'Unknown'}
+                  {t('currentlyAssignedBusinessType')}: {businessTypes.find(bt => bt.id === selectedBusinessType)?.name || 'Unknown'}
                 </h3>
               </div>
             )}
@@ -321,72 +323,72 @@ export default function FieldSettingsPage() {
             {selectedBusinessType && (
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <Label className="pb-2">Inventory Fields</Label>
+                  <Label className="pb-2">{t('inventoryFields')}</Label>
                   <div className="flex space-x-2">
                     
                     {customFields.length === 0 && (
                       <Button variant="outline" onClick={addDefaultFields}>
                         <Package className="w-4 h-4 mr-2" />
-                        Add Default Fields
+                        {t('addDefaultFields')}
                       </Button>
                     )}
                     <Button variant="outline" onClick={refreshFromTemplate}>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh Template
+                      {t('refreshTemplate')}
                     </Button>
                     <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
                       <DialogTrigger asChild>
                         <Button variant="outline">
                           <Plus className="w-4 h-4 mr-2" />
-                          Request New Field
+                          {t('requestNewField')}
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Request New Field</DialogTitle>
+                          <DialogTitle>{t('requestNewField')}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <div>
-                            <Label className="pb-2">Field Name</Label>
+                            <Label className="pb-2">{t('fieldName')}</Label>
                             <Input
                               value={requestForm.fieldName}
                               onChange={(e) => setRequestForm({...requestForm, fieldName: e.target.value})}
-                              placeholder="e.g., Brand, Material, Season"
+                              placeholder={t('fieldNamePlaceholder')}
                             />
                           </div>
                           <div>
-                            <Label className="pb-2">Field Type</Label>
+                            <Label className="pb-2">{t('fieldType')}</Label>
                             <Select value={requestForm.fieldType} onValueChange={(value) => setRequestForm({...requestForm, fieldType: value})}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="text">Text</SelectItem>
-                                <SelectItem value="number">Number</SelectItem>
-                                <SelectItem value="select">Dropdown</SelectItem>
-                                <SelectItem value="date">Date</SelectItem>
-                                <SelectItem value="textarea">Description/Notes</SelectItem>
-                                <SelectItem value="barcode">Barcode</SelectItem>
-                                <SelectItem value="email">Email</SelectItem>
-                                <SelectItem value="phone">Phone</SelectItem>
-                                <SelectItem value="url">Website/URL</SelectItem>
+                                <SelectItem value="text">{t('text')}</SelectItem>
+                                <SelectItem value="number">{t('number')}</SelectItem>
+                                <SelectItem value="select">{t('dropdown')}</SelectItem>
+                                <SelectItem value="date">{t('date')}</SelectItem>
+                                <SelectItem value="textarea">{t('descriptionNotes')}</SelectItem>
+                                <SelectItem value="barcode">{t('barcode')}</SelectItem>
+                                <SelectItem value="email">{t('email')}</SelectItem>
+                                <SelectItem value="phone">{t('phone')}</SelectItem>
+                                <SelectItem value="url">{t('websiteUrl')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div>
-                            <Label className="pb-2">Description (Optional)</Label>
+                            <Label className="pb-2">{t('descriptionOptional')}</Label>
                             <Input
                               value={requestForm.description}
                               onChange={(e) => setRequestForm({...requestForm, description: e.target.value})}
-                              placeholder="Why do you need this field?"
+                              placeholder={t('whyNeedField')}
                             />
                           </div>
                         </div>
                         <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancel</Button>
+                          <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>{t('cancel')}</Button>
                           <Button onClick={async () => {
                             if (!requestForm.fieldName.trim()) {
-                              showToast.error('Field name is required')
+                              showToast.error(t('fieldNameRequired'))
                               return
                             }
                             try {
@@ -400,13 +402,13 @@ export default function FieldSettingsPage() {
                                   businessType: selectedBusinessType
                                 })
                               })
-                              showToast.success('Field request sent to admin!')
+                              showToast.success(t('fieldRequestSent'))
                               setIsRequestDialogOpen(false)
                               setRequestForm({ fieldName: '', fieldType: 'text', description: '' })
                             } catch (error) {
-                              showToast.error('Failed to send request')
+                              showToast.error(t('failedToSendRequest'))
                             }
-                          }}>Send Request</Button>
+                          }}>{t('sendRequest')}</Button>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -416,18 +418,18 @@ export default function FieldSettingsPage() {
                 {customFields.length === 0 ? (
                   <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                     <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Fields Configured</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noFieldsConfigured')}</h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      Add fields to customize your inventory form. Start with default fields or create your own.
+                      {t('addFieldsToCustomize')}
                     </p>
                     <div className="flex justify-center space-x-2">
                       <Button onClick={addDefaultFields}>
                         <Package className="w-4 h-4 mr-2" />
-                        Add Default Fields
+                        {t('addDefaultFields')}
                       </Button>
                       <Button variant="outline" onClick={addCustomField}>
                         <Plus className="w-4 h-4 mr-2" />
-                        Add Custom Field
+                        {t('addCustomField')}
                       </Button>
                     </div>
                   </div>
@@ -438,29 +440,29 @@ export default function FieldSettingsPage() {
                         <CardContent className="p-4">
                           <div className="grid grid-cols-5 gap-4 items-center">
                             <div>
-                              <Label className="pb-2">Field Name</Label>
+                              <Label className="pb-2">{t('fieldName')}</Label>
                               <Input
                                 value={field.name}
                                 onChange={(e) => updateField(index, { name: e.target.value })}
-                                placeholder="Field name"
+                                placeholder={t('fieldName')}
                               />
                             </div>
                             <div>
-                              <Label className="pb-2">Type</Label>
+                              <Label className="pb-2">{t('fieldType')}</Label>
                               <Select value={field.type} onValueChange={(value: any) => updateField(index, { type: value })}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="text">Text</SelectItem>
-                                  <SelectItem value="number">Number</SelectItem>
-                                  <SelectItem value="select">Dropdown</SelectItem>
-                                  <SelectItem value="date">Date</SelectItem>
-                                  <SelectItem value="textarea">Description/Notes</SelectItem>
-                                  <SelectItem value="barcode">Barcode</SelectItem>
-                                  <SelectItem value="email">Email</SelectItem>
-                                  <SelectItem value="phone">Phone</SelectItem>
-                                  <SelectItem value="url">Website/URL</SelectItem>
+                                  <SelectItem value="text">{t('text')}</SelectItem>
+                                  <SelectItem value="number">{t('number')}</SelectItem>
+                                  <SelectItem value="select">{t('dropdown')}</SelectItem>
+                                  <SelectItem value="date">{t('date')}</SelectItem>
+                                  <SelectItem value="textarea">{t('descriptionNotes')}</SelectItem>
+                                  <SelectItem value="barcode">{t('barcode')}</SelectItem>
+                                  <SelectItem value="email">{t('email')}</SelectItem>
+                                  <SelectItem value="phone">{t('phone')}</SelectItem>
+                                  <SelectItem value="url">{t('websiteUrl')}</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -469,14 +471,14 @@ export default function FieldSettingsPage() {
                                 checked={field.required}
                                 onCheckedChange={(checked) => updateField(index, { required: checked })}
                               />
-                              <Label className="pb-2">Required</Label>
+                              <Label className="pb-2">{t('required')}</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <Switch
                                 checked={field.enabled}
                                 onCheckedChange={(checked) => updateField(index, { enabled: checked })}
                               />
-                              <Label className="pb-2">Enabled</Label>
+                              <Label className="pb-2">{t('enabled')}</Label>
                             </div>
                             <div>
                               <Button variant="ghost" size="sm" onClick={() => removeField(index)}>
@@ -486,13 +488,13 @@ export default function FieldSettingsPage() {
                           </div>
                           {field.type === 'select' && (
                             <div className="mt-3">
-                              <Label className="pb-2">Options (comma separated)</Label>
+                              <Label className="pb-2">{t('options')}</Label>
                               <Input
                                 value={field.options?.join(', ') || ''}
                                 onChange={(e) => updateField(index, { 
                                   options: e.target.value.split(',').map(s => s.trim()).filter(s => s)
                                 })}
-                                placeholder="Option 1, Option 2, Option 3"
+                                placeholder={t('optionsPlaceholder')}
                               />
                             </div>
                           )}
@@ -506,26 +508,26 @@ export default function FieldSettingsPage() {
                 {customFields.length > 0 && (
                   <Card className="mt-6">
                     <CardHeader>
-                      <CardTitle className="text-lg">Form Preview</CardTitle>
+                      <CardTitle className="text-lg">{t('formPreview')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-4">
                         {customFields.filter(f => f.enabled).map((field, index) => (
                           <div key={index} className="space-y-2">
-                            <Label>
+                            <Label className = "pb-2">
                               {field.name}
                               {field.required && <span className="text-red-500 ml-1">*</span>}
                             </Label>
                             <div className="p-2 border rounded bg-gray-50 text-sm text-gray-600">
-                              {field.type === 'select' ? `Dropdown: ${field.options?.join(', ') || 'No options'}` : 
-                               field.type === 'textarea' ? 'Multi-line text input' :
-                               field.type === 'date' ? 'Date picker' :
-                               field.type === 'number' ? 'Number input' :
-                               field.type === 'barcode' ? 'Barcode with generator' :
-                               field.type === 'email' ? 'Email input' :
-                               field.type === 'phone' ? 'Phone input' :
-                               field.type === 'url' ? 'URL input' :
-                               'Text input'}
+                              {field.type === 'select' ? `${t('dropdown')}: ${field.options?.join(', ') || t('noOptions')}` : 
+                               field.type === 'textarea' ? t('multiLineTextInput') :
+                               field.type === 'date' ? t('datePicker') :
+                               field.type === 'number' ? t('numberInput') :
+                               field.type === 'barcode' ? t('barcodeWithGenerator') :
+                               field.type === 'email' ? t('emailInput') :
+                               field.type === 'phone' ? t('phoneInput') :
+                               field.type === 'url' ? t('urlInput') :
+                               t('textInput')}
                             </div>
                           </div>
                         ))}
@@ -536,11 +538,11 @@ export default function FieldSettingsPage() {
 
                 <div className="flex justify-between items-center mt-6">
                   <div className="text-sm text-gray-600">
-                    {customFields.length} field{customFields.length !== 1 ? 's' : ''} configured • {customFields.filter(f => f.enabled).length} enabled
+                    {customFields.length} {t('fieldsConfigured')} • {customFields.filter(f => f.enabled).length} {t('fieldsEnabled')}
                   </div>
                   <Button onClick={saveConfiguration} disabled={loading}>
                     <Save className="w-4 h-4 mr-2" />
-                    {loading ? 'Saving...' : 'Save Configuration'}
+                    {loading ? t('saving') : t('saveConfiguration')}
                   </Button>
                 </div>
               </div>

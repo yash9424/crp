@@ -36,7 +36,6 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
         setFields(data.fields?.filter((f: Field) => f.enabled) || [])
       } else {
         console.error('Failed to fetch tenant fields, status:', fieldsResponse.status)
-        // Set empty fields array as fallback
         setFields([])
       }
       
@@ -49,7 +48,6 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
       }
     } catch (error) {
       console.error('Failed to fetch tenant fields:', error)
-      // Set empty fields as fallback
       setFields([])
       setDropdownData({})
     }
@@ -60,17 +58,14 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
     const newFormData = { 
       ...formData, 
       [fieldKey]: value,
-      [fieldName]: value, // Also store with original name for compatibility
-      [fieldName.toLowerCase()]: value // Store lowercase version too
+      [fieldName]: value,
+      [fieldName.toLowerCase()]: value
     }
-    console.log(`Updating field ${fieldName} (${fieldKey}) with value:`, value)
-    console.log('New form data:', newFormData)
     setFormData(newFormData)
   }
 
   const renderField = (field: Field) => {
     const fieldKey = field.name.toLowerCase().replace(/\s+/g, '_')
-    // Try multiple field name variations to find the value
     const fieldValue = formData[fieldKey] || 
                       formData[field.name] || 
                       formData[field.name.toLowerCase()] || 
@@ -83,7 +78,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
           <Input
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
           />
         )
@@ -95,13 +90,12 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             step="0.01"
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
           />
         )
       
       case 'select':
-        // Get options from dropdown data first, fallback to field options
         const options = dropdownData[fieldKey] || dropdownData[field.name.toLowerCase()] || field.options || []
         return (
           <Select 
@@ -109,7 +103,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             onValueChange={(value) => updateFormData(field.name, value)}
           >
             <SelectTrigger>
-              <SelectValue placeholder={`Select ${field.name.toLowerCase()}`} />
+              <SelectValue placeholder={`Select ${field.name}`} />
             </SelectTrigger>
             <SelectContent>
               {options.map((option) => (
@@ -136,7 +130,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
           <Textarea
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
             className="min-h-[80px]"
           />
@@ -148,7 +142,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             <Input
               value={fieldValue}
               onChange={(e) => updateFormData(field.name, e.target.value)}
-              placeholder="Barcode number"
+              placeholder="Barcode Number"
               required={field.required}
               className="flex-1"
             />
@@ -171,7 +165,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             type="email"
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
           />
         )
@@ -182,7 +176,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             type="tel"
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
           />
         )
@@ -193,7 +187,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
             type="url"
             value={fieldValue}
             onChange={(e) => updateFormData(field.name, e.target.value)}
-            placeholder={`Enter ${field.name.toLowerCase()}`}
+            placeholder={`Enter ${field.name}`}
             required={field.required}
           />
         )
@@ -213,7 +207,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
         <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Fields Configured</h3>
         <p className="text-sm text-gray-500 mb-4">
-          You need to configure your inventory fields first.
+          Configure inventory fields first in field settings.
         </p>
         <a 
           href="/tenant/field-settings" 

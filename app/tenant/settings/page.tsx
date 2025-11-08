@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Settings, Store, Percent, Eye, EyeOff } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
+import { useLanguage } from "@/lib/language-context"
 
 interface BusinessType {
   id: string
@@ -38,6 +39,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { t } = useLanguage()
 
   const fetchSettings = async () => {
     try {
@@ -81,13 +83,13 @@ export default function SettingsPage() {
       if (response.ok) {
         const updatedSettings = await response.json()
         setSettings(updatedSettings)
-        showToast.success('Settings saved successfully!')
+        showToast.success(t('saveSuccess'))
       } else {
-        showToast.error('Failed to save settings')
+        showToast.error(t('saveError'))
       }
     } catch (error) {
       console.error('Failed to save settings:', error)
-      showToast.error('Error saving settings')
+      showToast.error(t('saveError'))
     } finally {
       setSaving(false)
     }
@@ -99,85 +101,85 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Settings" userRole="tenant-admin">
+      <MainLayout title={t('settings')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading settings...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Store Settings" userRole="tenant-admin">
+    <MainLayout title={t('settings')}>
       <FeatureGuard feature="settings">
       <div className="space-y-8">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Store className="w-5 h-5" />
-              <span>Store Configuration</span>
+              <span>{t('settings')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="storeName">Store Name</Label>
+              <Label htmlFor="storeName">{t('storeName')}</Label>
               <Input
                 id="storeName"
                 value={settings.storeName}
                 onChange={(e) => setSettings({...settings, storeName: e.target.value})}
-                placeholder="Enter store name"
+                placeholder={t('storeName')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Store Address</Label>
+              <Label htmlFor="address">{t('storeAddress')}</Label>
               <Input
                 id="address"
                 value={settings.address}
                 onChange={(e) => setSettings({...settings, address: e.target.value})}
-                placeholder="Enter store address"
+                placeholder={t('storeAddress')}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">{t('phoneNumber')}</Label>
                 <Input
                   id="phone"
                   value={settings.phone}
                   onChange={(e) => setSettings({...settings, phone: e.target.value})}
-                  placeholder="Enter phone number"
+                  placeholder={t('enterPhoneNumber')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input
                   id="email"
                   value={settings.email}
                   onChange={(e) => setSettings({...settings, email: e.target.value})}
-                  placeholder="Enter email"
+                  placeholder={t('enterEmail')}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gst">GST Number</Label>
+              <Label htmlFor="gst">{t('gstNumber')}</Label>
               <Input
                 id="gst"
                 value={settings.gst}
                 onChange={(e) => setSettings({...settings, gst: e.target.value})}
-                placeholder="Enter GST number"
+                placeholder={t('enterGstNumber')}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="billPrefix">Bill Number Prefix</Label>
+                <Label htmlFor="billPrefix">{t('billPrefix')}</Label>
                 <Input
                   id="billPrefix"
                   value={settings.billPrefix}
                   onChange={(e) => setSettings({...settings, billPrefix: e.target.value})}
-                  placeholder="Enter bill prefix (e.g., TT)"
+                  placeholder={t('enterBillPrefix')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="billCounter">Next Bill Number</Label>
+                <Label htmlFor="billCounter">{t('nextBillNumber')}</Label>
                 <Input
                   id="billCounter"
                   type="number"
@@ -188,50 +190,50 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="terms">Terms & Conditions</Label>
+              <Label htmlFor="terms">{t('termsConditions')}</Label>
               <textarea
                 id="terms"
                 value={settings.terms}
                 onChange={(e) => setSettings({...settings, terms: e.target.value})}
-                placeholder="Enter terms and conditions for bills"
+                placeholder={t('enterTermsConditions')}
                 className="w-full p-2 border rounded-md h-20 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="whatsappMessage">Custom WhatsApp Message</Label>
+              <Label htmlFor="whatsappMessage">{t('customWhatsappMessage')}</Label>
               <textarea
                 id="whatsappMessage"
                 value={settings.whatsappMessage}
                 onChange={(e) => setSettings({...settings, whatsappMessage: e.target.value})}
-                placeholder="Custom message to add after 'Thank you for your business!' in WhatsApp"
+                placeholder={t('customMessageAfterThankYou')}
                 className="w-full p-2 border rounded-md h-16 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="billFormat">Bill Format for WhatsApp</Label>
+              <Label htmlFor="billFormat">{t('billFormat')}</Label>
               <select
                 id="billFormat"
                 value={settings.billFormat}
                 onChange={(e) => setSettings({...settings, billFormat: e.target.value})}
                 className="w-full p-2 border rounded-md"
               >
-                <option value="professional">Professional Invoice Format</option>
-                <option value="simple">Simple Receipt Format</option>
+                <option value="professional">{t('professionalInvoiceFormat')}</option>
+                <option value="simple">{t('simpleReceiptFormat')}</option>
               </select>
               <p className="text-sm text-muted-foreground">
-                Choose the bill format to send via WhatsApp. Professional format includes table layout, Simple format is basic receipt style.
+                {t('chooseBillFormat')}
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="businessType">Business Type (Assigned by Super Admin)</Label>
+              <Label htmlFor="businessType">{t('businessTypeAssigned')}</Label>
               <Input
                 id="businessType"
-                value={settings.businessType === 'none' ? 'No Template Assigned' : businessTypes.find(t => t.id === settings.businessType)?.name || 'Unknown'}
+                value={settings.businessType === 'none' ? t('noTemplateAssigned') : businessTypes.find(bt => bt.id === settings.businessType)?.name || 'Unknown'}
                 readOnly
                 className="w-full p-2 border rounded-md bg-gray-50 cursor-not-allowed"
               />
               <p className="text-sm text-muted-foreground">
-                Business type is assigned by Super Admin and cannot be changed from here.
+                {t('businessTypeCannotChange')}
               </p>
               {settings.businessType && settings.businessType !== 'none' && (
                 <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
@@ -240,14 +242,14 @@ export default function SettingsPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="deletePassword">Delete Password</Label>
+              <Label htmlFor="deletePassword">{t('deletePassword')}</Label>
               <div className="relative">
                 <Input
                   id="deletePassword"
                   type={showPassword ? "text" : "password"}
                   value={settings.deletePassword || ''}
                   onChange={(e) => setSettings({...settings, deletePassword: e.target.value})}
-                  placeholder="Set password for deleting bills"
+                  placeholder={t('setPasswordForDeleting')}
                   className="pr-10"
                 />
                 <Button
@@ -268,13 +270,13 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Percent className="w-5 h-5" />
-              <span>Tax & Pricing Settings</span>
+              <span>{t('taxPricingSettings')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                <Label htmlFor="taxRate">{t('taxRate')}</Label>
                 <Input
                   id="taxRate"
                   type="number"
@@ -294,12 +296,11 @@ export default function SettingsPage() {
                     className="w-4 h-4"
                   />
                   <Label htmlFor="discountMode" className="cursor-pointer">
-                    Enable Text Minus Mode
+                    {t('enableTextMinusMode')}
                   </Label>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  When ON: Shows "text minus" in product pricing.
-                  When OFF: Shows normal pricing without text minus.
+                  {t('textMinusModeDescription')}
                 </p>
               </div>
             </div>
@@ -308,7 +309,7 @@ export default function SettingsPage() {
 
         <Button onClick={saveSettings} disabled={saving} className="w-full">
           <Settings className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? t('loading') : t('save')}
         </Button>
       </div>
       </FeatureGuard>

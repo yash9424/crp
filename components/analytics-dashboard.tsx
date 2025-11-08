@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, TrendingDown, DollarSign, Package, Users, Calendar } from "lucide-react"
+import { useLanguage } from "@/lib/language-context"
 
 interface AnalyticsData {
   totalRevenue: number
@@ -27,6 +28,8 @@ interface AnalyticsDashboardProps {
 }
 
 export function AnalyticsDashboard({ data, loading }: AnalyticsDashboardProps) {
+  const { t } = useLanguage()
+  
   if (loading) {
     return (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -53,7 +56,7 @@ export function AnalyticsDashboard({ data, loading }: AnalyticsDashboardProps) {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -64,14 +67,14 @@ export function AnalyticsDashboard({ data, loading }: AnalyticsDashboardProps) {
               ) : (
                 <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
               )}
-              {formatPercentage(Math.abs(data.recentTrends.salesGrowth))} from last period
+              {formatPercentage(Math.abs(data.recentTrends.salesGrowth))} {t('fromLastPeriod')}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalProfit')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -82,47 +85,47 @@ export function AnalyticsDashboard({ data, loading }: AnalyticsDashboardProps) {
               ) : (
                 <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
               )}
-              {formatPercentage(Math.abs(data.recentTrends.profitGrowth))} from last period
+              {formatPercentage(Math.abs(data.recentTrends.profitGrowth))} {t('fromLastPeriod')}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('transactions')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.totalTransactions}</div>
             <div className="text-xs text-muted-foreground">
-              Avg: {formatCurrency(data.totalRevenue / data.totalTransactions || 0)} per sale
+              {t('avg')}: {formatCurrency(data.totalRevenue / data.totalTransactions || 0)} {t('perSale')}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('totalExpenses')}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{formatCurrency(data.totalExpenses || 0)}</div>
             <div className="text-xs text-muted-foreground">
-              Business expenses
+              {t('businessExpenses')}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('profitMargin')}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatPercentage(data.profitMargin)}</div>
             <div className="text-xs text-muted-foreground">
               <Badge variant={data.profitMargin > 20 ? "default" : "secondary"}>
-                {data.profitMargin > 20 ? "Healthy" : "Monitor"}
+                {data.profitMargin > 20 ? t('healthy') : t('monitor')}
               </Badge>
             </div>
           </CardContent>

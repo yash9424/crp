@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Download, Calculator, Users } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
+import { useLanguage } from "@/lib/language-context"
 
 interface SalaryData {
   employeeId: string
@@ -21,6 +22,7 @@ interface SalaryData {
 }
 
 export default function SalaryPage() {
+  const { t } = useLanguage()
   const [salaryData, setSalaryData] = useState<SalaryData[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -143,22 +145,22 @@ export default function SalaryPage() {
 
   if (loading) {
     return (
-      <MainLayout title="Salary Management" userRole="tenant-admin">
+      <MainLayout title={t('salaryManagement')}>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Calculating salaries...</div>
+          <div className="text-lg">{t('calculatingSalaries')}</div>
         </div>
       </MainLayout>
     )
   }
 
   return (
-    <MainLayout title="Salary Management" userRole="tenant-admin">
+    <MainLayout title={t('salaryManagement')}>
       <FeatureGuard feature="salary">
       <div className="space-y-8">
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalEmployees')}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -168,36 +170,36 @@ export default function SalaryPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Payroll</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('totalPayroll')}</CardTitle>
               <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold"> {salaryData.reduce((sum, s) => sum + s.effectiveSalary, 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold">₹ {salaryData.reduce((sum, s) => sum + s.effectiveSalary, 0).toLocaleString()}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Deductions</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('deductions')}</CardTitle>
               <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600"> {salaryData.reduce((sum, s) => sum + (s.baseSalary - s.effectiveSalary), 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-red-600">₹ {salaryData.reduce((sum, s) => sum + (s.baseSalary - s.effectiveSalary), 0).toLocaleString()}</div>
             </CardContent>
           </Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Salary Calculation</CardTitle>
-            <CardDescription>Monthly salary with leave deductions (30-day basis)</CardDescription>
+            <CardTitle>{t('salaryCalculation')}</CardTitle>
+            <CardDescription>{t('monthlySalaryWithDeductions')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4 mb-6">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search employees..."
+                  placeholder={t('searchEmployees')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -221,12 +223,12 @@ export default function SalaryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-center">Employee</TableHead>
-                    <TableHead className="text-center">Base Salary</TableHead>
-                    <TableHead className="text-center">Working Days</TableHead>
-                    <TableHead className="text-center">Leave Days</TableHead>
-                    <TableHead className="text-center">Effective Salary</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center">{t('employee')}</TableHead>
+                    <TableHead className="text-center">{t('baseSalary')}</TableHead>
+                    <TableHead className="text-center">{t('workingDays')}</TableHead>
+                    <TableHead className="text-center">{t('leaveDays')}</TableHead>
+                    <TableHead className="text-center">{t('effectiveSalary')}</TableHead>
+                    <TableHead className="text-center">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -238,14 +240,14 @@ export default function SalaryPage() {
                           <div className="text-sm text-muted-foreground">{salary.employeeId}</div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center"> {salary.baseSalary.toLocaleString()}</TableCell>
+                      <TableCell className="text-center">₹ {salary.baseSalary.toLocaleString()}</TableCell>
                       <TableCell className="text-center">{salary.workingDays}</TableCell>
                       <TableCell className="text-center">{salary.leaveDays}</TableCell>
-                      <TableCell className="text-center font-medium"> {salary.effectiveSalary.toLocaleString()}</TableCell>
+                      <TableCell className="text-center font-medium">₹ {salary.effectiveSalary.toLocaleString()}</TableCell>
                       <TableCell className="text-center">
                         <Button variant="outline" size="sm" onClick={() => downloadSalarySlip(salary.employeeId)}>
                           <Download className="w-4 h-4 mr-2" />
-                          Download Slip
+                          {t('downloadSlip')}
                         </Button>
                       </TableCell>
                     </TableRow>
