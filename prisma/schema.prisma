@@ -1,0 +1,6 @@
+// MongoDB collections structure:
+// tenants: { _id, name, email, password, phone, address, plan, status, createdAt, updatedAt }
+// users: { _id, email, password, name, role, tenantId, createdAt, updatedAt }
+// tenant_[tenantId]_customers: tenant-specific customer data
+// tenant_[tenantId]_inventory: tenant-specific inventory data
+// tenant_[tenantId]_[collection]: other tenant-specific collections
