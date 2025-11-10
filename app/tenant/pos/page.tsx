@@ -106,6 +106,8 @@ export default function POSPage() {
   const [barcodeBuffer, setBarcodeBuffer] = useState('')
   const [lastKeyTime, setLastKeyTime] = useState(0)
   const [whatsappMessage, setWhatsappMessage] = useState('')
+  const [whatsappStatus, setWhatsappStatus] = useState({ ready: false, hasQR: false })
+  const [qrCode, setQrCode] = useState('')
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -146,6 +148,33 @@ export default function POSPage() {
       console.error('Failed to fetch employees:', error)
     }
   }
+
+  // Check WhatsApp status
+  const checkWhatsAppStatus = async () => {
+    try {
+      const response = await fetch('/api/whatsapp/status')
+      const data = await response.json()
+      setWhatsappStatus(data)
+      
+      // Always try to get QR if not ready
+      if (!data.ready) {
+        try {
+          const qrResponse = await fetch('/api/whatsapp/status', { method: 'POST' })
+          const qrData = await qrResponse.json()
+          if (qrData.qr) {
+            setQrCode(qrData.qr)
+          }
+        } catch (qrError) {
+          console.log('QR fetch failed, retrying...')
+        }
+      }
+    } catch (error) {
+      console.log('Status check failed, service may be starting...')
+      // Don't set error immediately, let it retry
+    }
+  }
+
+
 
   // Fetch tenant fields
   const fetchTenantFields = async () => {
@@ -200,6 +229,9 @@ export default function POSPage() {
     fetchSettings()
     fetchCustomers()
     fetchEmployees()
+    checkWhatsAppStatus()
+    
+    const interval = setInterval(checkWhatsAppStatus, 5000)
     
     // Set default WhatsApp message from settings
     if (settings.whatsappMessage) {
@@ -233,6 +265,7 @@ export default function POSPage() {
     
     return () => {
       document.removeEventListener('keypress', handleKeyPress)
+      clearInterval(interval)
     }
   }, [lastKeyTime, barcodeBuffer])
 
@@ -663,6 +696,34 @@ export default function POSPage() {
             </CardContent>
           </Card>
 
+          {/* WhatsApp */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Smartphone className="w-5 h-5" />
+                <span>WhatsApp Login</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {whatsappStatus.ready ? (
+                <div className="text-center space-y-2">
+                  <div className="text-green-600 font-medium">✅ Logged In</div>
+                  <p className="text-xs text-muted-foreground">Ready to send messages</p>
+                </div>
+              ) : qrCode ? (
+                <div className="text-center space-y-2">
+                  <img src={qrCode} alt="WhatsApp QR" className="mx-auto max-w-40" />
+                  <p className="text-xs text-muted-foreground">Scan with WhatsApp</p>
+                </div>
+              ) : (
+                <div className="text-center space-y-2">
+                  <div className="text-yellow-600 font-medium">⏳ Loading QR...</div>
+                  <p className="text-xs text-muted-foreground">Starting WhatsApp service</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Customer & Billing */}
           <Card>
             <CardHeader>
@@ -726,7 +787,7 @@ export default function POSPage() {
                       <p className="text-sm text-muted-foreground">{t('totalAmount')}</p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <Button 
                         variant={selectedPaymentMethod === 'cash' ? 'default' : 'outline'} 
                         className="flex flex-col items-center p-6 h-20"
@@ -736,20 +797,12 @@ export default function POSPage() {
                         <span className="text-sm font-medium">{t('cash')}</span>
                       </Button>
                       <Button 
-                        variant={selectedPaymentMethod === 'card' ? 'default' : 'outline'} 
+                        variant={selectedPaymentMethod === 'online' ? 'default' : 'outline'} 
                         className="flex flex-col items-center p-6 h-20"
-                        onClick={() => setSelectedPaymentMethod('card')}
-                      >
-                        <CreditCard className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">{t('card')}</span>
-                      </Button>
-                      <Button 
-                        variant={selectedPaymentMethod === 'upi' ? 'default' : 'outline'} 
-                        className="flex flex-col items-center p-6 h-20"
-                        onClick={() => setSelectedPaymentMethod('upi')}
+                        onClick={() => setSelectedPaymentMethod('online')}
                       >
                         <Smartphone className="w-8 h-8 mb-2" />
-                        <span className="text-sm font-medium">{t('upi')}</span>
+                        <span className="text-sm font-medium">{t('online')}</span>
                       </Button>
                     </div>
 
@@ -1060,7 +1113,7 @@ export default function POSPage() {
                 <Button 
                   variant="outline"
                   className="flex-1"
-                  onClick={() => {
+                  onClick={async () => {
                     if (!completedSale.customerPhone) {
                       showToast.error(t('customerPhoneRequired'))
                       return
@@ -1077,7 +1130,6 @@ export default function POSPage() {
                         pdfLink = `${window.location.origin}/api/public-receipt/${completedSale._id || completedSale.id}`
                       }
                       
-                      const customMessage = settings.whatsappMessage || 'Thank you for shopping with us! Visit us again soon.'
                       const billMessage = `*${(settings.storeName || 'STORE').toUpperCase()}*
 
 *Bill No:* ${completedSale.billNo}
@@ -1097,18 +1149,30 @@ ${completedSale.items.map((item: any) => `• ${item.name} x${item.quantity} = R
 *Download Your Bill:*
 ${pdfLink}
 
-thanks for shopping
-
-come again
+Thanks for shopping!
+Come again!
 
 ${settings.address || 'Store Address'}
 Contact: ${settings.phone || '9427300816'}`
 
-                      const whatsappUrl = `https://wa.me/${completedSale.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
-                      window.open(whatsappUrl, '_blank')
-                      showToast.success(language === 'en' ? 'WhatsApp message opened successfully!' : language === 'gu' ? 'વ્હોટ્સએપ મેસેજ સફળતાપૂર્વક ખોલાયો!' : 'व्हाट्सएप संदेश सफलतापूर्वक खोला गया!')
+                      // Send via WhatsApp microservice
+                      const response = await fetch('/api/send-bill', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          phone: completedSale.customerPhone.replace(/[^\d]/g, ''),
+                          message: billMessage
+                        })
+                      })
+                      
+                      if (response.ok) {
+                        showToast.success('Bill sent via WhatsApp successfully!')
+                      } else {
+                        const error = await response.json()
+                        showToast.error(`Failed to send: ${error.error || 'Unknown error'}`)
+                      }
                     } catch (error) {
-                      showToast.error(t('failedToOpenWhatsApp'))
+                      showToast.error(t('failedToSendWhatsApp'))
                       console.error('WhatsApp error:', error)
                     }
                   }}

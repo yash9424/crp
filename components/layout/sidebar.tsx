@@ -156,16 +156,11 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
       {/* Fixed Header */}
       <div className="flex-shrink-0 flex h-16 items-center justify-between px-4 py-4 border-b border-gray-200">
         {!collapsed && (
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-800"> ERP</h2>
-              <p className="text-xs text-gray-500">
-                {userType === "super-admin" ? "Super Admin Panel" : "Retail Dashboard"}
-              </p>
-            </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Retalians</h2>
+            <p className="text-xs text-gray-500">
+              {userType === "super-admin" ? "Super Admin Panel" : "Retail Dashboard"}
+            </p>
           </div>
         )}
         <Button variant="ghost" size="sm" onClick={() => setCollapsed(!collapsed)} className="ml-auto text-gray-500 hover:text-gray-800 hover:bg-gray-100">

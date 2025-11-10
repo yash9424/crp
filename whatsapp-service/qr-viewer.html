@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp QR Code</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container { 
+            max-width: 400px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            font-weight: bold;
+        }
+        .ready { background: #d4edda; color: #155724; }
+        .waiting { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        #qrcode { margin: 20px 0; }
+        button { 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 14px;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>WhatsApp Service Setup</h2>
+        <div id="status" class="status waiting">Checking status...</div>
+        <div id="qrcode"></div>
+        <button class="btn-primary" onclick="loadQR()">Refresh QR Code</button>
+        <button class="btn-secondary" onclick="checkStatus()">Check Status</button>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                const statusDiv = document.getElementById('status');
+                
+                if (data.ready) {
+                    statusDiv.className = 'status ready';
+                    statusDiv.textContent = 'WhatsApp is connected and ready!';
+                    document.getElementById('qrcode').innerHTML = '';
+                } else if (data.hasQR) {
+                    statusDiv.className = 'status waiting';
+                    statusDiv.textContent = 'Waiting for QR scan...';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = 'Service not ready. Please restart.';
+                }
+            } catch (error) {
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').textContent = 'Service not running!';
+            }
+        }
+
+        async function loadQR() {
+            try {
+                const response = await fetch('/qr');
+                const data = await response.json();
+                
+                if (data.qr) {
+                    document.getElementById('qrcode').innerHTML = 
+                        `<img src="${data.qr}" alt="WhatsApp QR Code" style="max-width: 300px;">`;
+                    document.getElementById('status').className = 'status waiting';
+                    document.getElementById('status').textContent = 'Scan QR code with WhatsApp';
+                } else {
+                    document.getElementById('qrcode').innerHTML = 'QR code not available';
+                }
+            } catch (error) {
+                document.getElementById('qrcode').innerHTML = 'Failed to load QR code';
+            }
+        }
+
+        // Auto-refresh status every 3 seconds
+        setInterval(checkStatus, 3000);
+        
+        // Load initial status and QR
+        checkStatus();
+        loadQR();
+    </script>
+</body>
+</html>
