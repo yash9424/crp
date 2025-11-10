@@ -41,20 +41,40 @@ export default function CommissionPage() {
     try {
       const response = await fetch('/api/employees')
       if (response.ok) {
-        const data = await response.json()
-        setEmployees(data.filter((emp: Employee) => emp.commissionType !== 'none'))
+        const result = await response.json()
+        const data = result.data || result || []
+        const employeesArray = Array.isArray(data) ? data : []
+        setEmployees(employeesArray.filter((emp: Employee) => emp.commissionType !== 'none'))
+      } else {
+        setEmployees([])
       }
     } catch (error) {
       console.error('Failed to fetch employees:', error)
+      setEmployees([])
     }
   }
 
   const calculateCommissions = async () => {
     try {
+      console.log('Calling commission API for month:', selectedMonth)
       const response = await fetch(`/api/commission-calculation?month=${selectedMonth}`)
+      console.log('Commission API response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        setCommissionData(data)
+        console.log('Commission data received:', data)
+        console.log('Data type:', typeof data)
+        console.log('Is array:', Array.isArray(data))
+        
+        // Handle debug responses
+        if (data && typeof data === 'object' && data.debug) {
+          console.log('Debug response:', data)
+          alert(`Debug: ${data.debug}\n\nData: ${JSON.stringify(data, null, 2)}`)
+        }
+        
+        setCommissionData(Array.isArray(data) ? data : [])
+      } else {
+        const error = await response.text()
+        console.error('Commission API error:', error)
       }
     } catch (error) {
       console.error('Failed to calculate commissions:', error)

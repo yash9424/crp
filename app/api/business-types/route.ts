@@ -3,17 +3,42 @@ import { connectDB } from '@/lib/database'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const db = await connectDB()
-    const businessTypes = await db.collection('business_types').find({}).toArray()
+    const collection = db.collection('business_types')
     
-    return NextResponse.json(businessTypes.map(type => ({
+    // Check if collection exists and has documents
+    const total = await collection.countDocuments({})
+    const businessTypes = total > 0 
+      ? await collection.find({}).skip(skip).limit(limit).toArray()
+      : []
+    
+    const formattedTypes = businessTypes.map(type => ({
       ...type,
       id: type._id.toString()
-    })))
+    }))
+    
+    return NextResponse.json({
+      data: formattedTypes,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch business types' }, { status: 500 })
+    console.error('Business types fetch error:', error)
+    return NextResponse.json({ 
+      data: [], 
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } 
+    })
   }
 }
 

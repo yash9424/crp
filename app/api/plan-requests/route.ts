@@ -31,18 +31,34 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const db = await connectDB()
+    const total = await db.collection('planRequests').countDocuments({})
     const requests = await db.collection('planRequests')
       .find({})
       .sort({ requestedAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray()
     
-    return NextResponse.json(requests.map(req => ({
-      ...req,
-      id: req._id.toString()
-    })))
+    return NextResponse.json({
+      data: requests.map(req => ({
+        ...req,
+        id: req._id.toString()
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch requests' }, { status: 500 })
   }

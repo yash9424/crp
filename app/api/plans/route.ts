@@ -5,8 +5,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
 // GET - Fetch all plans
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const session = await getServerSession(authOptions)
     const db = await connectDB()
     const plansCollection = db.collection('plans')
@@ -14,7 +19,8 @@ export async function GET() {
     
     // Show only active plans for tenant users, all plans for super-admin
     const filter = session?.user?.role === 'super-admin' ? {} : { status: 'active' }
-    const plans = await plansCollection.find(filter).sort({ createdAt: -1 }).toArray()
+    const total = await plansCollection.countDocuments(filter)
+    const plans = await plansCollection.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     // Add subscriber count for each plan
     const plansWithSubscribers = await Promise.all(
@@ -28,7 +34,15 @@ export async function GET() {
       })
     )
     
-    return NextResponse.json(plansWithSubscribers)
+    return NextResponse.json({
+      data: plansWithSubscribers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch plans' }, { status: 500 })
   }
@@ -38,7 +52,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, price, features, maxUsers, maxProducts, description, allowedFeatures } = body
+    const { name, price, features, maxUsers, maxProducts, description, allowedFeatures, durationDays } = body
 
     const db = await connectDB()
     const plansCollection = db.collection('plans')
@@ -51,6 +65,7 @@ export async function POST(request: NextRequest) {
       maxProducts: Number(maxProducts),
       description: description || '',
       allowedFeatures: allowedFeatures || ['dashboard'],
+      durationDays: Number(durationDays) || 365,
       status: 'active',
       createdAt: new Date(),
       updatedAt: new Date()

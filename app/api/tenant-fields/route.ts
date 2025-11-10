@@ -28,10 +28,8 @@ export async function GET() {
   } catch (error) {
     console.error('Tenant fields fetch error:', error)
     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json({ 
-      error: 'Failed to fetch tenant fields',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    // Return empty fields instead of error to prevent page crash
+    return NextResponse.json({ fields: [] })
   }
 }
 

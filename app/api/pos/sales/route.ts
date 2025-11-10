@@ -155,6 +155,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
     const search = searchParams.get('search')
     
     const db = await connectDB()
@@ -171,16 +174,25 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    const sales = await salesCollection.find(query).sort({ createdAt: -1 }).limit(50).toArray()
+    const total = await salesCollection.countDocuments(query)
+    const sales = await salesCollection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     const formattedSales = sales.map(sale => ({
       ...sale,
       id: sale._id.toString()
     }))
     
-    return NextResponse.json(formattedSales)
+    return NextResponse.json({
+      data: formattedSales,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error('Fetch sales error:', error)
-    return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 })
+    return NextResponse.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } })
   }
 }

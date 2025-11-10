@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTenantCollection } from '@/lib/tenant-data'
+import { connectDB } from '@/lib/database'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -14,8 +14,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') || new Date().toISOString().slice(0, 7)
     
-    // Get employees with commission setup
-    const employeesCollection = await getTenantCollection(session.user.tenantId, 'employees')
+    const db = await connectDB()
+    const employeesCollection = db.collection(`employees_${session.user.tenantId}`)
+    const salesCollection = db.collection(`sales_${session.user.tenantId}`)
+    
     const employees = await employeesCollection.find({
       $and: [
         { commissionType: { $exists: true } },
@@ -23,9 +25,7 @@ export async function GET(request: NextRequest) {
         { commissionType: { $ne: null } }
       ]
     }).toArray()
-
-    // Get sales data for the month
-    const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
+    
     const startDate = new Date(month + '-01')
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0)
     
@@ -35,20 +35,19 @@ export async function GET(request: NextRequest) {
         $lte: endDate
       }
     }).toArray()
-
+    
     // Calculate commissions for each employee
     const commissionData = employees.map(employee => {
       // Get sales made by this employee
       const employeeSales = sales.filter(sale => {
-        const staffMember = (sale.staffMember || '').toLowerCase()
-        const cashier = (sale.cashier || '').toLowerCase()
-        const employeeName = (employee.name || '').toLowerCase()
-        const employeeId = (employee.employeeId || '').toLowerCase()
+        const staffMember = (sale.staffMember || '').toString().toLowerCase()
+        const employeeName = (employee.name || '').toString().toLowerCase()
+        const employeeId = (employee.employeeId || '').toString().toLowerCase()
         
-        return staffMember === employeeId ||
-               staffMember === employeeName ||
-               cashier === employeeName || 
-               cashier === employeeId
+        return staffMember === employeeName || 
+               staffMember === employeeId ||
+               employeeName === staffMember ||
+               employeeId === staffMember
       })
 
       const totalSales = employeeSales.reduce((sum, sale) => sum + (sale.total || 0), 0)
@@ -61,10 +60,8 @@ export async function GET(request: NextRequest) {
       // Calculate commission based on type (percentage only)
       if (employee.commissionType === 'percentage') {
         commissionEarned = (totalSales * (employee.commissionRate || 0)) / 100
-      } else {
-        commissionEarned = 0
       }
-
+      
       return {
         employeeId: employee.employeeId,
         employeeName: employee.name,

@@ -6,12 +6,18 @@ import { ObjectId } from 'mongodb'
 import bcrypt from 'bcryptjs'
 
 // GET - Fetch all tenants
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const tenantsCollection = await getTenantsCollection()
     const usersCollection = await getUsersCollection()
     
-    const tenants = await tenantsCollection.find({}).sort({ createdAt: -1 }).toArray()
+    const total = await tenantsCollection.countDocuments({})
+    const tenants = await tenantsCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     // Get users for each tenant
     for (const tenant of tenants) {
@@ -22,9 +28,19 @@ export async function GET() {
         email: user.email
       }))
       tenant.id = tenant._id.toString()
+      // Include plan expiry date for status checking
+      tenant.planExpiryDate = tenant.planExpiryDate || null
     }
     
-    return NextResponse.json(tenants)
+    return NextResponse.json({
+      data: tenants,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch tenants' }, { status: 500 })
   }

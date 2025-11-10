@@ -78,7 +78,7 @@ export function AnalyticsDashboard({ data, loading }: AnalyticsDashboardProps) {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(data.totalProfit)}</div>
+            <div className={`text-2xl font-bold ${data.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(data.totalProfit)}</div>
             <div className="flex items-center text-xs text-muted-foreground">
               {data.recentTrends.profitGrowth >= 0 ? (
                 <TrendingUp className="h-3 w-3 text-green-500 mr-1" />

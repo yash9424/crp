@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { generateBarcode } from '@/lib/barcode-utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('Fetching inventory...')
     const session = await getServerSession(authOptions)
@@ -15,13 +15,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     console.log('Connecting to database...')
     const db = await connectDB()
     const collectionName = `products_${session.user.tenantId}`
     console.log('Using collection:', collectionName)
     
     const inventoryCollection = db.collection(collectionName)
-    const inventory = await inventoryCollection.find({}).sort({ createdAt: -1 }).toArray()
+    const total = await inventoryCollection.countDocuments({})
+    const inventory = await inventoryCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     console.log('Found items:', inventory.length)
     
     const formattedInventory = inventory.map(item => ({
@@ -30,14 +36,20 @@ export async function GET() {
       minStock: item.minStock || item.min_stock || item['Min Stock'] || 0
     }))
     
-    return NextResponse.json(formattedInventory)
+    return NextResponse.json({
+      data: formattedInventory,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error('Inventory fetch error:', error)
     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json({ 
-      error: 'Failed to fetch inventory',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    // Return empty array instead of error to prevent page crash
+    return NextResponse.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } })
   }
 }
 

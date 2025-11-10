@@ -47,13 +47,23 @@ export default function BillsPage() {
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null)
   const [password, setPassword] = useState('')
   const [settings, setSettings] = useState<any>({})
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 20
 
-  const fetchBills = async () => {
+  const fetchBills = async (page = 1) => {
     try {
-      const response = await fetch('/api/pos/sales?t=' + Date.now())
+      const response = await fetch(`/api/pos/sales?page=${page}&limit=${itemsPerPage}&t=${Date.now()}`)
       if (response.ok) {
-        const data = await response.json()
-        setBills(data)
+        const result = await response.json()
+        if (result.pagination) {
+          setTotalPages(result.pagination.totalPages)
+          setTotalItems(result.pagination.total)
+          setBills(result.data || [])
+        } else {
+          setBills(result.data || result || [])
+        }
       }
     } catch (error) {
       console.error('Failed to fetch bills:', error)
@@ -75,9 +85,13 @@ export default function BillsPage() {
   }
 
   useEffect(() => {
-    fetchBills()
+    fetchBills(1)
     fetchSettings()
   }, [])
+
+  useEffect(() => {
+    fetchBills(currentPage)
+  }, [currentPage])
 
   const filteredBills = bills.filter(bill =>
     bill.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -130,7 +144,7 @@ export default function BillsPage() {
           document.body.removeChild(successDiv)
         }, 3000)
         // Refresh data in background
-        fetchBills()
+        fetchBills(currentPage)
       } else {
         showToast.error('❌ Failed to delete bill. Please try again.')
       }
@@ -495,6 +509,56 @@ startxref
                 ))}
               </TableBody>
             </Table>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} bills
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        Math.abs(page - currentPage) <= 1
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

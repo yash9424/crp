@@ -37,6 +37,10 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 20
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -63,12 +67,18 @@ export default function PurchasesPage() {
     notes: ''
   })
 
-  const fetchPurchases = async () => {
+  const fetchPurchases = async (page = 1) => {
     try {
-      const response = await fetch('/api/purchases')
+      const response = await fetch(`/api/purchases?page=${page}&limit=${itemsPerPage}`)
       if (response.ok) {
-        const data = await response.json()
-        setPurchases(data)
+        const result = await response.json()
+        if (result.pagination) {
+          setTotalPages(result.pagination.totalPages)
+          setTotalItems(result.pagination.total)
+          setPurchases(result.data || [])
+        } else {
+          setPurchases(result.data || result || [])
+        }
       }
     } catch (error) {
       console.error('Failed to fetch purchases:', error)
@@ -98,22 +108,17 @@ export default function PurchasesPage() {
 
   const fetchInventoryItems = async () => {
     try {
-      const response = await fetch('/api/inventory')
+      const response = await fetch('/api/inventory?limit=10000') // Get all items
       if (response.ok) {
-        const data = await response.json()
-        console.log('All inventory for dropdown:', data.map(item => ({ 
-          id: item.id, 
-          name: item.name, 
-          productname: item.productname,
-          medicine: item.medicine,
-          'Product Name': item['Product Name'],
-          sku: item.sku,
-          allFields: Object.keys(item)
-        })))
-        setInventoryItems(data)
+        const result = await response.json()
+        const data = result.data || result || []
+        console.log('Inventory items fetched:', data.length, 'items')
+        console.log('Sample items:', data.slice(0, 3))
+        setInventoryItems(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Failed to fetch inventory items:', error)
+      setInventoryItems([])
     }
   }
 
@@ -136,7 +141,7 @@ export default function PurchasesPage() {
       })
       
       if (response.ok) {
-        fetchPurchases()
+        fetchPurchases(currentPage)
         setIsCreateDialogOpen(false)
         resetForm()
         showToast.success('Purchase order created successfully!')
@@ -164,7 +169,7 @@ export default function PurchasesPage() {
       })
       
       if (response.ok) {
-        fetchPurchases()
+        fetchPurchases(currentPage)
         setIsCompleteDialogOpen(false)
         setPurchaseToComplete(null)
         showToast.success('Purchase order completed successfully! Stock has been updated.')
@@ -208,7 +213,7 @@ export default function PurchasesPage() {
       })
       
       if (response.ok) {
-        fetchPurchases()
+        fetchPurchases(currentPage)
         setIsEditDialogOpen(false)
         resetForm()
         showToast.success('Purchase order updated successfully!')
@@ -235,7 +240,7 @@ export default function PurchasesPage() {
       })
       
       if (response.ok) {
-        fetchPurchases()
+        fetchPurchases(currentPage)
         setIsDeleteDialogOpen(false)
         setPurchaseToDelete(null)
         showToast.success('Purchase order deleted successfully!')
@@ -286,10 +291,14 @@ export default function PurchasesPage() {
   }
 
   useEffect(() => {
-    fetchPurchases()
+    fetchPurchases(1)
     fetchDropdownData()
     fetchInventoryItems()
   }, [])
+
+  useEffect(() => {
+    fetchPurchases(currentPage)
+  }, [currentPage])
 
   const getProductDisplayName = (item: any) => {
     // Try all possible name field variations
@@ -483,15 +492,19 @@ export default function PurchasesPage() {
                               <SelectTrigger>
                                 <SelectValue placeholder={t('chooseProduct')} />
                               </SelectTrigger>
-                              <SelectContent>
-                                {inventoryItems.map((invItem) => {
+                              <SelectContent className="max-h-[200px] overflow-y-auto">
+                                {Array.isArray(inventoryItems) && inventoryItems.length > 0 ? inventoryItems.map((invItem) => {
                                   const displayName = getProductDisplayName(invItem)
                                   return (
                                     <SelectItem key={invItem.id} value={invItem.id}>
-                                      {displayName} - {t('stock')}: {invItem.stock}
+                                      {displayName} - {t('stock')}: {invItem.stock || 0}
                                     </SelectItem>
                                   )
-                                })}
+                                }) : (
+                                  <SelectItem value="no-items" disabled>
+                                    No inventory items found
+                                  </SelectItem>
+                                )}
                               </SelectContent>
                             </Select>
                           </div>
@@ -869,6 +882,56 @@ export default function PurchasesPage() {
                 </TableBody>
               </Table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} purchases
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        Math.abs(page - currentPage) <= 1
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         </div>

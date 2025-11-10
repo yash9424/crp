@@ -34,6 +34,7 @@ import {
   Settings,
   X,
 } from "lucide-react"
+import { TenantPlanAssignment } from "@/components/tenant-plan-assignment"
 
 interface Plan {
   id: string
@@ -63,7 +64,8 @@ export default function PlansPage() {
     maxProducts: '',
     features: '',
     description: '',
-    allowedFeatures: [] as string[]
+    allowedFeatures: [] as string[],
+    durationDays: '365'
   })
 
   // Fetch plans from API
@@ -91,7 +93,8 @@ export default function PlansPage() {
           ...formData,
           maxUsers: 999999, // Unlimited users
           features: formData.features.split(',').map(f => f.trim()),
-          allowedFeatures: formData.allowedFeatures
+          allowedFeatures: formData.allowedFeatures,
+          durationDays: Number(formData.durationDays)
         })
       })
       if (response.ok) {
@@ -115,7 +118,8 @@ export default function PlansPage() {
           ...formData,
           maxUsers: 999999, // Unlimited users
           features: formData.features.split(',').map(f => f.trim()),
-          allowedFeatures: formData.allowedFeatures
+          allowedFeatures: formData.allowedFeatures,
+          durationDays: Number(formData.durationDays)
         })
       })
       if (response.ok) {
@@ -170,7 +174,8 @@ export default function PlansPage() {
       maxProducts: '',
       features: '',
       description: '',
-      allowedFeatures: []
+      allowedFeatures: [],
+      durationDays: '365'
     })
     setSelectedPlan(null)
   }
@@ -183,7 +188,8 @@ export default function PlansPage() {
       maxProducts: plan.maxProducts.toString(),
       features: plan.features.join(', '),
       description: plan.description,
-      allowedFeatures: plan.allowedFeatures || []
+      allowedFeatures: plan.allowedFeatures || [],
+      durationDays: ((plan as any).durationDays || 365).toString()
     })
     setIsEditPlanOpen(true)
   }
@@ -325,7 +331,7 @@ export default function PlansPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="planPrice">Price (₹ /year)</Label>
+                      <Label htmlFor="planPrice">Price (₹)</Label>
                       <Input
                         id="planPrice"
                         type="number"
@@ -335,15 +341,27 @@ export default function PlansPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxProducts">Max Products</Label>
-                    <Input
-                      id="maxProducts"
-                      type="number"
-                      placeholder="1000"
-                      value={formData.maxProducts}
-                      onChange={(e) => setFormData({ ...formData, maxProducts: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxProducts">Max Products</Label>
+                      <Input
+                        id="maxProducts"
+                        type="number"
+                        placeholder="1000"
+                        value={formData.maxProducts}
+                        onChange={(e) => setFormData({ ...formData, maxProducts: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="durationDays">Plan Duration (Days)</Label>
+                      <Input
+                        id="durationDays"
+                        type="number"
+                        placeholder="365"
+                        value={formData.durationDays}
+                        onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
@@ -431,7 +449,7 @@ export default function PlansPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="editPlanPrice">Price (₹ /year)</Label>
+                      <Label htmlFor="editPlanPrice">Price (₹)</Label>
                       <Input
                         id="editPlanPrice"
                         type="number"
@@ -441,15 +459,27 @@ export default function PlansPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="editMaxProducts">Max Products</Label>
-                    <Input
-                      id="editMaxProducts"
-                      type="number"
-                      placeholder="1000"
-                      value={formData.maxProducts}
-                      onChange={(e) => setFormData({ ...formData, maxProducts: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editMaxProducts">Max Products</Label>
+                      <Input
+                        id="editMaxProducts"
+                        type="number"
+                        placeholder="1000"
+                        value={formData.maxProducts}
+                        onChange={(e) => setFormData({ ...formData, maxProducts: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editDurationDays">Plan Duration (Days)</Label>
+                      <Input
+                        id="editDurationDays"
+                        type="number"
+                        placeholder="365"
+                        value={formData.durationDays}
+                        onChange={(e) => setFormData({ ...formData, durationDays: e.target.value })}
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="editDescription">Description</Label>
@@ -631,6 +661,8 @@ export default function PlansPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <TenantPlanAssignment />
     </div>
   )
 }

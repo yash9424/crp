@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await request.json()
-    const { name, price, features, maxUsers, maxProducts, description, allowedFeatures, status } = body
+    const { name, price, features, maxUsers, maxProducts, description, allowedFeatures, status, durationDays } = body
 
     const db = await connectDB()
     const plansCollection = db.collection('plans')
@@ -42,6 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (description !== undefined) updateData.description = description
     if (allowedFeatures !== undefined) updateData.allowedFeatures = allowedFeatures
     if (status !== undefined) updateData.status = status
+    if (durationDays !== undefined) updateData.durationDays = Number(durationDays)
 
     const result = await plansCollection.updateOne(
       { _id: new ObjectId(params.id) },

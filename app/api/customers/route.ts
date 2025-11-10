@@ -3,29 +3,43 @@ import { connectDB } from '@/lib/database'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.tenantId) {
       // Return empty array for unauthenticated users
-      return NextResponse.json([])
+      return NextResponse.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } })
     }
+
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
 
     const db = await connectDB()
     const customersCollection = db.collection(`customers_${session.user.tenantId}`)
-    const customers = await customersCollection.find({}).sort({ orderCount: -1 }).toArray()
+    const total = await customersCollection.countDocuments({})
+    const customers = await customersCollection.find({}).sort({ orderCount: -1 }).skip(skip).limit(limit).toArray()
     
     const formattedCustomers = customers.map(customer => ({
       ...customer,
       id: customer._id.toString()
     }))
     
-    return NextResponse.json(formattedCustomers)
+    return NextResponse.json({
+      data: formattedCustomers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     console.error('Customers fetch error:', error)
     // Return empty array on error
-    return NextResponse.json([])
+    return NextResponse.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } })
   }
 }
 

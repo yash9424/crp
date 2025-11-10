@@ -56,12 +56,17 @@ export default function LeavesPage() {
     endDate: '',
     reason: ''
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 20
 
   const fetchEmployees = async () => {
     try {
       const response = await fetch('/api/employees')
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.data || result || []
         setEmployees(data)
       }
     } catch (error) {
@@ -69,21 +74,29 @@ export default function LeavesPage() {
     }
   }
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = async (page = 1) => {
     try {
       let url = '/api/leaves'
       const params = new URLSearchParams()
       
+      params.append('page', page.toString())
+      params.append('limit', itemsPerPage.toString())
       if (selectedEmployee !== 'all') params.append('employeeId', selectedEmployee)
       params.append('month', selectedMonth.toString())
       params.append('year', selectedYear.toString())
       
-      if (params.toString()) url += `?${params.toString()}`
+      url += `?${params.toString()}`
       
       const response = await fetch(url)
       if (response.ok) {
-        const data = await response.json()
-        setLeaves(data)
+        const result = await response.json()
+        if (result.pagination) {
+          setTotalPages(result.pagination.totalPages)
+          setTotalItems(result.pagination.total)
+          setLeaves(result.data || [])
+        } else {
+          setLeaves(result.data || result || [])
+        }
       }
     } catch (error) {
       console.error('Failed to fetch leaves:', error)
@@ -108,7 +121,7 @@ export default function LeavesPage() {
       })
       
       if (response.ok) {
-        fetchLeaves()
+        fetchLeaves(currentPage)
         setIsAddDialogOpen(false)
         resetForm()
         showToast.success('Leave request created successfully!')
@@ -134,7 +147,7 @@ export default function LeavesPage() {
       })
       
       if (response.ok) {
-        fetchLeaves()
+        fetchLeaves(currentPage)
         setIsDeleteDialogOpen(false)
         setLeaveToDelete(null)
         showToast.success('Leave record deleted successfully!')
@@ -176,8 +189,13 @@ export default function LeavesPage() {
   }, [])
 
   useEffect(() => {
-    fetchLeaves()
+    setCurrentPage(1)
+    fetchLeaves(1)
   }, [selectedEmployee, selectedMonth, selectedYear])
+
+  useEffect(() => {
+    fetchLeaves(currentPage)
+  }, [currentPage])
 
   const filteredLeaves = leaves.filter((leave) =>
     leave.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -456,6 +474,56 @@ export default function LeavesPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            )}
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} leaves
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        Math.abs(page - currentPage) <= 1
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

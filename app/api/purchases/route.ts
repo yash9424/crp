@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { withFeatureAccess } from '@/lib/api-middleware'
 
-export const GET = withFeatureAccess('purchases')(async function() {
+export const GET = withFeatureAccess('purchases')(async function(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -12,15 +12,29 @@ export const GET = withFeatureAccess('purchases')(async function() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const purchasesCollection = await getTenantCollection(session.user.tenantId, 'purchases')
-    const purchases = await purchasesCollection.find({}).sort({ createdAt: -1 }).toArray()
+    const total = await purchasesCollection.countDocuments({})
+    const purchases = await purchasesCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     const formattedPurchases = purchases.map(purchase => ({
       ...purchase,
       id: purchase._id.toString()
     }))
     
-    return NextResponse.json(formattedPurchases)
+    return NextResponse.json({
+      data: formattedPurchases,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 })
   }

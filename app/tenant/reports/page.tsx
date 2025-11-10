@@ -83,10 +83,13 @@ export default function ReportsPage() {
       const response = await fetch('/api/pos/sales')
       if (response.ok) {
         const data = await response.json()
-        setSales(data)
+        setSales(Array.isArray(data) ? data : [])
+      } else {
+        setSales([])
       }
     } catch (error) {
       console.error('Failed to fetch sales:', error)
+      setSales([])
     } finally {
       setLoading(false)
     }
@@ -157,13 +160,13 @@ export default function ReportsPage() {
     fetchSummary()
   }, [dateRange])
 
-  const filteredSales = sales.filter(sale =>
+  const filteredSales = Array.isArray(sales) ? sales.filter(sale =>
     sale.billNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ) : []
 
-  const totalSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0)
-  const totalTransactions = sales.length
+  const totalSales = Array.isArray(sales) ? sales.reduce((sum, sale) => sum + (sale.total || 0), 0) : 0
+  const totalTransactions = Array.isArray(sales) ? sales.length : 0
   const totalProfit = dailyProfit.reduce((sum, day) => sum + day.totalProfit, 0)
   const totalRevenue = dailyProfit.reduce((sum, day) => sum + day.totalRevenue, 0)
 
@@ -218,7 +221,11 @@ export default function ReportsPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className={`text-2xl font-bold ${
+                  (dailyProfit.find(d => d.date === new Date().toISOString().split('T')[0])?.totalProfit || 0) >= 0 
+                    ? 'text-green-600' 
+                    : 'text-red-600'
+                }`}>
                   ₹{dailyProfit.find(d => d.date === new Date().toISOString().split('T')[0])?.totalProfit.toLocaleString() || '0'}
                 </div>
                 <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString('en-IN')}</p>
@@ -466,7 +473,7 @@ export default function ReportsPage() {
                             <TableCell>{new Date(day.date).toLocaleDateString('en-IN')}</TableCell>
                             <TableCell>₹{day.totalRevenue.toLocaleString()}</TableCell>
                             <TableCell>₹{day.totalCost.toLocaleString()}</TableCell>
-                            <TableCell className="text-green-600">₹{day.totalProfit.toLocaleString()}</TableCell>
+                            <TableCell className={day.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}>₹{day.totalProfit.toLocaleString()}</TableCell>
                             <TableCell>
                               {day.totalRevenue > 0 ? ((day.totalProfit / day.totalRevenue) * 100).toFixed(1) : '0'}%
                             </TableCell>

@@ -12,15 +12,29 @@ export const GET = withFeatureAccess('expenses')(async function(request: NextReq
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
     const expensesCollection = await getTenantCollection(session.user.tenantId, 'expenses')
-    const expenses = await expensesCollection.find({}).sort({ createdAt: -1 }).toArray()
+    const total = await expensesCollection.countDocuments({})
+    const expenses = await expensesCollection.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
     const formattedExpenses = expenses.map(expense => ({
       ...expense,
       id: expense._id.toString()
     }))
     
-    return NextResponse.json(formattedExpenses)
+    return NextResponse.json({
+      data: formattedExpenses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch expenses' }, { status: 500 })
   }

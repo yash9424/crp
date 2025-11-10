@@ -38,7 +38,7 @@ export async function GET() {
       lowStockProducts.map(p => 
         `• ${p.name}: ${p.stock} left (Min: ${p.minStock || 10})`
       ).join('\n') +
-      `\n\nTotal items: ${lowStockProducts.length}\nDate: ${new Date().toLocaleDateString()}`
+      `\n\nTotal items: ${lowStockProducts.length}\nDate: ${new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}`
     
     // Log the alert
     await db.collection('alert_logs').insertOne({
@@ -109,7 +109,7 @@ export async function POST() {
         `• ${p.name}: Only ${p.stock} left (Min: ${p.minStock || 10})`
       ).join('\n') +
       `\n\n📊 Total items needing restock: ${lowStockProducts.length}` +
-      `\n📅 Alert Date: ${new Date().toLocaleDateString()}` +
+      `\n📅 Alert Date: ${new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}` +
       `\n\n⚠️ Action Required: Please restock these items to maintain inventory levels.` +
       `\n\nBest regards,\nYour ERP System`
     

@@ -237,7 +237,7 @@ export function ChartDashboard() {
               ))
             ) : (
               <div className="text-center text-muted-foreground py-4">
-                {t('language') === 'en' ? 'No customer purchase data available' : t('language') === 'gu' ? 'કોઈ ગ્રાહક ખરીદી ડેટા ઉપલબ્ધ નથી' : 'कोई ग्राहक खरीदारी डेटा उपलब्ध नहीं'}
+                {t('noCustomerData')}
               </div>
             )}
           </div>
@@ -341,7 +341,7 @@ export function ChartDashboard() {
               ))}
               {data.lowStockItems.length === 0 && (
                 <div className="text-center text-muted-foreground py-4">
-                  {t('language') === 'en' ? 'All items are well stocked!' : t('language') === 'gu' ? 'બધી વસ્તુઓ સારી રીતે સ્ટોક છે!' : 'सभी आइटम अच्छे स्टॉक में हैं!'}
+                  {t('allItemsWellStocked')}
                 </div>
               )}
             </div>

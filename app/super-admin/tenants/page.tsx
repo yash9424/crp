@@ -29,6 +29,7 @@ import {
   MapPin,
   Ban,
   CheckCircle,
+  CreditCard,
 } from "lucide-react"
 import { showToast } from "@/lib/toast"
 
@@ -58,6 +59,8 @@ export default function TenantsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [planFilter, setPlanFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
   const [isAddTenantOpen, setIsAddTenantOpen] = useState(false)
   const [isEditTenantOpen, setIsEditTenantOpen] = useState(false)
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
@@ -88,9 +91,14 @@ export default function TenantsPage() {
       ])
 
       if (tenantsResponse.ok && plansResponse.ok && businessTypesResponse.ok) {
-        const tenantsData = await tenantsResponse.json()
-        const plansData = await plansResponse.json()
-        const businessTypesData = await businessTypesResponse.json()
+        const tenantsResult = await tenantsResponse.json()
+        const plansResult = await plansResponse.json()
+        const businessTypesResult = await businessTypesResponse.json()
+
+        // Handle both paginated and non-paginated responses
+        const tenantsData = tenantsResult.data || tenantsResult
+        const plansData = plansResult.data || plansResult
+        const businessTypesData = businessTypesResult.data || businessTypesResult
 
         // Map plan IDs to plan names (handle both _id and id formats)
         const planMap = plansData.reduce((acc: any, plan: any) => {
@@ -118,7 +126,7 @@ export default function TenantsPage() {
         setTenants(tenantsWithPlanNames)
         // Filter only active plans for dropdown
         setPlans(plansData.filter((plan: any) => plan.status === 'active'))
-        setBusinessTypes(businessTypesData)
+        setBusinessTypes(businessTypesData || [])
       }
     } catch (error) {
       console.error('Failed to fetch tenants:', error)
@@ -260,7 +268,8 @@ export default function TenantsPage() {
     try {
       const response = await fetch('/api/tenants')
       if (response.ok) {
-        const tenants = await response.json()
+        const result = await response.json()
+        const tenants = result.data || result
         const codes = tenants.map((t: any) => ({
           code: t.referralCode,
           name: t.name
@@ -321,6 +330,17 @@ export default function TenantsPage() {
     const matchesStatus = statusFilter === "all" || tenant.status === statusFilter
     return matchesSearch && matchesPlan && matchesStatus
   })
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTenants.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedTenants = filteredTenants.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, planFilter, statusFilter])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -771,7 +791,7 @@ export default function TenantsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTenants.map((tenant) => (
+                  {paginatedTenants.map((tenant) => (
                     <TableRow key={tenant.id}>
                       <TableCell className="text-center">
                         <div>
@@ -817,11 +837,41 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-sm">
-                          {new Date(tenant.createdAt).toLocaleDateString()}
+                          {new Date(tenant.createdAt).toLocaleDateString('en-GB', { timeZone: 'Asia/Kolkata' })}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              const planOptions = plans.map(p => `${p.name} - ₹${p.price} (ID: ${p._id || p.id})`).join('\n')
+                              const selectedPlan = prompt(`Select Plan:\n\n${planOptions}\n\nEnter Plan Name:`)
+                              if (selectedPlan) {
+                                const plan = plans.find(p => p.name.toLowerCase() === selectedPlan.toLowerCase())
+                                const planId = plan ? (plan._id || plan.id) : selectedPlan
+                                try {
+                                  const response = await fetch('/api/assign-plan', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ tenantId: tenant.id, planId })
+                                  })
+                                  if (response.ok) {
+                                    fetchTenants()
+                                    showToast.success('Plan assigned successfully!')
+                                  } else {
+                                    showToast.error('Failed to assign plan')
+                                  }
+                                } catch (error) {
+                                  showToast.error('Error assigning plan')
+                                }
+                              }
+                            }}
+                            title="Assign Plan"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -853,6 +903,57 @@ export default function TenantsPage() {
                 </TableBody>
               </Table>
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <div className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredTenants.length)} of {filteredTenants.length} tenants
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

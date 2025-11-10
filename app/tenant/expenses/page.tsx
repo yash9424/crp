@@ -50,10 +50,13 @@ export default function ExpensesPage() {
       const response = await fetch('/api/expenses')
       if (response.ok) {
         const data = await response.json()
-        setExpenses(data)
+        setExpenses(Array.isArray(data) ? data : [])
+      } else {
+        setExpenses([])
       }
     } catch (error) {
       console.error('Failed to fetch expenses:', error)
+      setExpenses([])
     } finally {
       setLoading(false)
     }
@@ -88,15 +91,15 @@ export default function ExpensesPage() {
     fetchExpenses()
   }, [])
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0)
-  const thisMonthExpenses = expenses.filter(expense => {
+  const totalExpenses = Array.isArray(expenses) ? expenses.reduce((sum, expense) => sum + expense.amount, 0) : 0
+  const thisMonthExpenses = Array.isArray(expenses) ? expenses.filter(expense => {
     const expenseDate = new Date(expense.date)
     const now = new Date()
     return expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()
-  }).reduce((sum, expense) => sum + expense.amount, 0)
+  }).reduce((sum, expense) => sum + expense.amount, 0) : 0
 
   // Monthly expense analysis
-  const monthlyExpenses = expenses.reduce((acc, expense) => {
+  const monthlyExpenses = Array.isArray(expenses) ? expenses.reduce((acc, expense) => {
     const date = new Date(expense.date)
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     const monthName = date.toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
@@ -110,15 +113,15 @@ export default function ExpensesPage() {
     acc[monthKey].expenses.push(expense)
     
     return acc
-  }, {} as Record<string, { month: string; total: number; count: number; expenses: Expense[] }>)
+  }, {} as Record<string, { month: string; total: number; count: number; expenses: Expense[] }>) : {}
 
   const monthlyData = Object.values(monthlyExpenses).sort((a, b) => b.month.localeCompare(a.month))
 
   // Category-wise expenses
-  const categoryExpenses = expenses.reduce((acc, expense) => {
+  const categoryExpenses = Array.isArray(expenses) ? expenses.reduce((acc, expense) => {
     acc[expense.category] = (acc[expense.category] || 0) + expense.amount
     return acc
-  }, {} as Record<string, number>)
+  }, {} as Record<string, number>) : {}
 
   const topCategories = Object.entries(categoryExpenses)
     .sort(([,a], [,b]) => b - a)
@@ -262,7 +265,7 @@ export default function ExpensesPage() {
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{expenses.length}</div>
+                <div className="text-2xl font-bold">{Array.isArray(expenses) ? expenses.length : 0}</div>
                 <p className="text-xs text-muted-foreground">{t('expenseEntries')}</p>
               </CardContent>
             </Card>
@@ -334,7 +337,7 @@ export default function ExpensesPage() {
                         <div>
                           <div className="font-medium">{category}</div>
                           <div className="text-sm text-muted-foreground">
-                            {expenses.filter(e => e.category === category).length} {t('expenses')}
+                            {Array.isArray(expenses) ? expenses.filter(e => e.category === category).length : 0} {t('expenses')}
                           </div>
                         </div>
                         <div className="text-right">
@@ -370,7 +373,7 @@ export default function ExpensesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {expenses.map((expense) => (
+                      {Array.isArray(expenses) ? expenses.map((expense) => (
                         <TableRow key={expense.id}>
                           <TableCell className="font-medium">{expense.title}</TableCell>
                           <TableCell>
@@ -380,7 +383,13 @@ export default function ExpensesPage() {
                           <TableCell>{new Date(expense.date).toLocaleDateString('en-IN')}</TableCell>
                           <TableCell className="max-w-xs truncate">{expense.description || '-'}</TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                            {t('noExpensesFound')}
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>

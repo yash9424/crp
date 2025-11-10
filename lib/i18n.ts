@@ -612,6 +612,8 @@ export const translations = {
     deleteConfirm: "Are you sure you want to delete this item?",
     accessGranted: "Access granted",
     invalidPassword: "Invalid password",
+    noCustomerData: "No customer purchase data available",
+    allItemsWellStocked: "All items are well stocked!",
   },
   
   gu: {
@@ -1227,6 +1229,8 @@ export const translations = {
     deleteConfirm: "શું તમે ખરેખર આ આઇટમ ડિલીટ કરવા માંગો છો?",
     accessGranted: "એક્સેસ મંજૂર",
     invalidPassword: "ખોટો પાસવર્ડ",
+    noCustomerData: "કોઈ ગ્રાહક ખરીદી ડેટા ઉપલબ્ધ નથી",
+    allItemsWellStocked: "બધી વસ્તુઓ સારી રીતે સ્ટોક છે!",
   },
   
   hi: {
@@ -1842,6 +1846,8 @@ export const translations = {
     deleteConfirm: "क्या आप वाकई इस आइटम को डिलीट करना चाहते हैं?",
     accessGranted: "एक्सेस प्रदान किया गया",
     invalidPassword: "गलत पासवर्ड",
+    noCustomerData: "कोई ग्राहक खरीदारी डेटा उपलब्ध नहीं",
+    allItemsWellStocked: "सभी आइटम अच्छे स्टॉक में हैं!",
   }
 }
 

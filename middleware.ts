@@ -10,7 +10,7 @@ export default withAuth(
       return Response.redirect(new URL("/login", req.url))
     }
 
-    // Tenant routes - retail stores
+    // Tenant routes - basic role check only
     if (pathname.startsWith("/tenant") && token?.role !== "tenant-admin") {
       return Response.redirect(new URL("/login", req.url))
     }

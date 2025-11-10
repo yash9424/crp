@@ -20,11 +20,14 @@ import {
   Pie,
   Cell,
 } from "recharts"
-import { Building2, Users, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, UserPlus } from "lucide-react"
+import { Building2, Users, CreditCard, TrendingUp, TrendingDown, DollarSign, Activity, UserPlus, Bell, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { PlanExpiryNotification } from "@/components/plan-expiry-notification"
 
 export default function SuperAdminDashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     fetchDashboardData()
@@ -60,9 +63,36 @@ export default function SuperAdminDashboard() {
     )
   }
 
-  const { metrics, charts, activities, systemHealth, supportTickets } = dashboardData
+  const { metrics, charts, activities, notifications, systemHealth, supportTickets } = dashboardData
   return (
     <div className="space-y-8">
+      <PlanExpiryNotification />
+      
+      {/* Notifications Alert */}
+      {notifications?.total > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-5 w-5 text-orange-600" />
+              <CardTitle className="text-orange-800">Pending Requests ({notifications.total})</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              {notifications.planRequests > 0 && (
+                <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                  {notifications.planRequests} Plan Upgrades
+                </Badge>
+              )}
+              {notifications.fieldRequests > 0 && (
+                <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                  {notifications.fieldRequests} Field Requests
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {/* Key Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -235,12 +265,20 @@ export default function SuperAdminDashboard() {
               <div className="space-y-4">
                 {activities.length > 0 ? activities.map((activity: any, index: number) => (
                   <div key={index} className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.priority === 'high' ? 'bg-red-500' :
+                      activity.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                    }`} />
                     <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">{activity.type}</p>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        {activity.type}
+                        {activity.priority === 'high' && <AlertCircle className="w-3 h-3 text-red-500" />}
+                      </p>
                       <p className="text-xs text-muted-foreground">{activity.description} - {activity.time}</p>
                     </div>
-                    <Badge variant="outline">{activity.status}</Badge>
+                    <Badge variant={activity.status === 'Pending' ? 'destructive' : 'outline'}>
+                      {activity.status}
+                    </Badge>
                   </div>
                 )) : (
                   <p className="text-sm text-muted-foreground">No recent activities</p>
@@ -316,19 +354,39 @@ export default function SuperAdminDashboard() {
               <CardDescription>Common administrative tasks</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent" 
+                size="sm"
+                onClick={() => router.push('/super-admin/tenants')}
+              >
                 <Building2 className="w-4 h-4 mr-2" />
-                Add New Clothing Store
+                Add New Store
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent" 
+                size="sm"
+                onClick={() => router.push('/super-admin/plans')}
+              >
                 <CreditCard className="w-4 h-4 mr-2" />
                 Create Plan
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent" 
+                size="sm"
+                onClick={() => router.push('/super-admin/settings')}
+              >
                 <Activity className="w-4 h-4 mr-2" />
                 System Maintenance
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent" size="sm">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent" 
+                size="sm"
+                onClick={() => router.push('/super-admin/tenants')}
+              >
                 <Users className="w-4 h-4 mr-2" />
                 Bulk Operations
               </Button>

@@ -51,22 +51,32 @@ export default function SettingsPage() {
       
       if (settingsResponse.ok) {
         const data = await settingsResponse.json()
+        console.log('Settings data:', data)
         setSettings(data)
       }
       
       if (businessTypesResponse.ok) {
-        const businessTypesData = await businessTypesResponse.json()
-        setBusinessTypes(businessTypesData)
+        const businessTypesResult = await businessTypesResponse.json()
+        const businessTypesData = businessTypesResult.data || businessTypesResult
+        console.log('Business types data:', businessTypesData)
+        setBusinessTypes(Array.isArray(businessTypesData) ? businessTypesData : [])
+      } else {
+        console.log('Business types response not ok:', businessTypesResponse.status)
+        setBusinessTypes([])
       }
       
       if (tenantResponse.ok) {
         const tenantData = await tenantResponse.json()
+        console.log('Tenant features data:', tenantData)
         if (tenantData.businessType) {
           setSettings(prev => ({ ...prev, businessType: tenantData.businessType }))
         }
+      } else {
+        console.log('Tenant response not ok:', tenantResponse.status)
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
+      setBusinessTypes([])
     } finally {
       setLoading(false)
     }
@@ -228,16 +238,38 @@ export default function SettingsPage() {
               <Label htmlFor="businessType">{t('businessTypeAssigned')}</Label>
               <Input
                 id="businessType"
-                value={settings.businessType === 'none' ? t('noTemplateAssigned') : businessTypes.find(bt => bt.id === settings.businessType)?.name || 'Unknown'}
+                value={(() => {
+                  if (!settings.businessType || settings.businessType === 'none') {
+                    return t('noTemplateAssigned') || 'No Template Assigned'
+                  }
+                  if (!Array.isArray(businessTypes) || businessTypes.length === 0) {
+                    return 'Loading...'
+                  }
+                  const businessType = businessTypes.find(bt => 
+                    bt.id === settings.businessType || 
+                    bt._id === settings.businessType ||
+                    bt.id === settings.businessType.toString() ||
+                    bt._id?.toString() === settings.businessType
+                  )
+                  return businessType?.name || `Unknown (ID: ${settings.businessType})`
+                })()}
                 readOnly
                 className="w-full p-2 border rounded-md bg-gray-50 cursor-not-allowed"
               />
               <p className="text-sm text-muted-foreground">
-                {t('businessTypeCannotChange')}
+                {t('businessTypeCannotChange') || 'Business type is assigned by super admin and cannot be changed'}
               </p>
-              {settings.businessType && settings.businessType !== 'none' && (
+              {settings.businessType && settings.businessType !== 'none' && Array.isArray(businessTypes) && (
                 <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                  {businessTypes.find(t => t.id === settings.businessType)?.description}
+                  {(() => {
+                    const businessType = businessTypes.find(bt => 
+                      bt.id === settings.businessType || 
+                      bt._id === settings.businessType ||
+                      bt.id === settings.businessType.toString() ||
+                      bt._id?.toString() === settings.businessType
+                    )
+                    return businessType?.description || 'No description available'
+                  })()}
                 </div>
               )}
             </div>

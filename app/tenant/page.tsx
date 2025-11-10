@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { ChartDashboard } from "@/components/chart-dashboard"
 import { AutoAlertSystem } from "@/lib/auto-alerts"
 import { useLanguage } from "@/lib/language-context"
+import { TenantPlanNotification } from "@/components/tenant-plan-notification"
 
 export default function TenantDashboard() {
   const [loading, setLoading] = useState(true)
@@ -12,8 +13,7 @@ export default function TenantDashboard() {
 
   useEffect(() => {
     setLoading(false)
-    // Start auto-alert system
-    AutoAlertSystem.getInstance().start()
+    console.log('📱 WhatsApp alerts scheduled via Vercel Cron at 11:30 AM daily')
   }, [])
 
   if (loading) {
@@ -28,6 +28,7 @@ export default function TenantDashboard() {
 
   return (
     <MainLayout title={t('dashboard')}>
+      <TenantPlanNotification />
       <ChartDashboard />
     </MainLayout>
   )

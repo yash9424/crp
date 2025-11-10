@@ -138,7 +138,8 @@ export default function POSPage() {
     try {
       const response = await fetch('/api/employees')
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.data || result || []
         setEmployees(data)
       }
     } catch (error) {
@@ -164,7 +165,8 @@ export default function POSPage() {
     try {
       const response = await fetch('/api/inventory')
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.data || result || []
         setProducts(data)
         setFilteredProducts(data)
       }
@@ -400,7 +402,7 @@ export default function POSPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
-                      {employees.map((emp) => (
+                      {Array.isArray(employees) && employees.map((emp) => (
                         <SelectItem key={emp._id} value={emp.employeeId}>
                           {emp.name} ({emp.employeeId})
                         </SelectItem>
@@ -481,7 +483,7 @@ export default function POSPage() {
                 <div className="text-center py-8">{t('loadingProducts')}</div>
               ) : (
                 <div className="grid gap-3 max-h-96 overflow-y-auto">
-                  {filteredProducts.map((product) => {
+                  {Array.isArray(filteredProducts) && filteredProducts.map((product) => {
                     return (
                       <div
                         key={product.id}

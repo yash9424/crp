@@ -45,29 +45,41 @@ export default function FieldSettingsPage() {
     try {
       const response = await fetch('/api/business-types')
       if (response.ok) {
-        const data = await response.json()
-        setBusinessTypes(data)
+        const result = await response.json()
+        const data = result.data || result || []
+        const businessTypesArray = Array.isArray(data) ? data : []
+        console.log('Business types fetched:', businessTypesArray)
+        setBusinessTypes(businessTypesArray)
+      } else {
+        console.log('Business types response not ok:', response.status)
+        setBusinessTypes([])
       }
     } catch (error) {
       console.error('Failed to fetch business types:', error)
+      setBusinessTypes([])
     }
   }
 
   const handleBusinessTypeChange = async (businessTypeId: string) => {
-    const businessType = businessTypes.find(bt => bt.id === businessTypeId)
+    const businessType = businessTypes.find(bt => 
+      bt.id === businessTypeId || 
+      bt._id === businessTypeId ||
+      bt.id === businessTypeId.toString() ||
+      bt._id?.toString() === businessTypeId
+    )
     if (businessType) {
       setSelectedBusinessType(businessTypeId)
-      const newFields = businessType.fields.map(field => ({
+      const newFields = businessType.fields?.map(field => ({
         ...field,
         enabled: true
-      }))
+      })) || []
       setCustomFields(newFields)
       
       try {
         await saveFieldsToDatabase(businessTypeId, newFields)
-        showToast.success(t('businessTypeFieldsLoaded'))
+        showToast.success(t('businessTypeFieldsLoaded') || 'Business type fields loaded')
       } catch (error) {
-        showToast.error(t('failedToSaveBusinessTypeFields'))
+        showToast.error(t('failedToSaveBusinessTypeFields') || 'Failed to save business type fields')
       }
     }
   }
@@ -98,7 +110,12 @@ export default function FieldSettingsPage() {
       }
       
       if (loadedFields.length === 0 && businessTypeId && businessTypes.length > 0) {
-        const businessType = businessTypes.find(bt => bt.id === businessTypeId)
+        const businessType = businessTypes.find(bt => 
+          bt.id === businessTypeId || 
+          bt._id === businessTypeId ||
+          bt.id === businessTypeId.toString() ||
+          bt._id?.toString() === businessTypeId
+        )
         if (businessType && businessType.fields) {
           loadedFields = businessType.fields.map(field => ({ ...field, enabled: true }))
           await saveFieldsToDatabase(businessTypeId, loadedFields)
@@ -112,8 +129,13 @@ export default function FieldSettingsPage() {
   }
 
   const refreshFromTemplate = async () => {
-    const businessType = businessTypes.find(bt => bt.id === selectedBusinessType)
-    if (businessType) {
+    const businessType = businessTypes.find(bt => 
+      bt.id === selectedBusinessType || 
+      bt._id === selectedBusinessType ||
+      bt.id === selectedBusinessType.toString() ||
+      bt._id?.toString() === selectedBusinessType
+    )
+    if (businessType && businessType.fields) {
       const existingFieldNames = customFields.map(f => f.name)
       const newFields = businessType.fields.filter(f => !existingFieldNames.includes(f.name))
       
@@ -126,9 +148,9 @@ export default function FieldSettingsPage() {
       
       try {
         await saveFieldsToDatabase(selectedBusinessType, updatedFields)
-        showToast.success(t('templateRefreshed'))
+        showToast.success(t('templateRefreshed') || 'Template refreshed')
       } catch (error) {
-        showToast.error(t('templateRefreshedFailedSave'))
+        showToast.error(t('templateRefreshedFailedSave') || 'Failed to save refreshed template')
       }
     }
   }
@@ -293,9 +315,39 @@ export default function FieldSettingsPage() {
 
   if (businessTypes.length === 0) {
     return (
-      <MainLayout title={t('fieldConfiguration')}>
+      <MainLayout title={t('fieldConfiguration') || 'Field Configuration'}>
         <div className="space-y-6">
-          <BusinessTypeInitializer />
+          <Card>
+            <CardHeader>
+              <CardTitle>Initialize Business Types</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                No business types found. You need to initialize business types first.
+              </p>
+              <div className="flex space-x-2">
+                <Button onClick={async () => {
+                  try {
+                    const response = await fetch('/api/init-business-types', { method: 'POST' })
+                    if (response.ok) {
+                      showToast.success('Business types initialized successfully!')
+                      fetchBusinessTypes()
+                    } else {
+                      showToast.error('Failed to initialize business types')
+                    }
+                  } catch (error) {
+                    showToast.error('Error initializing business types')
+                  }
+                }}>
+                  Initialize Business Types
+                </Button>
+                <Button variant="outline" onClick={fetchBusinessTypes}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </MainLayout>
     )
@@ -312,7 +364,15 @@ export default function FieldSettingsPage() {
             {selectedBusinessType && selectedBusinessType !== 'none' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
                 <h3 className="font-medium text-blue-900">
-                  {t('currentlyAssignedBusinessType')}: {businessTypes.find(bt => bt.id === selectedBusinessType)?.name || 'Unknown'}
+                  {t('currentlyAssignedBusinessType') || 'Currently Assigned Business Type'}: {(() => {
+                    const businessType = businessTypes.find(bt => 
+                      bt.id === selectedBusinessType || 
+                      bt._id === selectedBusinessType ||
+                      bt.id === selectedBusinessType.toString() ||
+                      bt._id?.toString() === selectedBusinessType
+                    )
+                    return businessType?.name || 'Unknown'
+                  })()}
                 </h3>
               </div>
             )}

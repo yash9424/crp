@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
     const employeeId = searchParams.get('employeeId')
     const month = searchParams.get('month')
     const year = searchParams.get('year')
@@ -28,9 +31,18 @@ export async function GET(request: NextRequest) {
       query.endDate = { $lte: endDate.toISOString().split('T')[0] }
     }
     
-    const leaves = await leavesCollection.find(query).sort({ createdAt: -1 }).toArray()
+    const total = await leavesCollection.countDocuments(query)
+    const leaves = await leavesCollection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray()
     
-    return NextResponse.json(leaves)
+    return NextResponse.json({
+      data: leaves,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch leaves' }, { status: 500 })
   }

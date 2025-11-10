@@ -67,17 +67,27 @@ export default function CustomersPage() {
   const [customerFormData, setCustomerFormData] = useState({ name: '', phone: '', email: '', address: '' })
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 20
 
   const { storeName, tenantId } = useStore()
 
 
   // Fetch customers from API
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (page = 1) => {
     try {
-      const response = await fetch('/api/customers')
+      const response = await fetch(`/api/customers?page=${page}&limit=${itemsPerPage}`)
       if (response.ok) {
-        const data = await response.json()
-        setCustomers(data)
+        const result = await response.json()
+        if (result.pagination) {
+          setTotalPages(result.pagination.totalPages)
+          setTotalItems(result.pagination.total)
+          setCustomers(result.data || [])
+        } else {
+          setCustomers(result.data || result || [])
+        }
       }
     } catch (error) {
       console.error('Failed to fetch customers:', error)
@@ -87,8 +97,12 @@ export default function CustomersPage() {
   }
 
   useEffect(() => {
-    fetchCustomers()
+    fetchCustomers(1)
   }, [])
+
+  useEffect(() => {
+    fetchCustomers(currentPage)
+  }, [currentPage])
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesSearch =
@@ -275,6 +289,56 @@ export default function CustomersPage() {
                 </TableBody>
               </Table>
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} customers
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === totalPages || 
+                        Math.abs(page - currentPage) <= 1
+                      )
+                      .map((page, index, array) => (
+                        <div key={page} className="flex items-center">
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-muted-foreground">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </div>
+                      ))
+                    }
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -426,7 +490,7 @@ export default function CustomersPage() {
                       })
                       if (response.ok) {
                         showToast.success(editingCustomer ? t('customerUpdatedSuccess') : t('customerCreatedSuccess'))
-                        fetchCustomers()
+                        fetchCustomers(currentPage)
                         setIsCustomerDialogOpen(false)
                       } else {
                         showToast.error(editingCustomer ? t('failedToUpdateCustomer') : t('failedToCreateCustomer'))
@@ -465,7 +529,7 @@ export default function CustomersPage() {
                       })
                       if (response.ok) {
                         showToast.success(t('customerDeletedSuccess'))
-                        fetchCustomers()
+                        fetchCustomers(currentPage)
                       } else {
                         showToast.error(t('failedToDeleteCustomer'))
                       }

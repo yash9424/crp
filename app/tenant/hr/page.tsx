@@ -85,14 +85,19 @@ export default function HRPage() {
     try {
       const response = await fetch('/api/employees')
       if (response.ok) {
-        const data = await response.json()
-        setEmployees(data)
+        const result = await response.json()
+        const data = result.data || result || []
+        const employeesArray = Array.isArray(data) ? data : []
+        setEmployees(employeesArray)
         // Auto-generate next employee ID
-        const nextId = `EMP${String(data.length + 1).padStart(3, '0')}`
+        const nextId = `EMP${String(employeesArray.length + 1).padStart(3, '0')}`
         setFormData(prev => ({...prev, employeeId: nextId}))
+      } else {
+        setEmployees([])
       }
     } catch (error) {
       console.error('Failed to fetch employees:', error)
+      setEmployees([])
     } finally {
       setLoading(false)
     }
@@ -217,14 +222,14 @@ export default function HRPage() {
     fetchEmployees()
   }, [])
 
-  const filteredEmployees = employees.filter((employee) => {
+  const filteredEmployees = Array.isArray(employees) ? employees.filter((employee) => {
     const matchesSearch =
       employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || employee.status === statusFilter
     return matchesSearch  && matchesStatus
-  })
+  }) : []
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -239,10 +244,10 @@ export default function HRPage() {
     }
   }
 
-  const totalEmployees = employees.length
-  const activeEmployees = employees.filter((emp) => emp.status === "Active").length
-  const onLeaveEmployees = employees.filter((emp) => emp.status === "On Leave").length
-  const totalSalary = employees.reduce((sum, emp) => sum + emp.salary, 0)
+  const totalEmployees = Array.isArray(employees) ? employees.length : 0
+  const activeEmployees = Array.isArray(employees) ? employees.filter((emp) => emp.status === "Active").length : 0
+  const onLeaveEmployees = Array.isArray(employees) ? employees.filter((emp) => emp.status === "On Leave").length : 0
+  const totalSalary = Array.isArray(employees) ? employees.reduce((sum, emp) => sum + emp.salary, 0) : 0
 
   if (loading) {
     return (
