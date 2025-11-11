@@ -31,11 +31,13 @@ export default function FeatureMatrixPage() {
     try {
       const response = await fetch('/api/plans')
       if (response.ok) {
-        const data = await response.json()
-        setPlans(data)
+        const result = await response.json()
+        const data = result.data || result
+        setPlans(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Failed to fetch plans:', error)
+      setPlans([])
     } finally {
       setLoading(false)
     }

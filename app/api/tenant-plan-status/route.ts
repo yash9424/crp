@@ -24,25 +24,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Tenant not found' }, { status: 404 })
     }
     
-    // If no plan expiry date, create a test expiry that expires in 1 minute for demo
+    // If no plan expiry date, don't show notification
     if (!tenant.planExpiryDate) {
-      const testExpiry = new Date()
-      testExpiry.setMinutes(testExpiry.getMinutes() + 1) // 1 minute from now
-      
-      // Update tenant with this test expiry
-      await tenantsCollection.updateOne(
-        { _id: new ObjectId(session.user.tenantId) },
-        { $set: { planExpiryDate: testExpiry, planName: 'Test Plan' } }
-      )
-      
-      return NextResponse.json({
-        planName: 'Test Plan',
-        expiryDate: testExpiry.toISOString(),
-        daysLeft: 0,
-        isExpired: false,
-        isExpiringSoon: true,
-        showNotification: true
-      })
+      return NextResponse.json({ showNotification: false })
     }
     
     const now = new Date()

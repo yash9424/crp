@@ -27,11 +27,13 @@ export default function PlanRequestsPage() {
     try {
       const response = await fetch('/api/plan-requests')
       if (response.ok) {
-        const data = await response.json()
-        setRequests(data)
+        const result = await response.json()
+        const data = result.data || result
+        setRequests(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error)
+      setRequests([])
     } finally {
       setLoading(false)
     }

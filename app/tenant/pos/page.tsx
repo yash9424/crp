@@ -542,16 +542,7 @@ export default function POSPage() {
                             })()}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {tenantFields.filter(f => f.enabled && f.name.toLowerCase() !== 'medicine' && f.name.toLowerCase() !== 'product name' && f.name.toLowerCase() !== 'name' && !f.name.toLowerCase().includes('id')).map((field, index) => {
-                              const value = getFieldValue(product, field.name)
-                              if (!value) return null
-                              return (
-                                <span key={field.name}>
-                                  {index > 0 ? ' • ' : ''}{field.name}: {Array.isArray(value) ? value.join(', ') : value}
-                                </span>
-                              )
-                            }).filter(Boolean)}
-                            {` • ${t('stock')}: ${product.stock || 0}`}
+                            {t('stock')}: {product.stock || 0}
                           </p>
                         </div>
                         <div className="text-right">

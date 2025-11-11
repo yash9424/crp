@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       {
         $set: {
           plan: new ObjectId(planId),
+          planName: plan.name,
           planExpiryDate: expiryDate,
           planAssignedAt: now,
           status: 'active',

@@ -2,10 +2,25 @@ import { useState, useEffect } from 'react'
 import { FeatureKey } from '@/lib/feature-permissions'
 
 export function useFeatureAccess() {
-  const [allowedFeatures, setAllowedFeatures] = useState<FeatureKey[]>([
-    'dashboard', 'inventory', 'pos', 'customers', 'purchases', 'hr', 'leaves', 'salary', 'bills', 'reports', 'expenses', 'dropdownSettings', 'settings'
-  ])
-  const [loading, setLoading] = useState(false)
+  const [allowedFeatures, setAllowedFeatures] = useState<FeatureKey[]>(['dashboard'])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchFeatures = async () => {
+      try {
+        const response = await fetch('/api/tenant-features')
+        if (response.ok) {
+          const data = await response.json()
+          setAllowedFeatures(data.allowedFeatures || ['dashboard'])
+        }
+      } catch (error) {
+        console.error('Failed to fetch features:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFeatures()
+  }, [])
 
   const hasFeature = (feature: FeatureKey): boolean => {
     return allowedFeatures.includes(feature)

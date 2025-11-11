@@ -74,10 +74,10 @@ const getRetailNavItems = (t: (key: any) => string) => [
   { title: t("reports"), href: "/tenant/reports", icon: BarChart3, feature: "reports" as FeatureKey, group: "analytics" },
   { title: t("expenses"), href: "/tenant/expenses", icon: Receipt, feature: "expenses" as FeatureKey, group: "analytics" },
   
-  // Configuration
-  { title: t("settings"), href: "/tenant/settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
-  { title: t("fieldSettings"), href: "/tenant/field-settings", icon: Settings, feature: "settings" as FeatureKey, group: "config" },
-  { title: t("dropdownSettings"), href: "/tenant/dropdown-settings", icon: Settings, feature: "dropdownSettings" as FeatureKey, group: "config" },
+  // Configuration (Always accessible)
+  { title: t("settings"), href: "/tenant/settings", icon: Settings, feature: "dashboard" as FeatureKey, group: "config" },
+  { title: t("fieldSettings"), href: "/tenant/field-settings", icon: Settings, feature: "dashboard" as FeatureKey, group: "config" },
+  { title: t("dropdownSettings"), href: "/tenant/dropdown-settings", icon: Settings, feature: "dashboard" as FeatureKey, group: "config" },
   
   // Support & Upgrade
   { title: t("help"), href: "/tenant/help", icon: HelpCircle, feature: "dashboard" as FeatureKey, group: "support" },
@@ -206,7 +206,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
             </Collapsible>
 
             {/* Customer & Sales - Only for retail users */}
-            {userType === "retail" && (
+            {userType === "retail" && navItems.filter(item => item.group === 'sales').length > 0 && (
               <Collapsible open={openSections.sales} onOpenChange={() => toggleSection('sales')}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
@@ -241,7 +241,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
             )}
 
             {/* Human Resources - Only for retail users */}
-            {userType === "retail" && (
+            {userType === "retail" && navItems.filter(item => item.group === 'hr').length > 0 && (
               <Collapsible open={openSections.hr} onOpenChange={() => toggleSection('hr')}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
@@ -276,7 +276,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
             )}
 
             {/* Analytics & Finance - Only for retail users */}
-            {userType === "retail" && (
+            {userType === "retail" && navItems.filter(item => item.group === 'analytics').length > 0 && (
               <Collapsible open={openSections.analytics} onOpenChange={() => toggleSection('analytics')}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">
@@ -311,7 +311,7 @@ export function Sidebar({ userType = "retail" }: SidebarProps) {
             )}
 
             {/* Configuration - Only for retail users */}
-            {userType === "retail" && (
+            {userType === "retail" && navItems.filter(item => item.group === 'config').length > 0 && (
               <Collapsible open={openSections.config} onOpenChange={() => toggleSection('config')}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-100 px-2 py-2">

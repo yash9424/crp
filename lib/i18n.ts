@@ -614,6 +614,8 @@ export const translations = {
     invalidPassword: "Invalid password",
     noCustomerData: "No customer purchase data available",
     allItemsWellStocked: "All items are well stocked!",
+    online: "Online",
+    failedToSendWhatsApp: "Failed to send WhatsApp",
   },
   
   gu: {
@@ -1231,6 +1233,8 @@ export const translations = {
     invalidPassword: "ખોટો પાસવર્ડ",
     noCustomerData: "કોઈ ગ્રાહક ખરીદી ડેટા ઉપલબ્ધ નથી",
     allItemsWellStocked: "બધી વસ્તુઓ સારી રીતે સ્ટોક છે!",
+    online: "ઓનલાઇન",
+    failedToSendWhatsApp: "વ્હોટ્સએપ મોકલવામાં નિષ્ફળ",
   },
   
   hi: {
@@ -1848,6 +1852,8 @@ export const translations = {
     invalidPassword: "गलत पासवर्ड",
     noCustomerData: "कोई ग्राहक खरीदारी डेटा उपलब्ध नहीं",
     allItemsWellStocked: "सभी आइटम अच्छे स्टॉक में हैं!",
+    online: "ऑनलाइन",
+    failedToSendWhatsApp: "व्हाट्सएप भेजने में विफल",
   }
 }
 

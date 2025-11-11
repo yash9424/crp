@@ -23,9 +23,10 @@ export async function GET() {
         name: 1, 
         email: 1, 
         status: 1, 
+        plan: 1,
+        planName: 1,
         planExpiryDate: 1, 
-        planAssignedAt: 1,
-        plan: 1
+        planAssignedAt: 1
       } 
     }).toArray()
     return NextResponse.json(tenants)

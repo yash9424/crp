@@ -14,6 +14,8 @@ interface Tenant {
   name: string
   email: string
   status: string
+  plan?: string
+  planName?: string
   planExpiryDate?: string
   planAssignedAt?: string
 }
@@ -55,11 +57,14 @@ export function TenantPlanAssignment() {
     try {
       const response = await fetch('/api/plans')
       if (response.ok) {
-        const data = await response.json()
-        setPlans(data.filter((plan: Plan) => plan.status === 'active'))
+        const result = await response.json()
+        const data = result.data || result
+        const plansArray = Array.isArray(data) ? data : []
+        setPlans(plansArray.filter((plan: any) => plan.status === 'active'))
       }
     } catch (error) {
       console.error('Failed to fetch plans:', error)
+      setPlans([])
     }
   }
 
@@ -144,21 +149,26 @@ export function TenantPlanAssignment() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {tenant.planExpiryDate ? (
+                        {tenant.plan || tenant.planExpiryDate ? (
                           <>
                             <Clock className="h-4 w-4" />
                             <div>
-                              <div className="text-sm">{new Date(tenant.planExpiryDate).toLocaleDateString()}</div>
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${
-                                  expiryStatus.color === 'red' ? 'border-red-500 text-red-600' :
-                                  expiryStatus.color === 'orange' ? 'border-orange-500 text-orange-600' :
-                                  'border-green-500 text-green-600'
-                                }`}
-                              >
-                                {expiryStatus.status}
-                              </Badge>
+                              {tenant.planName && <div className="text-sm font-medium">{tenant.planName}</div>}
+                              {tenant.planExpiryDate && (
+                                <>
+                                  <div className="text-sm">{new Date(tenant.planExpiryDate).toLocaleDateString()}</div>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${
+                                      expiryStatus.color === 'red' ? 'border-red-500 text-red-600' :
+                                      expiryStatus.color === 'orange' ? 'border-orange-500 text-orange-600' :
+                                      'border-green-500 text-green-600'
+                                    }`}
+                                  >
+                                    {expiryStatus.status}
+                                  </Badge>
+                                </>
+                              )}
                             </div>
                           </>
                         ) : (

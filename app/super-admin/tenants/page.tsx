@@ -30,8 +30,132 @@ import {
   Ban,
   CheckCircle,
   CreditCard,
+  Check,
+  Calendar,
 } from "lucide-react"
 import { showToast } from "@/lib/toast"
+
+function AssignPlanButton({ tenant, plans, onSuccess }: any) {
+  const [open, setOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const assignPlan = async () => {
+    if (!selectedPlan) return
+    setLoading(true)
+    try {
+      const response = await fetch('/api/assign-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantId: tenant.id, planId: selectedPlan })
+      })
+      if (response.ok) {
+        const result = await response.json()
+        showToast.success(`Plan assigned! Expires: ${new Date(result.expiryDate).toLocaleDateString()}`)
+        setOpen(false)
+        setSelectedPlan("")
+        onSuccess()
+      } else {
+        showToast.error('Failed to assign plan')
+      }
+    } catch (error) {
+      showToast.error('Error assigning plan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const selectedPlanDetails = plans.find((p: any) => (p._id || p.id) === selectedPlan)
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" title="Assign Plan">
+          <CreditCard className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Assign Plan to {tenant.name}</DialogTitle>
+          <DialogDescription>Select a subscription plan for this tenant</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Select Plan</Label>
+            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Choose a plan..." />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {plans.map((plan: any) => (
+                  <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-medium">{plan.name}</span>
+                      <span className="text-sm text-muted-foreground ml-4">₹{plan.price}/year</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedPlanDetails && (
+            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-blue-900">Plan Details</h4>
+                <Badge className="bg-blue-600">{selectedPlanDetails.name}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-xs text-blue-600">Price</div>
+                    <div className="font-semibold text-blue-900">₹{selectedPlanDetails.price}/year</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-xs text-blue-600">Duration</div>
+                    <div className="font-semibold text-blue-900">{(selectedPlanDetails as any).durationDays || 365} days</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-xs text-blue-600">Features</div>
+                    <div className="font-semibold text-blue-900">{selectedPlanDetails.allowedFeatures?.length || 0} features</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <div className="text-xs text-blue-600">Products</div>
+                    <div className="font-semibold text-blue-900">{selectedPlanDetails.maxProducts}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-blue-200">
+                <div className="text-xs text-blue-600">Expires On</div>
+                <div className="font-semibold text-blue-900">
+                  {new Date(Date.now() + ((selectedPlanDetails as any).durationDays || 365) * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB')}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={assignPlan} disabled={!selectedPlan || loading}>
+            {loading ? 'Assigning...' : 'Assign Plan'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 interface Tenant {
   id: string
@@ -528,7 +652,7 @@ export default function TenantsPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select business type template" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-60">
                           <SelectItem value="none">No Template</SelectItem>
                           {businessTypes.map((type) => (
                             <SelectItem key={type.id} value={type.id}>
@@ -542,21 +666,6 @@ export default function TenantsPage() {
                           {businessTypes.find(t => t.id === formData.businessType)?.description}
                         </div>
                       )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tenantPlan">Plan</Label>
-                      <Select value={formData.plan} onValueChange={(value) => setFormData({ ...formData, plan: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {plans.map((plan) => (
-                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
-                              {plan.name} - ₹{plan.price}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="tenantAddress">Address</Label>
@@ -591,7 +700,7 @@ export default function TenantsPage() {
                           <SelectTrigger className="w-40">
                             <SelectValue placeholder="Select Code" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-60">
                             {availableReferralCodes.map((ref) => (
                               <SelectItem key={ref.code} value={ref.code}>
                                 {ref.name} ({ref.code})
@@ -686,7 +795,7 @@ export default function TenantsPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select business type template" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="max-h-60">
                           <SelectItem value="none">No Template</SelectItem>
                           {businessTypes.map((type) => (
                             <SelectItem key={type.id} value={type.id}>
@@ -700,21 +809,6 @@ export default function TenantsPage() {
                           {businessTypes.find(t => t.id === formData.businessType)?.description}
                         </div>
                       )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="editTenantPlan">Plan</Label>
-                      <Select value={formData.plan} onValueChange={(value) => setFormData({ ...formData, plan: value })}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {plans.map((plan) => (
-                            <SelectItem key={plan._id || plan.id} value={plan._id || plan.id || ''}>
-                              {plan.name} - ₹{plan.price}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="editTenantAddress">Address</Label>
@@ -842,36 +936,7 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              const planOptions = plans.map(p => `${p.name} - ₹${p.price} (ID: ${p._id || p.id})`).join('\n')
-                              const selectedPlan = prompt(`Select Plan:\n\n${planOptions}\n\nEnter Plan Name:`)
-                              if (selectedPlan) {
-                                const plan = plans.find(p => p.name.toLowerCase() === selectedPlan.toLowerCase())
-                                const planId = plan ? (plan._id || plan.id) : selectedPlan
-                                try {
-                                  const response = await fetch('/api/assign-plan', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ tenantId: tenant.id, planId })
-                                  })
-                                  if (response.ok) {
-                                    fetchTenants()
-                                    showToast.success('Plan assigned successfully!')
-                                  } else {
-                                    showToast.error('Failed to assign plan')
-                                  }
-                                } catch (error) {
-                                  showToast.error('Error assigning plan')
-                                }
-                              }
-                            }}
-                            title="Assign Plan"
-                          >
-                            <CreditCard className="w-4 h-4" />
-                          </Button>
+                          <AssignPlanButton tenant={tenant} plans={plans} onSuccess={fetchTenants} />
                           <Button
                             variant="ghost"
                             size="sm"

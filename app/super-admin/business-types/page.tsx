@@ -40,11 +40,13 @@ export default function BusinessTypesPage() {
     try {
       const response = await fetch('/api/business-types')
       if (response.ok) {
-        const data = await response.json()
-        setBusinessTypes(data)
+        const result = await response.json()
+        const data = result.data || result
+        setBusinessTypes(Array.isArray(data) ? data : [])
       }
     } catch (error) {
       console.error('Failed to fetch business types:', error)
+      setBusinessTypes([])
     }
   }
 
