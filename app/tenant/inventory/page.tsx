@@ -677,14 +677,15 @@ export default function InventoryPage() {
                   onClick={() => document.getElementById('csv-upload')?.click()}
                   disabled={importing}
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Download className="w-4 h-4 mr-2" />
                   {importing ? t('importing') : t('importCSV')}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => window.open('/api/inventory/export', '_blank')}
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  
+                  <Upload className="w-4 h-4 mr-2" />
                   {t('exportCSV')}
                 </Button>
                 
@@ -867,7 +868,6 @@ export default function InventoryPage() {
                             <TableHead key={field.name} className="text-center">{field.name}</TableHead>
                           ))}
                           <TableHead className="text-center">{t('stock')}</TableHead>
-
                         </>
                       ) : (
                         <>
@@ -897,9 +897,15 @@ export default function InventoryPage() {
                                 value = item.name
                               }
                               
+                              const isBarcode = field.name.toLowerCase() === 'barcode' || field.type === 'barcode'
+                              
                               return (
                                 <TableCell key={field.name} className="text-center">
-                                  {Array.isArray(value) ? value.join(', ') : (value || 'N/A')}
+                                  {isBarcode && value ? (
+                                    <BarcodeDisplay value={value} width={1.5} height={30} fontSize={10} />
+                                  ) : (
+                                    Array.isArray(value) ? value.join(', ') : (value || 'N/A')
+                                  )}
                                 </TableCell>
                               )
                             })}

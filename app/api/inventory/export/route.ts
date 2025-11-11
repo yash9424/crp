@@ -43,11 +43,21 @@ export async function GET() {
       
       headers.forEach(header => {
         const fieldKey = header.toLowerCase().replace(/\s+/g, '_')
-        let value = item[header] || item[fieldKey] || item[header.toLowerCase()] || ''
+        const headerLower = header.toLowerCase()
         
-        // Handle special name field mapping
-        if (header.toLowerCase().includes('name') && !value) {
-          value = item.name || ''
+        // Try multiple variations to find the value
+        let value = item[header] || 
+                   item[fieldKey] || 
+                   item[headerLower] || 
+                   item[header.replace(/\s+/g, '')] ||
+                   ''
+        
+        // Handle special field mappings
+        if (headerLower.includes('name') && !value) {
+          value = item.name || item.productname || item.ProductName || ''
+        }
+        if (headerLower === 'barcode' && !value) {
+          value = item.barcode || item.Barcode || ''
         }
         
         if (Array.isArray(value)) {

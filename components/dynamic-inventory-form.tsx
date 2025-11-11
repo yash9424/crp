@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Package } from "lucide-react"
+import JsBarcode from "jsbarcode"
 
 interface Field {
   name: string
@@ -18,6 +19,55 @@ interface Field {
 interface DynamicInventoryFormProps {
   formData: Record<string, any>
   setFormData: (data: Record<string, any>) => void
+}
+
+function BarcodeField({ fieldKey, fieldValue, updateFormData, field }: any) {
+  const barcodeRef = useRef<SVGSVGElement>(null)
+
+  useEffect(() => {
+    if (fieldValue && barcodeRef.current) {
+      try {
+        JsBarcode(barcodeRef.current, fieldValue, {
+          format: "CODE128",
+          width: 2,
+          height: 50,
+          displayValue: true,
+          fontSize: 14
+        })
+      } catch (error) {
+        console.error('Barcode generation error:', error)
+      }
+    }
+  }, [fieldValue])
+
+  return (
+    <div className="space-y-2">
+      <div className="flex space-x-2">
+        <Input
+          value={fieldValue}
+          onChange={(e) => updateFormData(field.name, e.target.value)}
+          placeholder="Barcode Number"
+          required={field.required}
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const newBarcode = `${Date.now()}`
+            updateFormData(field.name, newBarcode)
+          }}
+          className="px-3 py-2 border rounded hover:bg-gray-50 text-sm whitespace-nowrap"
+        >
+          Generate
+        </button>
+      </div>
+      {fieldValue && (
+        <div className="p-3 border rounded bg-white flex justify-center">
+          <svg ref={barcodeRef}></svg>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DynamicInventoryForm({ formData, setFormData }: DynamicInventoryFormProps) {
@@ -137,27 +187,7 @@ export function DynamicInventoryForm({ formData, setFormData }: DynamicInventory
         )
       
       case 'barcode':
-        return (
-          <div className="flex space-x-2">
-            <Input
-              value={fieldValue}
-              onChange={(e) => updateFormData(field.name, e.target.value)}
-              placeholder="Barcode Number"
-              required={field.required}
-              className="flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const newBarcode = `FS${Date.now()}`
-                updateFormData(field.name, newBarcode)
-              }}
-              className="px-3 py-2 border rounded hover:bg-gray-50 text-sm whitespace-nowrap"
-            >
-              Generate
-            </button>
-          </div>
-        )
+        return <BarcodeField fieldKey={fieldKey} fieldValue={fieldValue} updateFormData={updateFormData} field={field} />
       
       case 'email':
         return (
