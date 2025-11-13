@@ -12,9 +12,14 @@ export function useFeatureAccess() {
         if (response.ok) {
           const data = await response.json()
           setAllowedFeatures(data.allowedFeatures || ['dashboard'])
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('API error:', response.status, errorData)
+          setAllowedFeatures(['dashboard'])
         }
       } catch (error) {
         console.error('Failed to fetch features:', error)
+        setAllowedFeatures(['dashboard'])
       } finally {
         setLoading(false)
       }

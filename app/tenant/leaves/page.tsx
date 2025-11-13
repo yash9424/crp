@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Calendar, Clock, Users, Filter, Trash2 } from "lucide-react"
+import { Search, Plus, Calendar, Clock, Users, Filter, Trash2, Download, Upload } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
 import { useLanguage } from "@/lib/language-context"
@@ -60,6 +61,10 @@ export default function LeavesPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 20
+  const [selectedLeaves, setSelectedLeaves] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const fetchEmployees = async () => {
     try {
@@ -261,6 +266,73 @@ export default function LeavesPage() {
                 <CardTitle>{t('leaveRecords')}</CardTitle>
                 <CardDescription>{t('employeeLeaveHistory')}</CardDescription>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedLeaves.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedLeaves.length})
+                  </Button>
+                )}
+                {selectedLeaves.length === 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsClearAllOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const response = await fetch('/api/leaves/export')
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      const url = window.URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `leaves_${new Date().toISOString().split('T')[0]}.csv`
+                      a.click()
+                      showToast.success('✅ Leaves exported successfully!')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Failed to export leaves')
+                  }
+                }}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('leaveImportInput')?.click()} disabled={isImporting}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import'}
+                </Button>
+                <input
+                  id="leaveImportInput"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setIsImporting(true)
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const response = await fetch('/api/leaves/import', {
+                        method: 'POST',
+                        body: formData
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        showToast.success(`✅ Imported ${result.imported} leaves successfully!`)
+                        fetchLeaves(currentPage)
+                      } else {
+                        showToast.error(result.error || '❌ Failed to import leaves')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error importing leaves')
+                    } finally {
+                      setIsImporting(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -371,6 +443,7 @@ export default function LeavesPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -441,6 +514,18 @@ export default function LeavesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedLeaves.length === filteredLeaves.length && filteredLeaves.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedLeaves(filteredLeaves.map(l => l._id || ''))
+                            } else {
+                              setSelectedLeaves([])
+                            }
+                          }}
+                        />
+                      </TableHead>
                       <TableHead className="text-center">{t('employee')}</TableHead>
                       <TableHead className="text-center">{t('leaveType')}</TableHead>
                       <TableHead className="text-center">{t('startDate')}</TableHead>
@@ -454,6 +539,18 @@ export default function LeavesPage() {
                   <TableBody>
                     {filteredLeaves.map((leave) => (
                       <TableRow key={leave._id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedLeaves.includes(leave._id || '')}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedLeaves([...selectedLeaves, leave._id || ''])
+                              } else {
+                                setSelectedLeaves(selectedLeaves.filter(id => id !== leave._id))
+                              }
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="text-center font-medium">{leave.employeeName}</TableCell>
                         <TableCell className="text-center">{leave.leaveType}</TableCell>
                         <TableCell className="text-center">{leave.startDate}</TableCell>
@@ -528,6 +625,83 @@ export default function LeavesPage() {
             )}
           </CardContent>
         </Card>
+
+        <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Selected Leaves</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete {selectedLeaves.length} leave records? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => {
+                setIsBulkDeleteOpen(false)
+                setSelectedLeaves([])
+              }}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    await Promise.all(
+                      selectedLeaves.map(id => 
+                        fetch(`/api/leaves/${id}`, { method: 'DELETE' })
+                      )
+                    )
+                    showToast.success(`✅ Deleted ${selectedLeaves.length} leave records`)
+                    setSelectedLeaves([])
+                    setCurrentPage(1)
+                    fetchLeaves(1)
+                  } catch (error) {
+                    showToast.error('❌ Failed to delete leave records')
+                  }
+                  setIsBulkDeleteOpen(false)
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Trash2 className="w-5 h-5 text-red-500" />
+                <span>Clear All Leave Records</span>
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete <strong>ALL leave records</strong>? This action cannot be undone!
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsClearAllOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={async () => {
+                try {
+                  const response = await fetch('/api/leaves/clear', { method: 'DELETE' })
+                  if (response.ok) {
+                    showToast.success('✅ All leave records cleared!')
+                    setSelectedLeaves([])
+                    setCurrentPage(1)
+                    fetchLeaves(1)
+                  } else {
+                    showToast.error('❌ Failed to clear leave records')
+                  }
+                } catch (error) {
+                  showToast.error('❌ Error clearing leave records')
+                }
+                setIsClearAllOpen(false)
+              }}>
+                Delete All
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       </FeatureGuard>
     </MainLayout>

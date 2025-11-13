@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Receipt, Search, Eye, Printer, MessageCircle, Download, X } from "lucide-react"
+import { Receipt, Search, Eye, Printer, MessageCircle, Download, X, Upload, FileDown, Trash2 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
 import { useLanguage } from "@/lib/language-context"
@@ -51,6 +51,8 @@ export default function BillsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 20
+  const [selectedBills, setSelectedBills] = useState<string[]>([])
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false)
 
   const fetchBills = async (page = 1) => {
     try {
@@ -108,8 +110,6 @@ export default function BillsPage() {
     if (!billToDelete) return
     
     const correctPassword = settings.deletePassword || 'admin123'
-    console.log('Entered password:', password)
-    console.log('Correct password:', correctPassword)
     if (password !== correctPassword) {
       showToast.error('❌ Incorrect password!')
       return
@@ -120,36 +120,52 @@ export default function BillsPage() {
         method: 'DELETE'
       })
       if (response.ok) {
-        // Remove bill from local state immediately
-        setBills(prevBills => {
-          const newBills = prevBills.filter(b => {
-            const billId = (b as any)._id || b.id
-            const deleteId = (billToDelete as any)._id || billToDelete.id
-            return billId !== deleteId
-          })
-          return newBills
-        })
+        setBills(prevBills => prevBills.filter(b => {
+          const billId = (b as any)._id || b.id
+          const deleteId = (billToDelete as any)._id || billToDelete.id
+          return billId !== deleteId
+        }))
         setIsPasswordModalOpen(false)
         setPassword('')
         setBillToDelete(null)
-        // Show success message in a better way
-        const successDiv = document.createElement('div')
-        successDiv.innerHTML = `
-          <div style="position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; font-family: system-ui; font-weight: 500;">
-            ✅ Bill deleted successfully!
-          </div>
-        `
-        document.body.appendChild(successDiv)
-        setTimeout(() => {
-          document.body.removeChild(successDiv)
-        }, 3000)
-        // Refresh data in background
+        showToast.success('✅ Bill deleted successfully!')
         fetchBills(currentPage)
       } else {
-        showToast.error('❌ Failed to delete bill. Please try again.')
+        showToast.error('❌ Failed to delete bill')
       }
     } catch (error) {
-      showToast.error('❌ Error deleting bill. Please check your connection.')
+      showToast.error('❌ Error deleting bill')
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    const correctPassword = settings.deletePassword || 'admin123'
+    
+    if (password !== correctPassword) {
+      showToast.error('❌ Incorrect password!')
+      return
+    }
+
+    try {
+      let successCount = 0
+      for (const billId of selectedBills) {
+        const response = await fetch(`/api/pos/sales/${billId}`, { method: 'DELETE' })
+        if (response.ok) successCount++
+      }
+      
+      setIsPasswordModalOpen(false)
+      setPassword('')
+      setSelectedBills([])
+      
+      if (successCount > 0) {
+        showToast.success(`✅ ${successCount} bills deleted successfully!`)
+        fetchBills(currentPage)
+      } else {
+        showToast.error('❌ Failed to delete bills')
+      }
+    } catch (error) {
+      console.error('Bulk delete error:', error)
+      showToast.error('❌ Error deleting bills')
     }
   }
 
@@ -200,6 +216,180 @@ Contact: ${storePhone}`
     // Open WhatsApp
     const whatsappUrl = `https://wa.me/${bill.customerPhone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(billMessage)}`
     window.open(whatsappUrl, '_blank')
+  }
+
+  const exportBills = async () => {
+    try {
+      showToast.success('Fetching all bills...')
+      const response = await fetch('/api/pos/sales?limit=999999')
+      if (!response.ok) {
+        showToast.error('Failed to fetch bills')
+        return
+      }
+      const result = await response.json()
+      const allBills = result.data || result || []
+
+      const csvData = allBills.map((bill: Bill) => ({
+        'Bill No': bill.billNo,
+        'Store Name': bill.storeName,
+        'Customer Name': bill.customerName,
+        'Customer Phone': bill.customerPhone || '',
+        'Date': new Date(bill.createdAt).toLocaleDateString('en-IN'),
+        'Time': new Date(bill.createdAt).toLocaleTimeString('en-IN'),
+        'Items': bill.items.map(item => `${item.name} (Qty: ${item.quantity}, Price: ${item.price}, Total: ${item.total})`).join(' | '),
+        'Subtotal': bill.subtotal,
+        'Discount': bill.discountAmount,
+        'Tax': bill.tax,
+        'Total': bill.total,
+        'Payment Method': bill.paymentMethod,
+        'Cashier': bill.cashier,
+        'Store Address': bill.address,
+        'Store Phone': bill.phone,
+        'Store Email': bill.email,
+        'GST': bill.gst,
+        'Terms': bill.terms
+      }))
+
+      const headers = Object.keys(csvData[0] || {})
+      const csv = [
+        headers.join(','),
+        ...csvData.map((row: any) => headers.map(header => {
+          const value = row[header]
+          return `"${String(value).replace(/"/g, '""')}"`
+        }).join(','))
+      ].join('\n')
+
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bills-export-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      showToast.success(`${allBills.length} bills exported successfully!`)
+    } catch (error) {
+      console.error('Export error:', error)
+      showToast.error('Failed to export bills')
+    }
+  }
+
+  const importBills = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const csv = event.target?.result as string
+        const lines = csv.split('\n').filter(line => line.trim())
+        if (lines.length < 2) {
+          showToast.error('CSV file is empty')
+          return
+        }
+
+        // Parse CSV properly handling quoted fields
+        const parseCSVLine = (line: string): string[] => {
+          const result: string[] = []
+          let current = ''
+          let inQuotes = false
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i]
+            const nextChar = line[i + 1]
+            
+            if (char === '"' && nextChar === '"') {
+              current += '"'
+              i++
+            } else if (char === '"') {
+              inQuotes = !inQuotes
+            } else if (char === ',' && !inQuotes) {
+              result.push(current)
+              current = ''
+            } else {
+              current += char
+            }
+          }
+          result.push(current)
+          return result
+        }
+
+        const headers = parseCSVLine(lines[0])
+        const importedBills = []
+
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i])
+          
+          if (values.length < headers.length) continue
+
+          const row: any = {}
+          headers.forEach((header, index) => {
+            row[header] = values[index] || ''
+          })
+
+          // Skip if Bill No is empty or invalid
+          if (!row['Bill No'] || row['Bill No'].trim() === '') continue
+
+          const items = row['Items'] ? row['Items'].split(' | ').map((itemStr: string) => {
+            const match = itemStr.match(/(.+?)\s*\(Qty:\s*(\d+),\s*Price:\s*([\d.]+),\s*Total:\s*([\d.]+)\)/)
+            if (match) {
+              return {
+                name: match[1].trim(),
+                quantity: parseInt(match[2]),
+                price: parseFloat(match[3]),
+                total: parseFloat(match[4])
+              }
+            }
+            return null
+          }).filter(Boolean) : []
+
+          importedBills.push({
+            billNo: row['Bill No'],
+            storeName: row['Store Name'] || 'Store',
+            customerName: row['Customer Name'] || 'Walk-in Customer',
+            customerPhone: row['Customer Phone'] || null,
+            items: items,
+            subtotal: parseFloat(row['Subtotal']) || 0,
+            discount: 0,
+            discountAmount: parseFloat(row['Discount']) || 0,
+            tax: parseFloat(row['Tax']) || 0,
+            total: parseFloat(row['Total']) || 0,
+            paymentMethod: row['Payment Method'] || 'cash',
+            cashier: row['Cashier'] || 'Admin',
+            address: row['Store Address'] || '',
+            phone: row['Store Phone'] || '',
+            email: row['Store Email'] || '',
+            gst: row['GST'] || '',
+            terms: row['Terms'] || ''
+          })
+        }
+
+        if (importedBills.length === 0) {
+          showToast.error('No valid bills found in CSV')
+          return
+        }
+
+        const response = await fetch('/api/pos/sales/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bills: importedBills })
+        })
+
+        if (response.ok) {
+          showToast.success(`${importedBills.length} bills imported successfully!`)
+          fetchBills(currentPage)
+        } else {
+          const error = await response.json()
+          showToast.error(error.error || 'Failed to import bills')
+        }
+      } catch (error) {
+        console.error('Import error:', error)
+        showToast.error('Error importing bills')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
   }
 
   const generateBillPDF = (bill: Bill) => {
@@ -296,15 +486,53 @@ Contact: ${storePhone}`
                 <Receipt className="w-5 h-5" />
                 <span>{t('allBills')} ({bills.length})</span>
               </CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder={t('searchBillsPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                  autoComplete="off"
+              <div className="flex items-center space-x-2">
+                {selectedBills.length > 0 && (
+                  <Button 
+                    onClick={() => {
+                      setBillToDelete(null)
+                      setIsPasswordModalOpen(true)
+                    }} 
+                    variant="destructive" 
+                    size="sm"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedBills.length})
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => setIsClearAllModalOpen(true)}
+                  variant="destructive"
+                  size="sm"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+                <Button onClick={exportBills} variant="outline" size="sm">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button onClick={() => document.getElementById('import-bills')?.click()} variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-2" />
+                  Import
+                </Button>
+                <input
+                  id="import-bills"
+                  type="file"
+                  accept=".csv"
+                  onChange={importBills}
+                  className="hidden"
                 />
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder={t('searchBillsPlaceholder')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-64"
+                    autoComplete="off"
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -312,6 +540,20 @@ Contact: ${storePhone}`
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="text-center w-12">
+                    <input
+                      type="checkbox"
+                      checked={selectedBills.length === filteredBills.length && filteredBills.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedBills(filteredBills.map(b => (b as any)._id || b.id))
+                        } else {
+                          setSelectedBills([])
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </TableHead>
                   <TableHead className="text-center">{t('billNo')}</TableHead>
                   <TableHead className="text-center">{t('customer')}</TableHead>
                   <TableHead className="text-center">{t('items')}</TableHead>
@@ -322,8 +564,24 @@ Contact: ${storePhone}`
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBills.map((bill) => (
+                {filteredBills.map((bill) => {
+                  const billId = (bill as any)._id || bill.id
+                  return (
                   <TableRow key={bill.id}>
+                    <TableCell className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedBills.includes(billId)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedBills([...selectedBills, billId])
+                          } else {
+                            setSelectedBills(selectedBills.filter(id => id !== billId))
+                          }
+                        }}
+                        className="cursor-pointer"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium text-center">{bill.billNo}</TableCell>
                     <TableCell className="text-center">
                       <div>
@@ -506,7 +764,8 @@ startxref
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
             
@@ -562,6 +821,73 @@ startxref
           </CardContent>
         </Card>
 
+        {/* Clear All Confirmation Modal */}
+        <Dialog open={isClearAllModalOpen} onOpenChange={setIsClearAllModalOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Trash2 className="w-5 h-5 text-red-500" />
+                <span>Clear All Bills</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Enter password to delete <strong>ALL bills</strong>. This action cannot be undone!
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="clearAllPassword">{t('password')}</Label>
+                <Input
+                  id="clearAllPassword"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('enterPassword')}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setIsClearAllModalOpen(false)
+                    setPassword('')
+                  }}
+                >
+                  {t('cancel')}
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={async () => {
+                    const correctPassword = settings.deletePassword || 'admin123'
+                    if (password !== correctPassword) {
+                      showToast.error('❌ Incorrect password!')
+                      return
+                    }
+                    try {
+                      const response = await fetch('/api/pos/sales/clear', { method: 'DELETE' })
+                      if (response.ok) {
+                        setIsClearAllModalOpen(false)
+                        setPassword('')
+                        showToast.success('✅ All bills deleted successfully!')
+                        fetchBills(1)
+                        setSelectedBills([])
+                      } else {
+                        showToast.error('❌ Failed to clear bills')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error clearing bills')
+                    }
+                  }}
+                >
+                  Delete All
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Password Modal */}
         <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
           <DialogContent className="max-w-sm">
@@ -573,7 +899,11 @@ startxref
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {t('enterPasswordToDelete')} <strong>{billToDelete?.billNo}</strong>
+                {billToDelete ? (
+                  <>{t('enterPasswordToDelete')} <strong>{billToDelete.billNo}</strong></>
+                ) : (
+                  <>Enter password to delete <strong>{selectedBills.length} bills</strong></>
+                )}
               </p>
               <div className="space-y-2">
                 <Label htmlFor="deletePassword">{t('password')}</Label>
@@ -602,6 +932,7 @@ startxref
                     setIsPasswordModalOpen(false)
                     setPassword('')
                     setBillToDelete(null)
+                    setSelectedBills([])
                   }}
                 >
                   {t('cancel')}
@@ -609,7 +940,13 @@ startxref
                 <Button 
                   variant="destructive" 
                   className="flex-1"
-                  onClick={handleDeleteBill}
+                  onClick={() => {
+                    if (billToDelete) {
+                      handleDeleteBill()
+                    } else if (selectedBills.length > 0) {
+                      handleBulkDelete()
+                    }
+                  }}
                 >
                   {t('delete')}
                 </Button>

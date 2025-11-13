@@ -18,6 +18,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Search,
   Plus,
@@ -33,6 +34,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  X,
 } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { showToast } from "@/lib/toast"
@@ -68,6 +70,10 @@ export default function HRPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null)
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     employeeId: '',
@@ -111,8 +117,7 @@ export default function HRPage() {
         body: JSON.stringify({
           ...formData,
           salary: parseFloat(formData.salary) || 0,
-          commissionRate: parseFloat(formData.commissionRate) || 0,
-          salesTarget: parseFloat(formData.salesTarget) || 0
+          commissionRate: parseFloat(formData.commissionRate) || 0
         })
       })
       
@@ -139,8 +144,7 @@ export default function HRPage() {
         body: JSON.stringify({
           ...formData,
           salary: parseFloat(formData.salary) || 0,
-          commissionRate: parseFloat(formData.commissionRate) || 0,
-          salesTarget: parseFloat(formData.salesTarget) || 0
+          commissionRate: parseFloat(formData.commissionRate) || 0
         })
       })
       
@@ -314,7 +318,73 @@ export default function HRPage() {
                 <CardTitle>{t('employeeDirectory')}</CardTitle>
                 <CardDescription>{t('manageHRRecords')}</CardDescription>
               </div>
-              <div className="flex space-x-2">              
+              <div className="flex flex-wrap gap-2">
+                {selectedEmployees.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedEmployees.length})
+                  </Button>
+                )}
+                {selectedEmployees.length === 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsClearAllOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const response = await fetch('/api/employees/export')
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      const url = window.URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `employees_${new Date().toISOString().split('T')[0]}.csv`
+                      a.click()
+                      showToast.success('✅ Employees exported successfully!')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Failed to export employees')
+                  }
+                }}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('employeeImportInput')?.click()} disabled={isImporting}>
+                  <Download className="w-4 h-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import'}
+                </Button>
+                <input
+                  id="employeeImportInput"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setIsImporting(true)
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const response = await fetch('/api/employees/import', {
+                        method: 'POST',
+                        body: formData
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        showToast.success(`✅ Imported ${result.imported} employees successfully!`)
+                        fetchEmployees()
+                      } else {
+                        showToast.error(result.error || '❌ Failed to import employees')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error importing employees')
+                    } finally {
+                      setIsImporting(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button>
@@ -589,6 +659,83 @@ export default function HRPage() {
                   </DialogContent>
                 </Dialog>
                 
+                {/* Bulk Delete Dialog */}
+                <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete Selected Employees</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to delete {selectedEmployees.length} employees? This action cannot be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button variant="outline" onClick={() => {
+                        setIsBulkDeleteOpen(false)
+                        setSelectedEmployees([])
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={async () => {
+                          try {
+                            await Promise.all(
+                              selectedEmployees.map(id => 
+                                fetch(`/api/employees/${id}`, { method: 'DELETE' })
+                              )
+                            )
+                            showToast.success(`✅ Deleted ${selectedEmployees.length} employees`)
+                            setSelectedEmployees([])
+                            fetchEmployees()
+                          } catch (error) {
+                            showToast.error('❌ Failed to delete employees')
+                          }
+                          setIsBulkDeleteOpen(false)
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Clear All Dialog */}
+                <Dialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center space-x-2">
+                        <Trash2 className="w-5 h-5 text-red-500" />
+                        <span>Clear All Employees</span>
+                      </DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to delete <strong>ALL employees</strong>? This action cannot be undone!
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button variant="outline" onClick={() => setIsClearAllOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={async () => {
+                        try {
+                          const response = await fetch('/api/employees/clear', { method: 'DELETE' })
+                          if (response.ok) {
+                            showToast.success('✅ All employees deleted!')
+                            setSelectedEmployees([])
+                            fetchEmployees()
+                          } else {
+                            showToast.error('❌ Failed to clear employees')
+                          }
+                        } catch (error) {
+                          showToast.error('❌ Error clearing employees')
+                        }
+                        setIsClearAllOpen(false)
+                      }}>
+                        Delete All
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 {/* Delete Confirmation Dialog */}
                 <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                   <DialogContent>
@@ -656,6 +803,18 @@ export default function HRPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedEmployees(filteredEmployees.map(e => e._id || ''))
+                            } else {
+                              setSelectedEmployees([])
+                            }
+                          }}
+                        />
+                      </TableHead>
                       <TableHead className="text-center">{t('employee')}</TableHead>
                       <TableHead className="text-center">{t('id')}</TableHead>
                       <TableHead className="text-center">{t('contact')}</TableHead>
@@ -668,6 +827,18 @@ export default function HRPage() {
                   <TableBody>
                     {filteredEmployees.map((employee) => (
                       <TableRow key={employee._id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedEmployees.includes(employee._id || '')}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedEmployees([...selectedEmployees, employee._id || ''])
+                              } else {
+                                setSelectedEmployees(selectedEmployees.filter(id => id !== employee._id))
+                              }
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="text-center">
                           <div>
                             <div className="font-medium">{employee.name}</div>

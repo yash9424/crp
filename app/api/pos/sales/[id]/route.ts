@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTenantCollection } from '@/lib/tenant-data'
+import { connectDB } from '@/lib/database'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { ObjectId } from 'mongodb'
@@ -15,7 +15,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const salesCollection = await getTenantCollection(session.user.tenantId, 'sales')
+    const db = await connectDB()
+    const salesCollection = db.collection(`sales_${session.user.tenantId}`)
+    
     const result = await salesCollection.deleteOne({ _id: new ObjectId(params.id) })
     
     if (result.deletedCount === 0) {
@@ -24,6 +26,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Sale deleted successfully' })
   } catch (error) {
+    console.error('Delete error:', error)
     return NextResponse.json({ error: 'Failed to delete sale' }, { status: 500 })
   }
 }

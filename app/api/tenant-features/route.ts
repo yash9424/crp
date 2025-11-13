@@ -9,11 +9,22 @@ import { ObjectId } from 'mongodb'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    console.log('Session in tenant-features API:', session)
+    console.log('Session in tenant-features API:', JSON.stringify(session, null, 2))
     
-    if (!session?.user?.tenantId) {
-      console.log('No tenantId in session')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user) {
+      console.log('No user in session')
+      return NextResponse.json({ 
+        allowedFeatures: ['dashboard'],
+        businessType: 'none'
+      })
+    }
+    
+    if (!session.user.tenantId) {
+      console.log('No tenantId in session, user role:', session.user.role)
+      return NextResponse.json({ 
+        allowedFeatures: ['dashboard'],
+        businessType: 'none'
+      })
     }
     
     console.log('Getting features for tenantId:', session.user.tenantId)
@@ -34,8 +45,12 @@ export async function GET(request: NextRequest) {
     console.log('Returning features and business type:', { allowedFeatures, businessType })
     
     return NextResponse.json({ allowedFeatures, businessType })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching tenant features:', error)
-    return NextResponse.json({ error: 'Failed to fetch features' }, { status: 500 })
+    console.error('Error stack:', error?.stack)
+    return NextResponse.json({ 
+      error: 'Failed to fetch features',
+      details: error?.message || 'Unknown error'
+    }, { status: 500 })
   }
 }

@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, Plus, Edit, Trash2, Package, Truck, DollarSign, Clock, Check } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Search, Plus, Edit, Trash2, Package, Truck, DollarSign, Clock, Check, Download, Upload, X } from "lucide-react"
 import { showToast, confirmDelete } from "@/lib/toast"
 import { useLanguage } from "@/lib/language-context"
 
@@ -48,6 +49,10 @@ export default function PurchasesPage() {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null)
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null)
   const [purchaseToComplete, setPurchaseToComplete] = useState<Purchase | null>(null)
+  const [selectedPurchases, setSelectedPurchases] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   const [dropdownData, setDropdownData] = useState({
     categories: [],
     sizes: [],
@@ -397,12 +402,79 @@ export default function PurchasesPage() {
         {/* Purchase Management */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <CardTitle>{t('purchaseOrders')}</CardTitle>
                 <CardDescription>{t('managePurchaseOrders')}</CardDescription>
               </div>
-              <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+              <div className="flex flex-wrap gap-2">
+                {selectedPurchases.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedPurchases.length})
+                  </Button>
+                )}
+                {selectedPurchases.length === 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsClearAllOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const response = await fetch('/api/purchases/export')
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      const url = window.URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `purchases_${new Date().toISOString().split('T')[0]}.csv`
+                      a.click()
+                      showToast.success('✅ Purchases exported successfully!')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Failed to export purchases')
+                  }
+                }}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('purchaseImportInput')?.click()} disabled={isImporting}>
+                  <Download className="w-4 h-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import'}
+                </Button>
+                <input
+                  id="purchaseImportInput"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setIsImporting(true)
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const response = await fetch('/api/purchases/import', {
+                        method: 'POST',
+                        body: formData
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        showToast.success(`✅ Imported ${result.imported} purchases successfully!`)
+                        fetchPurchases(1)
+                      } else {
+                        showToast.error(result.error || '❌ Failed to import purchases')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error importing purchases')
+                    } finally {
+                      setIsImporting(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
                 setIsCreateDialogOpen(open)
                 if (open) {
                   fetchInventoryItems() // Refresh inventory when dialog opens
@@ -596,6 +668,10 @@ export default function PurchasesPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
 
               {/* Edit Purchase Dialog */}
               <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
@@ -759,6 +835,83 @@ export default function PurchasesPage() {
                 </DialogContent>
               </Dialog>
 
+              {/* Bulk Delete Dialog */}
+              <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Selected Purchases</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete {selectedPurchases.length} purchase orders? This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => {
+                      setIsBulkDeleteOpen(false)
+                      setSelectedPurchases([])
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={async () => {
+                        try {
+                          await Promise.all(
+                            selectedPurchases.map(id => 
+                              fetch(`/api/purchases/${id}`, { method: 'DELETE' })
+                            )
+                          )
+                          showToast.success(`✅ Deleted ${selectedPurchases.length} purchases`)
+                          setSelectedPurchases([])
+                          fetchPurchases(currentPage)
+                        } catch (error) {
+                          showToast.error('❌ Failed to delete purchases')
+                        }
+                        setIsBulkDeleteOpen(false)
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Clear All Dialog */}
+              <Dialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center space-x-2">
+                      <Trash2 className="w-5 h-5 text-red-500" />
+                      <span>Clear All Purchases</span>
+                    </DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete <strong>ALL purchase orders</strong>? This action cannot be undone!
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button variant="outline" onClick={() => setIsClearAllOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={async () => {
+                      try {
+                        const response = await fetch('/api/purchases/clear', { method: 'DELETE' })
+                        if (response.ok) {
+                          showToast.success('✅ All purchases deleted!')
+                          setSelectedPurchases([])
+                          fetchPurchases(1)
+                        } else {
+                          showToast.error('❌ Failed to clear purchases')
+                        }
+                      } catch (error) {
+                        showToast.error('❌ Error clearing purchases')
+                      }
+                      setIsClearAllOpen(false)
+                    }}>
+                      Delete All
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {/* Complete Confirmation Dialog */}
               <Dialog open={isCompleteDialogOpen} onOpenChange={setIsCompleteDialogOpen}>
                 <DialogContent>
@@ -781,9 +934,7 @@ export default function PurchasesPage() {
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
+
             <div className="flex items-center space-x-4 mb-6">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -800,6 +951,18 @@ export default function PurchasesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedPurchases.length === filteredPurchases.length && filteredPurchases.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedPurchases(filteredPurchases.map(p => p.id))
+                          } else {
+                            setSelectedPurchases([])
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="text-center">{t('orderId')}</TableHead>
                     <TableHead className="text-center">{t('supplier')}</TableHead>
                     <TableHead className="text-center">{t('items')}</TableHead>
@@ -812,6 +975,18 @@ export default function PurchasesPage() {
                 <TableBody>
                   {filteredPurchases.map((purchase) => (
                     <TableRow key={purchase.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedPurchases.includes(purchase.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedPurchases([...selectedPurchases, purchase.id])
+                            } else {
+                              setSelectedPurchases(selectedPurchases.filter(id => id !== purchase.id))
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-center">{purchase.poNumber}</TableCell>
                       <TableCell className="text-center">
                         <div>

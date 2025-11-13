@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Download, Calculator, Users } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Search, Download, Calculator, Users, Upload, Trash2, X } from "lucide-react"
 import { FeatureGuard } from "@/components/feature-guard"
 import { useLanguage } from "@/lib/language-context"
+import { showToast } from "@/lib/toast"
 
 interface SalaryData {
   employeeId: string
@@ -27,6 +30,10 @@ export default function SalaryPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedSalaries, setSelectedSalaries] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const calculateSalary = async () => {
     try {
@@ -191,8 +198,80 @@ export default function SalaryPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('salaryCalculation')}</CardTitle>
-            <CardDescription>{t('monthlySalaryWithDeductions')}</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{t('salaryCalculation')}</CardTitle>
+                <CardDescription>{t('monthlySalaryWithDeductions')}</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedSalaries.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedSalaries.length})
+                  </Button>
+                )}
+                {selectedSalaries.length === 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => setIsClearAllOpen(true)}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear All
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={async () => {
+                  try {
+                    const response = await fetch('/api/salary/export')
+                    if (response.ok) {
+                      const blob = await response.blob()
+                      const url = window.URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = `salary_${new Date().toISOString().split('T')[0]}.csv`
+                      a.click()
+                      showToast.success('✅ Salary data exported successfully!')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Failed to export salary data')
+                  }
+                }}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => document.getElementById('salaryImportInput')?.click()} disabled={isImporting}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isImporting ? 'Importing...' : 'Import'}
+                </Button>
+                <input
+                  id="salaryImportInput"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setIsImporting(true)
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const response = await fetch('/api/salary/import', {
+                        method: 'POST',
+                        body: formData
+                      })
+                      const result = await response.json()
+                      if (response.ok) {
+                        showToast.success(`✅ Imported ${result.imported} salary records successfully!`)
+                        calculateSalary()
+                      } else {
+                        showToast.error(result.error || '❌ Failed to import salary data')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error importing salary data')
+                    } finally {
+                      setIsImporting(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4 mb-6">
@@ -223,6 +302,18 @@ export default function SalaryPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedSalaries.length === filteredSalaryData.length && filteredSalaryData.length > 0}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSalaries(filteredSalaryData.map(s => s.employeeId))
+                          } else {
+                            setSelectedSalaries([])
+                          }
+                        }}
+                      />
+                    </TableHead>
                     <TableHead className="text-center">{t('employee')}</TableHead>
                     <TableHead className="text-center">{t('baseSalary')}</TableHead>
                     <TableHead className="text-center">{t('workingDays')}</TableHead>
@@ -234,6 +325,18 @@ export default function SalaryPage() {
                 <TableBody>
                   {filteredSalaryData.map((salary) => (
                     <TableRow key={salary.employeeId}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedSalaries.includes(salary.employeeId)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedSalaries([...selectedSalaries, salary.employeeId])
+                            } else {
+                              setSelectedSalaries(selectedSalaries.filter(id => id !== salary.employeeId))
+                            }
+                          }}
+                        />
+                      </TableCell>
                       <TableCell className="text-center">
                         <div>
                           <div className="font-medium">{salary.employeeName}</div>
@@ -257,6 +360,85 @@ export default function SalaryPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Selected Salary Records</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete {selectedSalaries.length} salary records? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => {
+                setIsBulkDeleteOpen(false)
+                setSelectedSalaries([])
+              }}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/salary/bulk-delete', {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ employeeIds: selectedSalaries })
+                    })
+                    if (response.ok) {
+                      showToast.success(`✅ Deleted ${selectedSalaries.length} salary records`)
+                      setSelectedSalaries([])
+                      calculateSalary()
+                    } else {
+                      showToast.error('❌ Failed to delete salary records')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Failed to delete salary records')
+                  }
+                  setIsBulkDeleteOpen(false)
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                <Trash2 className="w-5 h-5 text-red-500" />
+                <span>Clear All Salary Records</span>
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete <strong>ALL salary records</strong>? This action cannot be undone!
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsClearAllOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={async () => {
+                try {
+                  const response = await fetch('/api/salary/clear', { method: 'DELETE' })
+                  if (response.ok) {
+                    showToast.success('✅ All salary records cleared!')
+                    setSelectedSalaries([])
+                    calculateSalary()
+                  } else {
+                    showToast.error('❌ Failed to clear salary records')
+                  }
+                } catch (error) {
+                  showToast.error('❌ Error clearing salary records')
+                }
+                setIsClearAllOpen(false)
+              }}>
+                Delete All
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       </FeatureGuard>
     </MainLayout>

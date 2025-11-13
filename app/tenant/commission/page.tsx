@@ -7,7 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calculator, TrendingUp, Users, DollarSign, Target } from "lucide-react"
+import { Calculator, TrendingUp, Users, DollarSign, Target, Download, Upload, Trash2, X } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { showToast } from "@/lib/toast"
 import { FeatureGuard } from "@/components/feature-guard"
 import { useLanguage } from "@/lib/language-context"
 
@@ -36,6 +45,10 @@ export default function CommissionPage() {
   const [commissionData, setCommissionData] = useState<CommissionData[]>([])
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
   const [loading, setLoading] = useState(true)
+  const [selectedCommissions, setSelectedCommissions] = useState<string[]>([])
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false)
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
 
   const fetchEmployees = async () => {
     try {
@@ -169,7 +182,73 @@ export default function CommissionPage() {
                   <CardTitle>{t('commissionCalculation')}</CardTitle>
                   <CardDescription>{t('calculateStaffCommissions')}</CardDescription>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap gap-2">
+                  {selectedCommissions.length > 0 && (
+                    <Button variant="destructive" size="sm" onClick={() => setIsBulkDeleteOpen(true)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete ({selectedCommissions.length})
+                    </Button>
+                  )}
+                  {selectedCommissions.length === 0 && (
+                    <Button variant="destructive" size="sm" onClick={() => setIsClearAllOpen(true)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clear All
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/commission/export?month=${selectedMonth}`)
+                      if (response.ok) {
+                        const blob = await response.blob()
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `commissions_${selectedMonth}.csv`
+                        a.click()
+                        showToast.success('✅ Commissions exported successfully!')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Failed to export commissions')
+                    }
+                  }}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => document.getElementById('commissionImportInput')?.click()} disabled={isImporting}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {isImporting ? 'Importing...' : 'Import'}
+                  </Button>
+                  <input
+                    id="commissionImportInput"
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setIsImporting(true)
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      try {
+                        const response = await fetch('/api/commission/import', {
+                          method: 'POST',
+                          body: formData
+                        })
+                        const result = await response.json()
+                        if (response.ok) {
+                          showToast.success(`✅ Imported ${result.imported} commission records successfully!`)
+                          calculateCommissions()
+                        } else {
+                          showToast.error(result.error || '❌ Failed to import commissions')
+                        }
+                      } catch (error) {
+                        showToast.error('❌ Error importing commissions')
+                      } finally {
+                        setIsImporting(false)
+                        e.target.value = ''
+                      }
+                    }}
+                  />
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                     <SelectTrigger className="w-48">
                       <SelectValue />
@@ -209,6 +288,18 @@ export default function CommissionPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedCommissions.length === commissionData.length && commissionData.length > 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedCommissions(commissionData.map(c => c.employeeId))
+                              } else {
+                                setSelectedCommissions([])
+                              }
+                            }}
+                          />
+                        </TableHead>
                         <TableHead className="text-center">{t('employee')}</TableHead>
                         <TableHead className="text-center">{t('commissionType')}</TableHead>
                         <TableHead className="text-center">{t('salesMade')}</TableHead>
@@ -220,6 +311,18 @@ export default function CommissionPage() {
                     <TableBody>
                       {commissionData.map((emp) => (
                         <TableRow key={emp.employeeId}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedCommissions.includes(emp.employeeId)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedCommissions([...selectedCommissions, emp.employeeId])
+                                } else {
+                                  setSelectedCommissions(selectedCommissions.filter(id => id !== emp.employeeId))
+                                }
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="text-center">
                             <div>
                               <div className="font-medium">{emp.employeeName}</div>
@@ -250,6 +353,87 @@ export default function CommissionPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Bulk Delete Dialog */}
+          <Dialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Selected Commission Records</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete {selectedCommissions.length} commission records? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => {
+                  setIsBulkDeleteOpen(false)
+                  setSelectedCommissions([])
+                }}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/commission/bulk-delete', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ employeeIds: selectedCommissions })
+                      })
+                      if (response.ok) {
+                        showToast.success(`✅ Deleted ${selectedCommissions.length} commission records`)
+                        setSelectedCommissions([])
+                        calculateCommissions()
+                      } else {
+                        showToast.error('❌ Failed to delete commission records')
+                      }
+                    } catch (error) {
+                      showToast.error('❌ Error deleting commission records')
+                    }
+                    setIsBulkDeleteOpen(false)
+                  }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Clear All Dialog */}
+          <Dialog open={isClearAllOpen} onOpenChange={setIsClearAllOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                  <span>Clear All Commission Data</span>
+                </DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete <strong>ALL commission data</strong>? This action cannot be undone!
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setIsClearAllOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={async () => {
+                  try {
+                    const response = await fetch('/api/commission/clear', { method: 'DELETE' })
+                    if (response.ok) {
+                      showToast.success('✅ All commission data cleared!')
+                      setSelectedCommissions([])
+                      calculateCommissions()
+                    } else {
+                      showToast.error('❌ Failed to clear commission data')
+                    }
+                  } catch (error) {
+                    showToast.error('❌ Error clearing commission data')
+                  }
+                  setIsClearAllOpen(false)
+                }}>
+                  Delete All
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </FeatureGuard>
     </MainLayout>
