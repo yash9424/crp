@@ -684,7 +684,7 @@ export default function InventoryPage() {
                   variant="outline"
                   onClick={() => window.open('/api/inventory/export', '_blank')}
                 >
-                  
+                
                   <Upload className="w-4 h-4 mr-2" />
                   {t('exportCSV')}
                 </Button>
