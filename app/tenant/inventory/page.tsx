@@ -127,6 +127,8 @@ export default function InventoryPage() {
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 20
   const { storeName, tenantId } = useStore()
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
 
   const fetchInventory = async (page = 1) => {
     try {
@@ -691,6 +693,15 @@ export default function InventoryPage() {
                 
                 <BulkBarcodePrint products={inventory} />
 
+                {selectedItems.length > 0 && (
+                  <Button 
+                    variant="destructive"
+                    onClick={() => setIsBulkDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete ({selectedItems.length})
+                  </Button>
+                )}
                 <Button 
                   variant="destructive"
                   onClick={async () => {
@@ -799,6 +810,38 @@ export default function InventoryPage() {
                     </div>
                   </DialogContent>
                 </Dialog>
+
+                <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete Selected Products</DialogTitle>
+                      <DialogDescription>
+                        Are you sure you want to delete {selectedItems.length} selected products? This action cannot be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button variant="outline" onClick={() => setIsBulkDeleteDialogOpen(false)}>
+                        {t('cancel')}
+                      </Button>
+                      <Button variant="destructive" onClick={async () => {
+                        try {
+                          await Promise.all(selectedItems.map(id => 
+                            fetch(`/api/inventory/${id}`, { method: 'DELETE' })
+                          ))
+                          showToast.success(`${selectedItems.length} products deleted!`)
+                          setSelectedItems([])
+                          setIsBulkDeleteDialogOpen(false)
+                          const inventoryData = await fetchInventory()
+                          setInventory(inventoryData)
+                        } catch (error) {
+                          showToast.error('Error deleting products')
+                        }
+                      }}>
+                        {t('delete')}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </CardHeader>
@@ -861,6 +904,20 @@ export default function InventoryPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="text-center w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.length === paginatedInventory.length && paginatedInventory.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedItems(paginatedInventory.map(item => item.id))
+                            } else {
+                              setSelectedItems([])
+                            }
+                          }}
+                          className="cursor-pointer"
+                        />
+                      </TableHead>
                       <TableHead className="text-center w-16">Sr. No.</TableHead>
                       {tenantFields.length > 0 ? (
                         <>
@@ -884,6 +941,20 @@ export default function InventoryPage() {
                   <TableBody>
                     {paginatedInventory.map((item, index) => (
                       <TableRow key={item.id}>
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedItems([...selectedItems, item.id])
+                              } else {
+                                setSelectedItems(selectedItems.filter(id => id !== item.id))
+                              }
+                            }}
+                            className="cursor-pointer"
+                          />
+                        </TableCell>
                         <TableCell className="text-center font-medium">
                           {((currentPage - 1) * itemsPerPage) + index + 1}
                         </TableCell>

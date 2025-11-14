@@ -300,6 +300,7 @@ export default function CommissionPage() {
                             }}
                           />
                         </TableHead>
+                        <TableHead className="text-center w-16">Sr. No.</TableHead>
                         <TableHead className="text-center">{t('employee')}</TableHead>
                         <TableHead className="text-center">{t('commissionType')}</TableHead>
                         <TableHead className="text-center">{t('salesMade')}</TableHead>
@@ -309,7 +310,7 @@ export default function CommissionPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {commissionData.map((emp) => (
+                      {commissionData.map((emp, index) => (
                         <TableRow key={emp.employeeId}>
                           <TableCell>
                             <Checkbox
@@ -323,6 +324,7 @@ export default function CommissionPage() {
                               }}
                             />
                           </TableCell>
+                          <TableCell className="text-center">{index + 1}</TableCell>
                           <TableCell className="text-center">
                             <div>
                               <div className="font-medium">{emp.employeeName}</div>

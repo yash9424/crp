@@ -84,6 +84,11 @@ export async function POST(request: NextRequest) {
         item.sku = `SKU-${Date.now()}-${i}`
       }
       
+      // Generate barcode if not provided
+      if (!item.barcode) {
+        item.barcode = `${Date.now()}${i.toString().padStart(4, '0')}`
+      }
+      
       items.push(item)
     }
     

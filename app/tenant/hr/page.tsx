@@ -815,6 +815,7 @@ export default function HRPage() {
                           }}
                         />
                       </TableHead>
+                      <TableHead className="text-center w-16">Sr. No.</TableHead>
                       <TableHead className="text-center">{t('employee')}</TableHead>
                       <TableHead className="text-center">{t('id')}</TableHead>
                       <TableHead className="text-center">{t('contact')}</TableHead>
@@ -825,7 +826,7 @@ export default function HRPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEmployees.map((employee) => (
+                    {filteredEmployees.map((employee, index) => (
                       <TableRow key={employee._id}>
                         <TableCell>
                           <Checkbox
@@ -838,6 +839,9 @@ export default function HRPage() {
                               }
                             }}
                           />
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {index + 1}
                         </TableCell>
                         <TableCell className="text-center">
                           <div>

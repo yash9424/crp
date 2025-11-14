@@ -554,6 +554,7 @@ Contact: ${storePhone}`
                       className="cursor-pointer"
                     />
                   </TableHead>
+                  <TableHead className="text-center w-16">Sr. No.</TableHead>
                   <TableHead className="text-center">{t('billNo')}</TableHead>
                   <TableHead className="text-center">{t('customer')}</TableHead>
                   <TableHead className="text-center">{t('items')}</TableHead>
@@ -564,7 +565,7 @@ Contact: ${storePhone}`
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBills.map((bill) => {
+                {filteredBills.map((bill, index) => {
                   const billId = (bill as any)._id || bill.id
                   return (
                   <TableRow key={bill.id}>
@@ -581,6 +582,9 @@ Contact: ${storePhone}`
                         }}
                         className="cursor-pointer"
                       />
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {((currentPage - 1) * itemsPerPage) + index + 1}
                     </TableCell>
                     <TableCell className="font-medium text-center">{bill.billNo}</TableCell>
                     <TableCell className="text-center">

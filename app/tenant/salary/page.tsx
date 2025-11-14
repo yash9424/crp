@@ -314,6 +314,7 @@ export default function SalaryPage() {
                         }}
                       />
                     </TableHead>
+                    <TableHead className="text-center w-16">Sr. No.</TableHead>
                     <TableHead className="text-center">{t('employee')}</TableHead>
                     <TableHead className="text-center">{t('baseSalary')}</TableHead>
                     <TableHead className="text-center">{t('workingDays')}</TableHead>
@@ -323,7 +324,7 @@ export default function SalaryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSalaryData.map((salary) => (
+                  {filteredSalaryData.map((salary, index) => (
                     <TableRow key={salary.employeeId}>
                       <TableCell>
                         <Checkbox
@@ -337,6 +338,7 @@ export default function SalaryPage() {
                           }}
                         />
                       </TableCell>
+                      <TableCell className="text-center">{index + 1}</TableCell>
                       <TableCell className="text-center">
                         <div>
                           <div className="font-medium">{salary.employeeName}</div>

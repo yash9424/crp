@@ -526,6 +526,7 @@ export default function LeavesPage() {
                           }}
                         />
                       </TableHead>
+                      <TableHead className="text-center w-16">Sr. No.</TableHead>
                       <TableHead className="text-center">{t('employee')}</TableHead>
                       <TableHead className="text-center">{t('leaveType')}</TableHead>
                       <TableHead className="text-center">{t('startDate')}</TableHead>
@@ -537,7 +538,7 @@ export default function LeavesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLeaves.map((leave) => (
+                    {filteredLeaves.map((leave, index) => (
                       <TableRow key={leave._id}>
                         <TableCell>
                           <Checkbox
@@ -551,6 +552,7 @@ export default function LeavesPage() {
                             }}
                           />
                         </TableCell>
+                        <TableCell className="text-center">{((currentPage - 1) * itemsPerPage) + index + 1}</TableCell>
                         <TableCell className="text-center font-medium">{leave.employeeName}</TableCell>
                         <TableCell className="text-center">{leave.leaveType}</TableCell>
                         <TableCell className="text-center">{leave.startDate}</TableCell>

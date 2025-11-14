@@ -220,11 +220,12 @@ export default function CustomersPage() {
                     showToast.error('❌ Failed to export customers')
                   }
                 }}>
-                  <Download className="w-4 h-4 mr-2" />
+                  <Upload className="w-4 h-4 mr-2" />
                   {t('export')}
                 </Button>
                 <Button variant="outline" onClick={() => document.getElementById('customerImportInput')?.click()} disabled={isImporting}>
-                  <Upload className="w-4 h-4 mr-2" />
+                  
+                  <Download className="w-4 h-4 mr-2" />
                   {isImporting ? 'Importing...' : 'Import'}
                 </Button>
                 <input
@@ -298,6 +299,7 @@ export default function CustomersPage() {
                         }}
                       />
                     </TableHead>
+                    <TableHead className="text-center w-16">Sr. No.</TableHead>
                     <TableHead className="text-center">{t('customer')}</TableHead>
                     <TableHead className="text-center">{t('contact')}</TableHead>
                     <TableHead className="text-center">{t('orders')}</TableHead>
@@ -308,7 +310,7 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCustomers.map((customer) => (
+                  {filteredCustomers.map((customer, index) => (
                     <TableRow key={customer.id}>
                       <TableCell>
                         <Checkbox
@@ -321,6 +323,9 @@ export default function CustomersPage() {
                             }
                           }}
                         />
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="font-medium">{customer.name}</div>

@@ -963,6 +963,7 @@ export default function PurchasesPage() {
                         }}
                       />
                     </TableHead>
+                    <TableHead className="text-center w-16">Sr. No.</TableHead>
                     <TableHead className="text-center">{t('orderId')}</TableHead>
                     <TableHead className="text-center">{t('supplier')}</TableHead>
                     <TableHead className="text-center">{t('items')}</TableHead>
@@ -973,7 +974,7 @@ export default function PurchasesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPurchases.map((purchase) => (
+                  {filteredPurchases.map((purchase, index) => (
                     <TableRow key={purchase.id}>
                       <TableCell>
                         <Checkbox
@@ -986,6 +987,9 @@ export default function PurchasesPage() {
                             }
                           }}
                         />
+                      </TableCell>
+                      <TableCell className="text-center font-medium">
+                        {((currentPage - 1) * itemsPerPage) + index + 1}
                       </TableCell>
                       <TableCell className="font-medium text-center">{purchase.poNumber}</TableCell>
                       <TableCell className="text-center">
